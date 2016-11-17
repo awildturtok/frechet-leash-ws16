@@ -1,4 +1,8 @@
 import numpy as np
+import plotly
+import plotly.plotly as py
+import plotly.graph_objs as go
+plotly.tools.set_credentials_file(username='janak93', api_key='1og1d5br6n')
 
 
 # Euclidean distance.
@@ -27,6 +31,14 @@ P and Q are arrays of 2-element arrays (points)
 def frechetDist(P,Q):
 	ca = np.ones((len(P),len(Q)))
 	ca = np.multiply(ca,-1)
-	return _c(ca,len(P)-1,len(Q)-1,P,Q)
+	frechetDistance= _c(ca,len(P)-1,len(Q)-1,P,Q)
+	
+	data = [
+		go.Heatmap(
+			z=ca
+		)
+	]
+	py.iplot(data, filename='basic-heatmap')
+	return frechetDistance , ca
 
 
