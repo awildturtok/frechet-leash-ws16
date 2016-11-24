@@ -14,7 +14,9 @@
 ##Aufgaben:
 ###Visualisierungen
 * Josephine, Jana, Alex T
+
 ###Ellipsen
 * Anton, Kilian
+
 ###Lexikographischer Frechet
 * Fabian
