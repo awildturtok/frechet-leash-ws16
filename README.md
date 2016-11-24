@@ -13,8 +13,8 @@
 
 ##Aufgaben:
 ###Visualisierungen
-    * Josephine, Jana, Alex T
+* Josephine, Jana, Alex T
 ###Ellipsen
-    * Anton, Kilian
+* Anton, Kilian
 ###Lexikographischer Frechet
-    * Fabian
+* Fabian
