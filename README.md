@@ -9,3 +9,12 @@
 * [ ] Höhenkarte
 * [ ] Heatmap
 * [ ] Ellipse in Zelle
+
+
+##Aufgaben:
+###Visualisierungen
+    * Josephine, Jana, Alex T
+###Ellipsen
+    * Anton, Kilian
+###Lexikographischer Frechet
+    * Fabian
