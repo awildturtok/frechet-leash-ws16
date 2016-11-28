@@ -1,13 +1,10 @@
 import numpy as np
-import plotly
-import plotly.plotly as py
-import plotly.graph_objs as go
-plotly.tools.set_credentials_file(username='janak93', api_key='1og1d5br6n')
+import numpy.linalg as linalg
 
 
 # Euclidean distance.
 def euc_dist(pt1,pt2):
-	return np.sqrt((pt2[0]-pt1[0])*(pt2[0]-pt1[0])+(pt2[1]-pt1[1])*(pt2[1]-pt1[1]))
+	return linalg.norm(pt1 - pt2)
 
 def _c(ca,i,j,P,Q):
 	if ca[i,j] > -1:
@@ -29,16 +26,15 @@ Algorithm: http://www.kr.tuwien.ac.at/staff/eiter/et-archive/cdtr9464.pdf
 P and Q are arrays of 2-element arrays (points)
 """
 def frechetDist(P,Q):
-	ca = np.ones((len(P),len(Q)))
-	ca = np.multiply(ca,-1)
+	ca = np.multiply(np.ones((len(P),len(Q))), -1)
+
 	frechetDistance= _c(ca,len(P)-1,len(Q)-1,P,Q)
 	
-	data = [
-		go.Heatmap(
-			z=ca
-		)
-	]
-	py.iplot(data, filename='basic-heatmap')
-	return frechetDistance , ca
+	return (frechetDistance , ca)
 
 
+_p = np.asarray([(1,0), (2,2), (-1,3), (2,4)])
+_q = np.asarray([(-3, 2), (-2,0), (0.5, 1)])
+
+
+frechet, dists = frechetDist(_p, _q)
