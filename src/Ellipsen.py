@@ -52,43 +52,41 @@ class S:
         self.p2 = p2
         self.d = p2-p1
         self.l = self.d.l()
-        if (p2.x-p1.x) != 0: self.m = (p2.y-p1.y)/(p2.x-p1.x)
-        else: self.m = float("inf")
-        self.n = p1.y-self.m*p1.x
+        if (p2.x-p1.x) != 0:
+            self.m = (p2.y-p1.y)/(p2.x-p1.x)
+            self.n = p1.y-self.m*p1.x
+        else:
+            self.m = float("inf")
+            self.n = p1.x
         
     def __str__(self):
         return str(self.p1)+"->"+str(self.p2)
-        
-    def move(self, dp):
-        self.p1.move(dp)
-        self.p2.move(dp)
         
     def fr(self, r):
         return self.p1+self.d*r
     
     def fx(self, x):
-        return self.m*x+self.n
+        if self.m != float("inf"): return self.m*x+self.n
+        else: return float("nan")
     
     def rx(self, x):
-        tmp = (self.p2.x-self.p1.x)
-        if tmp != 0: return (x-self.p1.x)/tmp
-        else: return 0
+        if self.m != float("inf"): return (x-self.p1.x)/(self.p2.x-self.p1.x)
+        else: return float("nan")
     
     def ry(self, y):
-        tmp = (self.p2.y-self.p1.y)
-        if tmp != 0: return (y-self.p1.y)/tmp
-        else: return 0
+        if self.m != 0: return (y-self.p1.y)/(self.p2.y-self.p1.y)
+        else: return float("nan")
 
 class D:
     def __init__(self, a, b):
         self.a = a
         self.b = b
         self.s = self.schnitt()
-        self.schneidenA = 0<=a.rx(self.s.x)<=1 and 0<=a.ry(self.s.y)<=1
-        self.schneidenB = 0<=b.rx(self.s.x)<=1 and 0<=a.ry(self.s.y)<=1
+        self.schneidenA = (a.m==float("inf") or 0<=a.rx(self.s.x)<=1) and (a.m==0 or 0<=a.ry(self.s.y)<=1)
+        self.schneidenB = (b.m==float("inf") or 0<=b.rx(self.s.x)<=1) and (a.m==0 or 0<=a.ry(self.s.y)<=1)
         self.schneiden = self.schneidenA and self.schneidenB
-        self.richtungA = a.rx(self.s.x)<=1 and a.ry(self.s.y)<=1
-        self.richtungB = b.rx(self.s.x)<=1 and b.ry(self.s.y)<=1
+        self.richtungA = (a.m==float("inf") or a.rx(self.s.x)<=1) and (a.m==0 or a.ry(self.s.y)<=1)
+        self.richtungB = (b.m==float("inf") or b.rx(self.s.x)<=1) and (b.m==0 or b.ry(self.s.y)<=1)
         self.w = math.atan(b.m-a.m)
         if self.schneiden:
             self.minl = 0
@@ -116,11 +114,6 @@ class D:
         else: x = float("nan")
         return P(x,self.a.fx(x))
     
-    def normieren(self):
-        self.a.move(self.s)
-        self.b.move(self.s)
-        #self.s = P(0.0,0.0)
-    
     def ellipse(self, l):
         return E(self, l)
 
@@ -129,56 +122,43 @@ class E:
         self.d = d
         self.l = l
     
-    def aus1(self, r):
+    def aus(self, v, r):
         l = self.l
         loa = self.d.loa
         lob = self.d.lob
         la = self.d.a.l
         lb = self.d.b.l
         w = self.d.w
-        if self.d.richtungA and self.d.richtungB:
-            tmp = lb**2*(la**2*r**2*math.cos(w)**2-la**2*r**2+2*la*loa*r*math.cos(w)**2-2*la*loa*r+l**2+loa**2*math.cos(w)**2-loa**2)
-            if tmp >= 0: return (math.sqrt(tmp)-la*lb*r*math.cos(w)-lb*lob-lb*loa*math.cos(w))/(lb**2)
-        if self.d.richtungA and not self.d.richtungB:
-            tmp = lb**2*(la**2*r**2*math.cos(w)**2-la**2*r**2+2*la*loa*r*math.cos(w)**2-2*la*loa*r+l**2+loa**2*math.cos(w)**2-loa**2)
-            if tmp >= 0: return (math.sqrt(tmp)+la*lb*r*math.cos(w)+lb**2+lb*lob+lb*loa*math.cos(w))/(lb**2)
-        if not self.d.richtungA and self.d.richtungB:
-            tmp = lb**2*(la**2*r**2*math.cos(w)**2+la**2*(-r)**2-2*la**2*r*math.cos(w)**2+2*la**2*r+la**2*math.cos(w)**2-la**2-2*la*loa*r*math.cos(w)**2+2*la*loa*r+2*la*loa*math.cos(w)**2-2*la*loa+l**2+loa**2*math.cos(w)**2-loa**2)
-            if tmp >= 0: return (math.sqrt(tmp)+la*lb*r*math.cos(w)-la*lb*math.cos(w)-lb*lob-lb*loa*math.cos(w))/(lb**2)
-        if not self.d.richtungA and not self.d.richtungB:
-            tmp = lb**2*(la**2*r**2*math.cos(w)**2+la**2*(-r)**2-2*la**2*r*math.cos(w)**2+2*la**2*r+la**2*math.cos(w)**2-la**2-2*la*loa*r*math.cos(w)**2+2*la*loa*r+2*la*loa*math.cos(w)**2-2*la*loa+l**2+loa**2*math.cos(w)**2-loa**2)
-            if tmp >= 0: return (math.sqrt(tmp)-la*lb*r*math.cos(w)+la*lb*math.cos(w)+lb**2+lb*loa+lb*loa*math.cos(w))/(lb**2)
-        return float("nan")
-    
-    def aus2(self, r):
-        l = self.l
-        loa = self.d.loa
-        lob = self.d.lob
-        la = self.d.a.l
-        lb = self.d.b.l
-        w = self.d.w
-        if self.d.richtungA and self.d.richtungB:
-            tmp = lb**2*(la**2*r**2*math.cos(w)**2-la**2*r**2+2*la*loa*r*math.cos(w)**2-2*la*loa*r+l**2+loa**2*math.cos(w)**2-loa**2)
-            if tmp >= 0: return (-math.sqrt(tmp)-la*lb*r*math.cos(w)-lb*lob-lb*loa*math.cos(w))/(lb**2)
-        if self.d.richtungA and not self.d.richtungB:
-            tmp = lb**2*(la**2*r**2*math.cos(w)**2-la**2*r**2+2*la*loa*r*math.cos(w)**2-2*la*loa*r+l**2+loa**2*math.cos(w)**2-loa**2)
-            if tmp >= 0: return (-math.sqrt(tmp)+la*lb*r*math.cos(w)+lb**2+lb*lob+lb*loa*math.cos(w))/(lb**2)
-        if not self.d.richtungA and self.d.richtungB:
-            tmp = lb**2*(la**2*r**2*math.cos(w)**2+la**2*(-r)**2-2*la**2*r*math.cos(w)**2+2*la**2*r+la**2*math.cos(w)**2-la**2-2*la*loa*r*math.cos(w)**2+2*la*loa*r+2*la*loa*math.cos(w)**2-2*la*loa+l**2+loa**2*math.cos(w)**2-loa**2)
-            if tmp >= 0: return (-math.sqrt(tmp)+la*lb*r*math.cos(w)-la*lb*math.cos(w)-lb*lob-lb*loa*math.cos(w))/(lb**2)
-        if not self.d.richtungA and not self.d.richtungB:
-            tmp = lb**2*(la**2*r**2*math.cos(w)**2+la**2*(-r)**2-2*la**2*r*math.cos(w)**2+2*la**2*r+la**2*math.cos(w)**2-la**2-2*la*loa*r*math.cos(w)**2+2*la*loa*r+2*la*loa*math.cos(w)**2-2*la*loa+l**2+loa**2*math.cos(w)**2-loa**2)
-            if tmp >= 0: return (-math.sqrt(tmp)-la*lb*r*math.cos(w)+la*lb*math.cos(w)+lb**2+lb*loa+lb*loa*math.cos(w))/(lb**2)
-        return float("nan")
+        r = r
+        s = float("nan")
 
+        if (not self.d.richtungA and self.d.richtungB) or (not self.d.richtungA and not self.d.richtungB):
+            r = 1 - r
+
+        tmp = lb**2*(loa**2*math.cos(w)**2-loa**2+2*loa*la*r*math.cos(w)**2-2*loa*la*r+la**2*r**2*math.cos(w)**2-la**2*r**2+l**2)
+        if tmp >= 0: s = (v*math.sqrt(tmp)+loa*lb*math.cos(w)+la*lb*r*math.cos(w)-lob*lb)/(lb**2)
+
+        if (self.d.richtungA and not self.d.richtungB) or (not self.d.richtungA and not self.d.richtungB):
+            s = 1 - s
+
+        return s
+
+    def aus1(self, r):
+        return self.aus(1, r)
+
+    def aus2(self, r):
+        return self.aus(-1, r)
 
 
 st1 = S(P(0.0,0.0),P(1.0,0.0))
-st2 = S(P(0.0,0.0),P(1.0,1.0))
+st2 = S(P(0.0,0.0),P(0.0,1.0))
 d = D(st1,st2)
 print ("Eingabe: "+str(d))
+print ("Strecke 1: "+str(st1)+": m="+str(st1.m)+" n="+str(st1.n))
+print ("Strecke 2: "+str(st2)+": m="+str(st2.m)+" n="+str(st2.n))
 print ("Schnittpunkt: "+str(d.s))
 print ("Winkel: "+str(d.w))
+print ("Cos(Winkel): "+str(math.cos(d.w)))
 print ("Offset A: "+str(d.loa))
 print ("Offset B: "+str(d.lob))
 print ("Min. Länge: "+str(d.minl))
@@ -188,7 +168,7 @@ print ("Richtung(A,B): "+str(d.richtungA)+","+str(d.richtungB))
 
 ellipsen = []
 n1 = 5
-n2 = 50
+n2 = 100
 data = []
 for i1 in range(n1):
     ellipse = d.ellipse(d.minl+(float(i1)/(n1-1))*(d.maxl-d.minl))
