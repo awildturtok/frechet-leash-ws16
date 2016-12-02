@@ -1,13 +1,10 @@
 import numpy as np
-import matplotlib.pyplot as plt
 import plotly as py
-import plotly.graph_objs as go
-
-
+import numpy.linalg as linalg
 
 # Euclidean distance.
 def euc_dist(pt1,pt2):
-	return np.sqrt((pt2[0]-pt1[0])*(pt2[0]-pt1[0])+(pt2[1]-pt1[1])*(pt2[1]-pt1[1]))
+	return linalg.norm(pt1 - pt2)
 
 def _c(ca,i,j,P,Q):
 	if ca[i,j] > -1:
@@ -29,23 +26,16 @@ Algorithm: http://www.kr.tuwien.ac.at/staff/eiter/et-archive/cdtr9464.pdf
 P and Q are arrays of 2-element arrays (points)
 """
 def frechetDist(P,Q):
-	ca = np.ones((len(P),len(Q)))
-	ca = np.multiply(ca,-1)
-	leash = _c(ca,len(P)-1,len(Q)-1,P,Q)
-	
-	data = [
-		go.Heatmap(
-			z=ca
-		)
-	]
-	py.iplot(data, filename='basic-heatmap')
-	print('Frechetdistance: ' + repr(leash)
-	return ca
 
-P = [(1,1),(9,3),(3,7)]
-Q = [(2,3),(1,7),(0,5)]
+	ca = np.multiply(np.ones((len(P),len(Q))), -1)
+	frechetDistance= _c(ca,len(P)-1,len(Q)-1,P,Q)
 	
-data = [go.Heatmap(z=frechetDist(P,Q))]
+	return (frechetDistance , ca)
+
+
+_p = np.asarray([(1,0), (2,2), (-1,3), (2,4)])
+_q = np.asarray([(-3, 2), (-2,0), (0.5, 1)])
 
 py.offline.iplot(data, filename='heatmap_frechet')
 
+frechet, dists = frechetDist(_p, _q)
