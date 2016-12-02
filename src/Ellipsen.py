@@ -77,34 +77,38 @@ class S:
         if self.m != 0: return (y-self.p1.y)/(self.p2.y-self.p1.y)
         else: return float("nan")
 
+def winkel(s, a, b):
+    a = a-s
+    b = b-s
+    return math.acos((a.x*b.x + a.y*b.y)/(a.l()*b.l()))
+
 class D:
     def __init__(self, a, b):
         self.a = a
         self.b = b
         self.s = self.schnitt()
         self.schneidenA = (a.m==float("inf") or 0<=a.rx(self.s.x)<=1) and (a.m==0 or 0<=a.ry(self.s.y)<=1)
-        self.schneidenB = (b.m==float("inf") or 0<=b.rx(self.s.x)<=1) and (a.m==0 or 0<=a.ry(self.s.y)<=1)
+        self.schneidenB = (b.m==float("inf") or 0<=b.rx(self.s.x)<=1) and (b.m==0 or 0<=b.ry(self.s.y)<=1)
         self.schneiden = self.schneidenA and self.schneidenB
         self.richtungA = (a.m==float("inf") or a.rx(self.s.x)<=1) and (a.m==0 or a.ry(self.s.y)<=1)
         self.richtungB = (b.m==float("inf") or b.rx(self.s.x)<=1) and (b.m==0 or b.ry(self.s.y)<=1)
-        self.w = math.atan(b.m-a.m)
-        if self.schneiden:
-            self.minl = 0
-            self.loa = -min(self.s.d(self.a.p1), self.s.d(self.a.p2))
-            self.lob = -min(self.s.d(self.b.p1), self.s.d(self.b.p2))
-        elif self.schneidenA:
-            self.minl = min(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2))
-            self.loa = -min(self.s.d(self.a.p1), self.s.d(self.a.p2))
-            self.lob = min(self.s.d(self.b.p1), self.s.d(self.b.p2))
-        elif self.schneidenB:
-            self.minl = min(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2))
-            self.loa = min(self.s.d(self.a.p1), self.s.d(self.a.p2))
-            self.lob = -min(self.s.d(self.b.p1), self.s.d(self.b.p2))
-        else :
-            self.minl = min(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2))
-            self.loa = min(self.s.d(self.a.p1), self.s.d(self.a.p2))
-            self.lob = min(self.s.d(self.b.p1), self.s.d(self.b.p2))
+
+        if self.richtungA: self.loa = self.s.d(self.a.p1)
+        else: self.loa = self.s.d(self.a.p2)
+        if self.richtungB: self.lob = self.s.d(self.b.p1)
+        else: self.lob = self.s.d(self.b.p2)
+
+        if self.schneidenA: self.loa = -self.loa
+        if self.schneidenB: self.lob = -self.lob
+
+        if self.schneiden: self.minl = 0.0
+        else: self.minl = min(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2))
         self.maxl = max(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2))
+
+        if self.s != self.a.p2 and self.s != self.b.p2: self.w = winkel(self.s, self.a.p2, self.b.p2)
+        elif self.s == self.a.p2: self.w == winkel(self.s, self.a.fr(2), self.b.p2)
+        elif self.s == self.a.p2: self.w == winkel(self.s, self.a.p2, self.b.fr(2))
+        else: self.w = winkel(self.s, self.a.fr(2), self.b.fr(2))
 
     def __str__(self):
         return str(self.a)+" und "+str(self.b)
@@ -150,8 +154,8 @@ class E:
         return self.aus(-1, r)
 
 
-st1 = S(P(0.0,0.0),P(1.0,0.0))
-st2 = S(P(0.0,0.0),P(0.0,1.0))
+st1 = S(P(1.0,-1.0),P(2.0,-2.0))
+st2 = S(P(0.0,0.0),P(1.0,1.0))
 d = D(st1,st2)
 print ("Eingabe: "+str(d))
 print ("Strecke 1: "+str(st1)+": m="+str(st1.m)+" n="+str(st1.n))
@@ -167,8 +171,8 @@ print ("Schneiden(A,B): "+str(d.schneiden)+"("+str(d.schneidenA)+","+str(d.schne
 print ("Richtung(A,B): "+str(d.richtungA)+","+str(d.richtungB))
 
 ellipsen = []
-n1 = 5
-n2 = 100
+n1 = 10
+n2 = 250
 data = []
 for i1 in range(n1):
     ellipse = d.ellipse(d.minl+(float(i1)/(n1-1))*(d.maxl-d.minl))
