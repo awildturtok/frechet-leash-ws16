@@ -69,10 +69,14 @@ class S: # Strecken Klasse
     def fr(self, r): # Punkt auf Geraden für geg. Parameter r
         return self.p1+self.d*r
     def fx(self, x): # y-Wert für geg. x-Wert
-        if self.m != float("inf"): return self.m*x+self.n
+        if not math.isinf(self.m): return self.m*x+self.n
+        else: return float("nan")
+    def fy(self, y): # x-Wert für geg. y-Wert
+        if math.isinf(self.m): return self.n
+        elif self.m != 0: return (y-self.n)/self.m
         else: return float("nan")
     def rx(self, x): # Parameter r für geg. x-Wert
-        if self.m != float("inf"): return (x-self.p1.x)/(self.p2.x-self.p1.x)
+        if not math.isinf(self.m): return (x-self.p1.x)/(self.p2.x-self.p1.x)
         else: return float("nan")
     def ry(self, y): # Parameter r für geg. y-Wert
         if self.m != 0: return (y-self.p1.y)/(self.p2.y-self.p1.y)
@@ -92,34 +96,48 @@ def cosWinkel(s, a, b): # cos-Wert des Winkels des Dreicks ASB
     b = b-s
     return (a.x*b.x + a.y*b.y)/(a.l*b.l)
 
-class D: # 2-Strecken-Konstellation Klasse
+class Eingabe: # Eingaben Klasse: 2-Strecken-Konstellation
     def __init__(self, a, b):
         self.a = a # Strecke A
         self.b = b # Strecke B
-        self.s = self.schnitt() # Schnittpunkt
-        self.schnittA = a.enthP(self.s) # Liegt der Schnittpunkt auf A?
-        self.schnittB = b.enthP(self.s) # Liegt der Schnittpunkt auf B?
-        self.schneiden = self.schnittA and self.schnittB # Liegt der Schnittpunkt auf A und B?
-        self.richtA = (a.rP(self.s) <= 1) # Zeigt A in Richtung S?
-        self.richtB = (b.rP(self.s) <= 1) # Zeigt B in Richtung S?
-        # Berechnet den Offset loa von A
-        if self.richtA: self.loa = self.s.d(self.a.p1)
-        else: self.loa = self.s.d(self.a.p2)
-        # Berechnet den Offset lob von B
-        if self.richtB: self.lob = self.s.d(self.b.p1)
-        else: self.lob = self.s.d(self.b.p2)
-        # Entscheidet das Vorzeichen der Offsets
-        if self.schnittA: self.loa = -self.loa
-        if self.schnittB: self.lob = -self.lob
+        self.parallel = self.a.m == self.b.m
         # Berechnet die kürzeste und längste mögliche Leinenlänge
-        if self.schneiden: self.minl = 0.0
-        else: self.minl = min(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2))
+        self.minl = min(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2))
         self.maxl = max(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2))
-        # Berechent den Cos-Wert des Winkels zwischen den Geraden
-        if self.s != self.a.p2 and self.s != self.b.p2: self.cosw = cosWinkel(self.s, self.a.p2, self.b.p2)
-        elif self.s == self.a.p2: self.cosw = cosWinkel(self.s, self.a.fr(2), self.b.p2)
-        elif self.s == self.a.p2: self.cosw = cosWinkel(self.s, self.a.p2, self.b.fr(2))
-        else: self.cosw = cosWinkel(self.s, self.a.fr(2), self.b.fr(2))
+        # Falls Strecken nicht parallel sind:
+        if not self.parallel:
+            self.s = self.schnitt() # Schnittpunkt
+            self.schnittA = a.enthP(self.s) # Liegt der Schnittpunkt auf A?
+            self.schnittB = b.enthP(self.s) # Liegt der Schnittpunkt auf B?
+            self.schneiden = self.schnittA and self.schnittB # Liegt der Schnittpunkt auf A und B?
+            self.richtA = (a.rP(self.s) <= 1) # Zeigt A in Richtung S?
+            self.richtB = (b.rP(self.s) <= 1) # Zeigt B in Richtung S?
+            # Berechnet den Offset loa von A
+            if self.richtA: self.loa = self.s.d(self.a.p1)
+            else: self.loa = self.s.d(self.a.p2)
+            # Berechnet den Offset lob von B
+            if self.richtB: self.lob = self.s.d(self.b.p1)
+            else: self.lob = self.s.d(self.b.p2)
+            # Entscheidet das Vorzeichen der Offsets
+            if self.schnittA: self.loa = -self.loa
+            if self.schnittB: self.lob = -self.lob
+            # Strecken schneiden sich -> min. Leinenlänge = 0
+            if self.schneiden: self.minl = 0.0
+            # Berechent den Cos-Wert des Winkels zwischen den Geraden
+            if self.s != self.a.p2 and self.s != self.b.p2: self.cosw = cosWinkel(self.s, self.a.p2, self.b.p2)
+            elif self.s == self.a.p2: self.cosw = cosWinkel(self.s, self.a.fr(2), self.b.p2)
+            elif self.s == self.a.p2: self.cosw = cosWinkel(self.s, self.a.p2, self.b.fr(2))
+            else: self.cosw = cosWinkel(self.s, self.a.fr(2), self.b.fr(2))
+        # Falls Strecken parallel sind
+        else:
+            self.richtB = (a.rP(a.p1+b.d) >= 0)  # Zeigen A und B in dieselbe Richtung
+            self.stWinkel = math.atan(a.m) # Steigungswinkel der Geraden
+            # Distanz der 2 Geraden
+            if self.a.m == 0 or math.isinf(self.a.m): self.dist = abs(self.a.n - self.b.n)
+            else: self.dist = math.sin(self.stWinkel) * abs(a.fy(b.n))
+            self.lob = 0 # Offset Strecke B im Vergleich zu A
+            ### Hier weiter Spezialfall: Parallel imp.
+
     def __str__(self):
         return str(self.a)+" und "+str(self.b)
 
@@ -132,14 +150,15 @@ class D: # 2-Strecken-Konstellation Klasse
         return P(x,self.a.fx(x))
 
     def ellipse(self, l): # Gibt eine Ellipsen-Objekt für eine geg. Leinenlänge zurück
-        return E(self, l)
+        return Ellipse(self, l)
 
-class E: # Ellipsen Klasse
+class Ellipse: # Ellipsen Klasse
     def __init__(self, d, l):
         self.d = d # 2-Strecken-Konstellation
         self.l = l # Leinenlänge
 
     def aus(self, v, r): # Ausgabe-Parameter s (auf Strecke B) für geg. Vorzeichen der Wurzel und Parameter r (auf Stecke A)
+        ### Auch für Spezialfall: Parallel!
         l = self.l # Leinenlänge
         loa = self.d.loa # Offset loa der Strecke A
         lob = self.d.lob # Offset lob der Strecke B
@@ -164,24 +183,32 @@ class E: # Ellipsen Klasse
     def aus2(self, r):
         return self.aus(-1, r)
 
-def zelle(d, n1, n2):
-    print ("Eingabe: "+str(d))
-    print ("Strecke 1: "+str(st1)+": m="+str(st1.m)+" n="+str(st1.n))
-    print ("Strecke 2: "+str(st2)+": m="+str(st2.m)+" n="+str(st2.n))
-    print ("Schnittpunkt: "+str(d.s))
-    print ("Winkel: "+str(math.acos(d.cosw)))
-    print ("Cos(Winkel): "+str(d.cosw))
-    print ("Offset A: "+str(d.loa))
-    print ("Offset B: "+str(d.lob))
-    print ("Min. Länge: "+str(d.minl))
-    print ("Max. Länge: "+str(d.maxl))
-    print ("Schneiden(A,B): "+str(d.schneiden)+"("+str(d.schnittA)+","+str(d.schnittB)+")")
-    print ("Richtung(A,B): "+str(d.richtA)+","+str(d.richtB))
+# Gibt Ellipsen-Ausgabe für eine Zelle aus (n1: Anzahl der Ellipsen, n2: Punkt-Genauigkeit der Ellipsen)
+def zellenAusgabe(eingabe, n1, n2):
+    #Debugger Log
+    print ("Eingabe: " + str(eingabe))
+    print ("Strecke A: "+str(eingabe.a)+": m="+str(eingabe.a.m)+" n="+str(eingabe.a.n))
+    print ("Strecke B: "+str(eingabe.b)+": m="+str(eingabe.b.m)+" n="+str(eingabe.b.n))
+    print ("Leinenlänge (Min., Max.): " + str(eingabe.minl) + ", " + str(eingabe.maxl))
+    if eingabe.parallel:
+        print ("Spezialfall: Strecken sind parallel.")
+        print ("Richtung: " + str(eingabe.richtB))
+        print ("Steigungswinkel: atan(" + str(eingabe.a.m) + ") = " + str(eingabe.stWinkel))
+        print ("Distanz: " + str(eingabe.dist))
+        print ("Offset: " + str(eingabe.lob))
+    else:
+        print ("Normalfall: Strecken sind nicht parallel.")
+        print ("Schnittpunkt: " + str(eingabe.s))
+        print ("cos(" + str(math.acos(eingabe.cosw)) + ") = " + str(eingabe.cosw))
+        print ("Offset(A,B): " + str(eingabe.loa) + ", " + str(eingabe.lob))
+        print ("Schneiden(A,B): " + str(eingabe.schneiden) + "(" + str(eingabe.schnittA) + "," + str(eingabe.schnittB) + ")")
+        print("Richtung(A,B): " + str(eingabe.richtA) + "," + str(eingabe.richtB))
 
+    #Punkte in Zelle berechnen
     ellipsen = []
     data = []
     for i1 in range(n1):
-        ellipse = d.ellipse(d.minl+(float(i1)/(n1-1))*(d.maxl-d.minl))
+        ellipse = eingabe.ellipse(eingabe.minl + (float(i1) / (n1 - 1)) * (eingabe.maxl - eingabe.minl))
         ellipsen.append(ellipse)
         x1 = []
         x2 = []
@@ -200,10 +227,10 @@ def zelle(d, n1, n2):
         data.append([[x1,y1], [x2,y2], ellipse.l])
     return data
 
-def plotlyTest(d, n1, n2):
-    aus = zelle(d, n1, n2)
+#Ellipsen-Daten einer Zelle mit Plotly visualisieren
+def zelleZuPlotly(ausgabe):
     data = []
-    for a in aus:
+    for a in ausgabe:
         aus1 = a[0]
         aus2 = a[1]
         l = a[2]
@@ -214,7 +241,8 @@ def plotlyTest(d, n1, n2):
     fig = dict(data=data)
     py.plot(fig, filename='Ellipsen-Test')
 
-st1 = S(P(1.0, 0.0), P(2.0, 0.0))
-st2 = S(P(0.0, 0.0), P(0.0, 1.0))
-d = D(st1,st2)
-plotlyTest(d, 50, 100)
+st1 = S(P(0.0, 0.0), P(1.0, 0.0))
+st2 = S(P(0.0, .0), P(1.0, 1.0))
+eing = Eingabe(st1, st2)
+zelle = zellenAusgabe(eing, 8, 100)
+zelleZuPlotly(zelle)
