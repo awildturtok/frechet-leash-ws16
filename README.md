@@ -8,7 +8,8 @@
     - (geg.: n x m Matrix & Frechet Distanz, optional Farben)
 * [ ] Höhenkarte
 * [ ] Heatmap
-* [ ] Ellipse in Zelle
+* [ ] Ellipsen einer Zelle: Algorithmus
+    - Fallunterscheidung bzgl. Eingabe -> Winkel, Offsets, Richtungen implementieren
 
 
 ##Aufgaben:
