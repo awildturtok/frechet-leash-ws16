@@ -1,1 +1,3 @@
 https://www.boxcontrol.net/beginners-pyqt5-and-qml-integration-tutorial.html
+
+http://doc.qt.io/qt-5/qtcharts-qmlchart-example.html + https://forum.qt.io/topic/68476/qt-quick-5-7-error-no-style-available-without-qapplication/3
