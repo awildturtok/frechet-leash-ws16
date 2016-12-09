@@ -15,48 +15,51 @@ preds = predecessors of Points
 
 
 def euc_dist(p: Point, q: Point) -> float:
-    dt = (p[0] - p[0], p[1] - q[1])
+    dt = (float(p[0]) - float(q[0]), float(p[1]) - float(q[1]))
     return math.sqrt(dt[0] ** 2 + dt[1] ** 2)
 
 
 def _lexicographic_path(ca: Matrix, i: int, j: int, P: Curve, Q: Curve) -> Tuple[float, Curve]:
-    if i == 0 and j == 0:
-        ca[i, j] = euc_dist(P[0], Q[0])
-        return ca[i, j], [(0, 0)]
+
+    ca[i, j] = euc_dist(P[i], Q[j])
+
+    if i == len(P) - 1 and j == len(Q) - 1:
+        return ca[i, j], [(len(P)- 1, len(Q) -1)]
 
     # All neighbouring cells inside the grid on a monotone path.
     neighbours = [p
-                  for p in [(i - 1, j), (i - 1, j - 1), (i, j - 1)]
-                  if p[0] >= 0 and p[1] >= 0]
+                  for p in [(i + 1, j), (i + 1, j + 1), (i, j + 1)]
+                  if p[0] < len(P) and p[1] < len(Q)]
 
     val = float("+inf")
     preds = []
+    _val = 0
 
     for (pi, pj) in neighbours:
-        dist, preds = _lexicographic_path(ca, pi, pj, P, Q)
-        if dist < val:
-            val = dist
+        _val, mypreds = _lexicographic_path(ca, pi, pj, P, Q)
+        if _val < val:
+            preds = mypreds
+            val = _val
 
-    dst = euc_dist(P[i], Q[j])
-
-    ca[i, j] = max([dst, val])
-
-    return ca[i, j], preds + [(i, j)]
+    #todo change to bfs: recursion after loop
+    return max([val + ca[i, j]]), preds + [(i, j)]
 
 
 def lexicographic_path(P: Curve, Q: Curve) -> Tuple[float, Curve, np.matrix]:
     ca = np.multiply(np.ones((len(P), len(Q))), -1)
-    dist, indices = _lexicographic_path(ca, len(P) - 1, len(Q) - 1, P, Q)
+    dist, indices = _lexicographic_path(ca, 0, 0, P, Q)
 
-    return dist, indices, ca
+    return dist, list(reversed(indices)), ca
 
 
-ps = list(zip(np.arange(0, 3), np.zeros(6)))
-ps += reversed(ps)
-qs = list(zip(np.arange(0, 6), np.arange(0, 6)))
+P = [(0,0), (1,2), (2, 3), (0,7)]
+Q = list(zip(np.arange(0, 4), np.zeros(4)))
 
-dist, indices, terrain = lexicographic_path(ps, qs)
+dist, indices, terrain = lexicographic_path(P, Q)
 
+
+print(P)
+print(Q)
 
 print(dist)
 print(indices)
