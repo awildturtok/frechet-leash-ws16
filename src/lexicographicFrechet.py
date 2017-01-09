@@ -65,3 +65,11 @@ print(dist)
 print(indices)
 print(terrain)
 
+"""
+	from matlotlib import pyplot as plt
+	plt.imshow(ca,'gray'),plt.title('ORIGINAL')
+	
+	plt.imshow(ca, cmap='hot', interpolation='nearest')
+	plt.show()
+	
+	"""
