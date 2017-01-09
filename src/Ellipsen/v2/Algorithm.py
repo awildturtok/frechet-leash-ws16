@@ -17,11 +17,26 @@ import plotly.plotly as py
 import plotly.graph_objs as go
 
 
+class aLineSegment(LineSegment): # one of the two input line segments
+    def __init__(self, ls: LineSegment, s: Vector):
+
+        self = ls
+
+        self.intersects = self.containsP(s) # intersects S?
+        self.dir = (self.rP(s) <= 1) # points in direction  of S?
+
+        #calculate offset to S
+        if self.dir: self.offset = self.p1.d(s)
+        else: self.offset = self.p2.d(s)
+        if self.intersects: self.offset = -self.offset
+
+    def __str__(self):
+        return str(super())+": "+str(self.intersects)+", "+str(self.dir)+", "+str(self.offset)
+
+
 class twolineSegments: # Input: two line segments
 
     def __init__(self, a, b):
-        self.a = a # line segment A
-        self.b = b # line sqgment B
 
         # calculate shortest and longest possible connecting line length
         self.minl = min(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2))
@@ -29,30 +44,19 @@ class twolineSegments: # Input: two line segments
 
         self.parallel = self.a.m == self.b.m
         if not self.parallel: # case 1: lines are not parallel
-            
             self.s = self.intersection() # intersection point S
-            self.intersectA = a.containsP(self.s) # does the intersection point lie on A
-            self.intersectB = b.containsP(self.s) # does the intersection point lie on B
-            self.intersect = self.intersectA and self.intersectB # does the intersection point lie on A and B
+
+            self.a = aLineSegment(a, self.s)  # line segment a
+            self.b = aLineSegment(b, self.s)  # line sqgment b
+
+            self.intersect = self.a.intersects and self.b.instersects # does the intersection point lie on A and B
             if self.intersect: self.minl = 0.0 # if line segments intersect, set minl to 0
-            
-            self.dirA = (a.rP(self.s) <= 1) # does A point in direction of S
-            self.dirB = (b.rP(self.s) <= 1) # does B point in direction of S
-            
-            # calculate offset A from S
-            if self.dirA: self.oa = self.s.d(self.a.p1)
-            else: self.oa = self.s.d(self.a.p2)
-            if self.intersectA: self.oa = -self.oa
-            # calculate offset B from S
-            if self.dirB: self.ob = self.s.d(self.b.p1)
-            else: self.ob = self.s.d(self.b.p2)
-            if self.intersectB: self.ob = -self.ob
 
             # calculate cos of angle btw. A and B
-            if self.s != self.a.p2 and self.s != self.b.p2: self.cosw = cosWinkel(self.s, self.a.p2, self.b.p2)
+            '''if self.s != self.a.p2 and self.s != self.b.p2: self.cosw = cosWinkel(self.s, self.a.p2, self.b.p2)
             elif self.s == self.a.p2: self.cosw = cosWinkel(self.s, self.a.fr(2), self.b.p2)
             elif self.s == self.a.p2: self.cosw = cosWinkel(self.s, self.a.p2, self.b.fr(2))
-            else: self.cosw = cosWinkel(self.s, self.a.fr(2), self.b.fr(2))
+            else: self.cosw = cosWinkel(self.s, self.a.fr(2), self.b.fr(2))'''
 
         else: # case 2: lines are parallel
             self.dirB = (a.rP(a.p1+b.d) >= 0)  # do A and B point in the same direction

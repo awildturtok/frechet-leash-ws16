@@ -17,48 +17,49 @@ import math
 
 class Vector:
 
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+    def __init__(self, x: float, y: float):
+        self.x = float(x)
+        self.y = float(y)
         self.norm = math.sqrt(x**2 + y**2)
 
     def __str__(self):
-        return "(%s,%s)"%(self.x, self.y)
+        return "(%s,%s)" % (self.x, self.y)
 
     # Vector Arithmetic
 
-    def __add__(self, other):
+    def __add__(self, other: Vector) -> Vector:
         x = self.x + other.x
         y = self.y + other.y
         return Vector(x,y)
 
-    def __neg__(self):
+    def __neg__(self) -> Vector:
         return Vector(-self.x, -self.y)
 
-    def __sub__(self, other):
+    def __sub__(self, other: Vector) -> Vector:
         x = self.x - other.x
         y = self.y - other.y
         return Vector(x,y)
 
-    def __mul__(self, s):
+    def __mul__(self, s: float) -> Vector:
         x = self.x*s
         y = self.y*s
         return Vector(x,y)
 
-    def __abs__(self):
-        return self.l
+    def __abs__(self) -> float:
+        return self.norm
 
-    def distance(self, other):
+    def distance(self, other: Vector) -> float:
         d = other-self
-        return d.l
+        return d.norm
 
 
 class LineSegment:
 
     def __init__(self, p1: Vector, p2: Vector):
+
         if p1 == p2:
             print("Error: Start- and Endpoint are equal.")
-            return p1
+            p2 = p2 + Vector(1,0)
 
         self.p1 = p1 # Startpoint P1
         self.p2 = p2 # Endpoint P2
@@ -78,30 +79,30 @@ class LineSegment:
 
     #Line Arithmetic
 
-    def fr(self, r): # point for set parameter r
+    def fr(self, r: float) -> Vector: # point for set parameter r
         return self.p1+self.d*r
 
-    def fx(self, x): # y-Value for set x-Value
+    def fx(self, x: float) -> float: # y-Value for set x-Value
         if not math.isinf(self.m): return self.m*x+self.n
         else: return float("nan")
 
-    def fy(self, y): # x-Value for set y-Value
+    def fy(self, y: float) -> float: # x-Value for set y-Value
         if math.isinf(self.m): return self.n
         elif self.m != 0: return (y-self.n)/self.m
         else: return float("nan")
 
-    def rx(self, x): # parameter r for set y-Value
+    def rx(self, x: float) -> float: # parameter r for set y-Value
         if not math.isinf(self.m): return (x-self.p1.x)/(self.p2.x-self.p1.x)
         else: return float("nan")
 
-    def ry(self, y): # parameter r for set x-Value
+    def ry(self, y: float) -> float: # parameter r for set x-Value
         if self.m != 0: return (y-self.p1.y)/(self.p2.y-self.p1.y)
         else: return float("nan")
 
-    def containsP(self, p): # does point p lie on the line segment
+    def containsP(self, p: Vector) -> bool: # does point p lie on the line segment
         return (self.m == float("inf") or 0 <= self.rx(p.x) <= 1) and (self.m == 0 or 0 <= self.ry(p.y) <= 1)
 
-    def rP(self, p): # parameter r for set point
+    def rP(self, p: Vector) -> float: # parameter r for set point
         if not math.isinf(self.m): rx = self.rx(p.x)
         if not self.m == 0: ry = self.ry(p.y)
         if math.isinf(self.m): rx = ry
@@ -116,6 +117,6 @@ class Ellipse:
         self.a = a # axis vector a
         self.b = b # axis vector b
 
-    def p(self, t): # point on ellipse for set parameter t
-        return self.m + cos(t)*self.a + sin(t)*self.b
+    def p(self, t: float) -> Vector: # point on ellipse for set parameter t
+        return self.m + math.cos(t)*self.a + math.sin(t)*self.b
 
