@@ -187,7 +187,7 @@ class Ellipse: # Ellipsen Klasse
         return self.aus(-1, r)
 
 # Gibt Ellipsen-Ausgabe für eine Zelle aus (n1: Anzahl der Ellipsen, n2: Punkt-Genauigkeit der Ellipsen)
-def zellenAusgabe(eingabe, n1, n2):
+def zellenAusgabe(eingabe, n1, n2, intervalx, intervaly):
     #Debugger Log
     print ("Eingabe: " + str(eingabe))
     print ("Strecke A: "+str(eingabe.a)+": m="+str(eingabe.a.m)+" n="+str(eingabe.a.n))
@@ -218,13 +218,13 @@ def zellenAusgabe(eingabe, n1, n2):
         y1 = []
         y2 = []
         for i2 in range(n2+1):
-            x = (float(i2)/n2)
+            x = (float(i2)/n2)*(intervalx[1]-intervalx[0]) + intervalx[0]
             aus1 = ellipse.aus1(x)
             aus2 = ellipse.aus2(x)
-            if (0<=aus1<=1):
+            if (intervaly[0]<=aus1<=intervaly[1]):
                 x1.append(x)
                 y1.append(aus1)
-            if (0<=aus2<=1):
+            if (intervaly[0]<=aus2<=intervaly[1]):
                 x2.append(x)
                 y2.append(aus2)
         data.append([[x1,y1], [x2,y2], ellipse.l])
@@ -249,5 +249,5 @@ def zelleZuPlotly(ausgabe):
 st1 = S(P(0.0, 2.0), P(1.0, 2.0)) #a
 st2 = S(P(1.0, -1.0), P(2.0, -2.0)) #b
 eing = Eingabe(st1, st2)
-zelle = zellenAusgabe(eing, 8, 100)
+zelle = zellenAusgabe(eing, 8, 100, (-2,3), (-2,3))
 zelleZuPlotly(zelle)
