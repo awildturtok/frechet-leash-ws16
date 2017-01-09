@@ -24,21 +24,18 @@ Window {
 //            XYPoint { x: 0; y: 0 }
 //            XYPoint { x: 1.1; y: 2.1 }
 //            onClicked: {console.log("onClicked: " + point.x + ", " + point.y);}
-
+//
 //        }
+//
+        LineSeries {
+            //graph two
+            id: series2
+            name: "blue"
+            color: "blue"
 
-//        LineSeries {
-//            //graph two
-//            id: series2
-//            name: "blue"
-//            color: "blue"
-//            XYPoint { x: 1; y: 0 }
-//            XYPoint { x: 2; y: 0 }
-//            XYPoint { x: 3; y: 0 }
-//            XYPoint { x: 4; y: 0 }
-
-//            //onClicked: console.log("onClicked: " + point.x + ", " + point.y); //without functionality?!
-//        }
+            axisX: valueAxisX
+            axisY: valueAxisY
+        }
 
         ValueAxis {
                id: valueAxisX
@@ -70,6 +67,8 @@ Window {
             }
             onClicked: {
                 console.log("onClicked: " + point.x + ", " + point.y)
+                series2.append(point.x,point.y)
+                series2.append(point.x,point.y)
             }
 
 }
@@ -122,3 +121,4 @@ Window {
 
     }
 }
+
