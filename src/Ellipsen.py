@@ -154,8 +154,8 @@ class E:
         return self.aus(-1, r)
 
 
-st1 = S(P(1.0,-1.0),P(2.0,-2.0))
-st2 = S(P(0.0,0.0),P(1.0,1.0))
+st1 = S(P(1.0,0.0),P(2.0,0.0))
+st2 = S(P(1.0,0.0),P(2.0,0.01))
 d = D(st1,st2)
 print ("Eingabe: "+str(d))
 print ("Strecke 1: "+str(st1)+": m="+str(st1.m)+" n="+str(st1.n))
