@@ -147,7 +147,10 @@ class Eingabe: # Eingaben Klasse: 2-Strecken-Konstellation
         elif (self.a.m-self.b.m) != 0:
             x = (self.b.n-self.a.n)/(self.a.m-self.b.m)
         else: x = float("nan")
-        return P(x,self.a.fx(x))
+        if not math.isnan(self.a.fx(x)):
+            return P(x,self.a.fx(x))
+        else:
+            return P(x, self.b.fx(x))
 
     def ellipse(self, l): # Gibt eine Ellipsen-Objekt für eine geg. Leinenlänge zurück
         return Ellipse(self, l)
@@ -241,8 +244,10 @@ def zelleZuPlotly(ausgabe):
     fig = dict(data=data)
     py.plot(fig, filename='Ellipsen-Test')
 
-st1 = S(P(0.0, 0.0), P(1.0, 0.0))
-st2 = S(P(0.0, 0.0), P(1.0, 1.0))
+#st1 = S(P(0.0, 0.0), P(1.0, 0.0))
+#st2 = S(P(0.0, 0.0), P(1.0, 1.0))
+st2 = S(P(-1.0, 1.0), P(-2.0, 2.0)) #a
+st1 = S(P(2.0, 0.0), P(2.0, 1.0)) #b
 eing = Eingabe(st1, st2)
 zelle = zellenAusgabe(eing, 8, 100)
 zelleZuPlotly(zelle)
