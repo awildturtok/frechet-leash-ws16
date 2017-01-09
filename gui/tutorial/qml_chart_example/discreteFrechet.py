@@ -44,10 +44,16 @@ def frechetDist(P,Q):
 	return (frechetDistance , ca)
 
 
-"""
-how to run the code
+"""how to run the code
 open ipython
 	run C:/....
 	_p = np.asarray([(1,1), (2,2), (3,3), (4,4)])
 	_q = np.asarray([(1,0),(2,0),(3,0),(4,0)])
-	frechet(_p,_q)
+	frechet(_p,_q)"""
+	
+def main():
+	_p = np.asarray([(1,1), (2,2), (3,3), (4,4)])
+	_q = np.asarray([(1,0),(2,0),(3,0),(4,0)])
+	frechetDist(_p,_q)
+
+main()

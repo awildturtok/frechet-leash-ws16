@@ -10,3 +10,5 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+gui/tutorial/qml_chart_example/build-frechet-Desktop_Qt_5_7_0_MinGW_32bit-Debug/
+gui/tutorial/qml_chart_example/frechet/
