@@ -242,7 +242,7 @@ def zelleZuPlotly(ausgabe):
     py.plot(fig, filename='Ellipsen-Test')
 
 st1 = S(P(0.0, 0.0), P(1.0, 0.0))
-st2 = S(P(0.0, .0), P(1.0, 1.0))
+st2 = S(P(0.0, 0.0), P(1.0, 1.0))
 eing = Eingabe(st1, st2)
 zelle = zellenAusgabe(eing, 8, 100)
 zelleZuPlotly(zelle)
