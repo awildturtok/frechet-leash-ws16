@@ -41,6 +41,10 @@ class P: # Punkt Klasse
         return P(x,y)
     def __abs__(self):
         return self.l
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+    def __ne__(self, other):
+        return not self.__eq__(other)
 
     def length(self): # Berechnet die Distanz (0,0)->P
         return math.sqrt((self.x)**2 + (self.y)**2)
@@ -124,10 +128,10 @@ class Eingabe: # Eingaben Klasse: 2-Strecken-Konstellation
             # Strecken schneiden sich -> min. Leinenlänge = 0
             if self.schneiden: self.minl = 0.0
             # Berechent den Cos-Wert des Winkels zwischen den Geraden
-            if self.s != self.a.p2 and self.s != self.b.p2: self.cosw = cosWinkel(self.s, self.a.p2, self.b.p2)
+            if self.s == self.a.p2 and self.s == self.b.p2: self.cosw = cosWinkel(self.s, self.a.fr(2), self.b.fr(2))
             elif self.s == self.a.p2: self.cosw = cosWinkel(self.s, self.a.fr(2), self.b.p2)
-            elif self.s == self.a.p2: self.cosw = cosWinkel(self.s, self.a.p2, self.b.fr(2))
-            else: self.cosw = cosWinkel(self.s, self.a.fr(2), self.b.fr(2))
+            elif self.s == self.b.p2: self.cosw = cosWinkel(self.s, self.a.p2, self.b.fr(2))
+            else: self.cosw = cosWinkel(self.s, self.a.p2, self.b.p2)
         # Falls Strecken parallel sind
         else:
             self.richtB = (a.rP(a.p1+b.d) >= 0)  # Zeigen A und B in dieselbe Richtung
@@ -246,8 +250,8 @@ def zelleZuPlotly(ausgabe):
 
 #st1 = S(P(0.0, 0.0), P(1.0, 0.0))
 #st2 = S(P(0.0, 0.0), P(1.0, 1.0))
-st1 = S(P(0.0, 2.0), P(1.0, 2.0)) #a
-st2 = S(P(1.0, -1.0), P(2.0, -2.0)) #b
+st1 = S(P(0.0, 0.0), P(1.0, 0.0)) #a
+st2 = S(P(0.0, 2.0), P(0.0, 1.0)) #b
 eing = Eingabe(st1, st2)
 zelle = zellenAusgabe(eing, 8, 100, (-2,3), (-2,3))
 zelleZuPlotly(zelle)
