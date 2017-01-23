@@ -215,7 +215,7 @@ def zellenAusgabe(eingabe, n1, n2, intervalx, intervaly):
     ellipsen = []
     data = []
     for i1 in range(n1):
-        ellipse = eingabe.ellipse(eingabe.minl + (float(i1) / (n1 - 1)) * (eingabe.maxl - eingabe.minl))
+        ellipse = eingabe.ellipse(1)  # eingabe.minl + (float(i1) / (n1 - 1)) * (eingabe.maxl - eingabe.minl))
         ellipsen.append(ellipse)
         x1 = []
         x2 = []
@@ -251,7 +251,7 @@ def zelleZuPlotly(ausgabe):
 #st1 = S(P(0.0, 0.0), P(1.0, 0.0))
 #st2 = S(P(0.0, 0.0), P(1.0, 1.0))
 st1 = S(P(0.0, 0.0), P(1.0, 0.0)) #a
-st2 = S(P(0.0, 2.0), P(0.0, 1.0)) #b
+st2 = S(P(0.0, 0.0), P(1/math.sqrt(2), 1/math.sqrt(2))) #b
 eing = Eingabe(st1, st2)
-zelle = zellenAusgabe(eing, 8, 100, (-2,3), (-2,3))
+zelle = zellenAusgabe(eing, 8, 100, (-2, 3), (-2, 3))
 zelleZuPlotly(zelle)
