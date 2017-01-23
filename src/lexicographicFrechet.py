@@ -1,17 +1,25 @@
-import numpy as np
-import numpy.linalg as linalg
+from matplotlib import pyplot as plt
 from src.discreteFrechet import *
-from typing import Tuple, List, Dict
+from typing import Tuple, List, Dict, Any
 import math as math
+
 
 Point = Tuple[float, float]
 Curve = List[Point]
-Matrix = Dict[Tuple[int, int], float]
+Matrix = Dict[Point, float]
 
 '''
 dists = frechetDistance Matrix
 preds = predecessors of Points
 '''
+
+def unzip(zipped : List[Tuple[Any, Any]]) -> Tuple[List[Any], Tuple[List[Any]]] :
+    unzipped = zip(*zipped)
+
+    second = next(unzipped)
+    first = next(unzipped)
+
+    return first, second
 
 
 def euc_dist(p: Point, q: Point) -> float:
@@ -33,7 +41,6 @@ def _lexicographic_path(ca: Matrix, i: int, j: int, P: Curve, Q: Curve) -> Tuple
 
     val = float("+inf")
     preds = []
-    _val = 0
 
     for (pi, pj) in neighbours:
         _val, mypreds = _lexicographic_path(ca, pi, pj, P, Q)
@@ -42,18 +49,18 @@ def _lexicographic_path(ca: Matrix, i: int, j: int, P: Curve, Q: Curve) -> Tuple
             val = _val
 
     #todo change to bfs: recursion after loop
-    return max([val + ca[i, j]]), preds + [(i, j)]
+    return max([val + ca[i, j]]), [(i, j)] + preds
 
 
 def lexicographic_path(P: Curve, Q: Curve) -> Tuple[float, Curve, np.matrix]:
     ca = np.multiply(np.ones((len(P), len(Q))), -1)
     dist, indices = _lexicographic_path(ca, 0, 0, P, Q)
 
-    return dist, list(reversed(indices)), ca
+    return dist, list(indices), ca
 
 
 P = [(0,0), (1,2), (2, 3), (0,7)]
-Q = list(zip(np.arange(0, 4), np.zeros(4)))
+Q = [(0,0), (1,1), (1, 2), (1,1), (0,7)]
 
 dist, indices, terrain = lexicographic_path(P, Q)
 
@@ -65,11 +72,15 @@ print(dist)
 print(indices)
 print(terrain)
 
-"""
-	from matlotlib import pyplot as plt
-	plt.imshow(ca,'gray'),plt.title('ORIGINAL')
-	
-	plt.imshow(ca, cmap='hot', interpolation='nearest')
-	plt.show()
-	
-	"""
+normalized_terrain = terrain / terrain.max(axis=1)[:,np.newaxis]
+
+x, y = unzip(indices)
+
+# plt.imshow(ca,'gray'),plt.title('ORIGINAL')
+plt.plot(x, y, color="red")
+plt.imshow(normalized_terrain, cmap='inferno', interpolation='bicubic')
+
+plt.xlim([0, len(Q) - 1])
+plt.ylim([0, len(P) - 1])
+
+plt.show()
