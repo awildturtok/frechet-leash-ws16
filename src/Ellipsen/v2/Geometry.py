@@ -60,7 +60,7 @@ class Vector:
     def norm(self):  # normalized vector (lenght = 1)
         return self * (1 / self.l)
 
-    def cross_product_l(self, other):
+    def cross_product(self, other):
         return self.x * other.y - self.y * other.x
 
     def angle(self) -> float:
@@ -149,7 +149,7 @@ class LineSegment:
         return 0.5 * (rx + ry)
 
     def d_l_point(self, p: Vector) -> float:  # closest distance of p to line
-        return abs(self.d.cross_product_l(p - self.p1)) / self.d.l
+        return abs(self.d.cross_product(p - self.p1)) / self.d.l
 
     def d_ls_point(self, p: Vector) -> float:  # closest distance of p to line segment
         d_l = self.d_l_point(p)  # closest distance of p to line
@@ -175,4 +175,4 @@ class Ellipse:
         return Ellipse(self.m, a, b)
 
     def p(self, t: float) -> Vector:  # point on ellipse for set parameter t
-        return self.m + (self.a * math.cos(t)) + (self.b * math.sin(t))
+        return ((self.a * math.cos(t)) + (self.b * math.sin(t))) + self.m

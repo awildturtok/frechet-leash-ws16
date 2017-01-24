@@ -13,8 +13,11 @@
 # -*- coding: utf-8 -*-
 
 from Geometry import *
+
 import plotly.plotly as py
 import plotly.graph_objs as go
+
+import matplotlib.pyplot as plt
 
 
 class OneLineSegment(LineSegment):  # one of the two input line segments
@@ -51,14 +54,12 @@ class Cell:
         ellipses_sample = []  # holds ellipses in form: (l, [Points])
 
         for i1 in range(n1):
-            l =  1 # self.bounds_l[0] + (float(i1) / (n1 - 1)) * (self.bounds_l[1] - self.bounds_l[0])
+            l = self.bounds_l[0] + (float(i1) / (n1 - 1)) * (self.bounds_l[1] - self.bounds_l[0])
             ellipsis = self.norm_ellipsis * l
             ellipsis_sample = []
-            print(ellipsis)
             for i2 in range(n2):
                 t = (i2 / (n2 - 1)) * (2 * math.pi)
                 p = ellipsis.p(t)
-                print(str(t) + "->" + str(p))
                 if p.in_bounds(bounds):
                     ellipsis_sample.append(p)
             ellipses_sample.append((l, ellipsis_sample))
@@ -105,27 +106,25 @@ class TwoLineSegments:  # Input: two line segments
             # Hier weiter Spezialfall: Parallel implementieren
 
     def __str__(self):
-        return "two Line Segments:\nLine Segment A: " + str(self.a) + "\nLine Segment B: " + str(
-            self.b) + "\nIntersect (" + str(self.intersect) + "): " + str(self.s)
+        return "Two Line Segments:\n Line Segment A: " + str(self.a) + "\n Line Segment B: " + str(
+            self.b) + "\n  Intersect (" + str(self.intersect) + "): " + str(self.s)
 
     def cell(self) -> Cell:
-        angle_a = self.a.d.angle()
-
-        # Vectors a and b rotated so a lies on x-axis
-        rot_a = self.a.d.rotate(-angle_a)
-        rot_b = self.b.d.rotate(-angle_a)
-
         # Vectors a and b normalised
-        norm_a = rot_a.norm()
-        norm_b = rot_b.norm()
+        norm_a = self.a.d.norm()
+        norm_b = self.b.d.norm()
 
-        # Calculate ellipsis vectors c and d for l = 1
-        c = (norm_b + norm_a) * (0.5 / (norm_b - norm_a).l)
-        d = (norm_b - norm_a) * (0.5 / (norm_b + norm_a).l)
+        # x- and y-coordinates for ellipsis vectors c and d for l = 1
+        c_xy = 1/(norm_a - norm_b).l
+        d_xy = 1/(norm_a + norm_b).l
+
+        # Ellipsis vectors c and d for l = 1
+        c = Vector(c_xy, c_xy)
+        d = Vector(-d_xy, d_xy)
 
         # Calculate ellipsis offset:
-        offset_a = rot_a * (-abs(self.a.rs))
-        offset_b = rot_b * (-abs(self.b.rs))
+        offset_a = Vector(self.a.l, 0) * (self.a.rs)
+        offset_b = Vector(0, self.b.l) * (self.b.rs)
         offset = offset_a + offset_b
 
         # set cell bounds: length of a and b
@@ -149,12 +148,30 @@ def sample_to_plotly(sample):  # send sample to plotly
     py.plot(fig, filename='Ellipsen-Test')
 
 
-st1 = LineSegment(Vector(0, 0), Vector(1, 0))
-st2 = LineSegment(Vector(0, 0), Vector(1/math.sqrt(2), 1/math.sqrt(2)))
+def sample_to_matplotlib(sample):  # plot sample with matplotlib
+    for s in sample:
+        l = s[0]
+        x = []
+        y = []
+        for p in s[1]:
+            x.append(p.x)
+            y.append(p.y)
+        plt.plot(x, y, label=str(l))
+    plt.legend()
+    plt.show()
+
+st1 = LineSegment(Vector(4, 2), Vector(80, 156))
+st2 = LineSegment(Vector(-10, 3), Vector(50, -1))
 eingabe1 = TwoLineSegments(st1, st2)
 print(eingabe1)
 cell1 = eingabe1.cell()
 print(cell1)
-sample1 = cell1.sample(8, 100, ((-2, 3), (-2, 3)))
-#print(sample1)
-sample_to_plotly(sample1)
+sample1 = cell1.sample(7, 1000)  # , ((-2, 3), (-2, 3)))
+print(sample1)
+sample_to_matplotlib(sample1)
+
+'''cell2 = Cell(Vector(1.307, 1.307), Vector(-0.5412, 0.5412), Vector(0, 0), (1, 1), (0, 0.77))
+print(cell2)
+sample2 = cell2.sample(1, 100, ((-2, 3), (-2, 3)))
+print(sample2)
+sample_to_plotly(sample2)'''
