@@ -12,15 +12,12 @@
 hs_err_pid*
 
 gui/tutorial/qml_chart_example/build-frechet-Desktop_Qt_5_7_0_MinGW_32bit-Debug/
-gui/tutorial/qml_chart_example/frechet/
+gui/tutorial/qml_chart_exampleAlex/frechet/frechet.pro.user.06c7b87
+
 
 *.pyc
-gui/tutorial/qml_chart_exampleAlex/build-frechet-Desktop_Qt_5_7_0_MinGW_32bit-Debug/Makefile
-gui/tutorial/qml_chart_exampleAlex/build-frechet-Desktop_Qt_5_7_0_MinGW_32bit-Debug/Makefile.Debug
-gui/tutorial/qml_chart_exampleAlex/build-frechet-Desktop_Qt_5_7_0_MinGW_32bit-Debug/.qmake.stash
-gui/tutorial/qml_chart_exampleAlex/build-frechet-Desktop_Qt_5_7_0_MinGW_32bit-Debug/Makefile.Release
-gui/tutorial/qml_chart_exampleAlex/build-frechet-Desktop_Qt_5_7_0_MinGW_32bit-Debug/debug/main.o
-gui/tutorial/qml_chart_exampleAlex/build-frechet-Desktop_Qt_5_7_0_MinGW_32bit-Debug/debug/qrc_qml.cpp
-gui/tutorial/qml_chart_exampleAlex/build-frechet-Desktop_Qt_5_7_0_MinGW_32bit-Debug/
-gui/tutorial/qml_chart_exampleAlex/frechet/frechet.pro.user.06c7b87
+
 *.966c954
+*.7a31da9
+gui/tutorial/qml_chart_exampleAlex/build-frechet-Desktop_Qt_5_7_0_MinGW_32bit-Debug/
+*.06c7b87
