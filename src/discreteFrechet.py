@@ -1,6 +1,8 @@
 import numpy as np
-import plotly as py
 import numpy.linalg as linalg
+import cv2 as cv
+import numpy as np
+from matplotlib import pyplot as plt
 
 # Euclidean distance.
 def euc_dist(pt1,pt2):
@@ -27,15 +29,25 @@ P and Q are arrays of 2-element arrays (points)
 """
 def frechetDist(P,Q):
 
+	"""P = [[1,2],[1,3],[1,4]]
+	Q = [[2,1],[3,1],[4,1]]"""
+
 	ca = np.multiply(np.ones((len(P),len(Q))), -1)
 	frechetDistance= _c(ca,len(P)-1,len(Q)-1,P,Q)
+	
+	
+	plt.imshow(ca,'gray'),plt.title('ORIGINAL')
+	
+	"""plt.imshow(ca, cmap='hot', interpolation='nearest')"""
+	plt.show()
 	
 	return (frechetDistance , ca)
 
 
-_p = np.asarray([(1,0), (2,2), (-1,3), (2,4)])
-_q = np.asarray([(-3, 2), (-2,0), (0.5, 1)])
-
-py.offline.iplot(data, filename='heatmap_frechet')
-
-frechet, dists = frechetDist(_p, _q)
+"""
+how to run the code
+open ipython
+	run C:/....
+	_p = np.asarray([(1,1), (2,2), (3,3), (4,4)])
+	_q = np.asarray([(1,0),(2,0),(3,0),(4,0)])
+	frechet(_p,_q)

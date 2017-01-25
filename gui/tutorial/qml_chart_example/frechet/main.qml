@@ -15,6 +15,7 @@ Window {
         anchors.fill: parent
         antialiasing: true
 
+
 //        LineSeries {
 //            //graph one
 //            id: series
@@ -27,12 +28,12 @@ Window {
 //
 //        }
 //
+
         LineSeries {
             //graph two
             id: series2
             name: "blue"
             color: "blue"
-
             axisX: valueAxisX
             axisY: valueAxisY
         }
