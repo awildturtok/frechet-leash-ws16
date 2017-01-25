@@ -8,6 +8,7 @@ Window {
     width: 900
     height: 900
     title: qsTr("Hello World")
+    property int curve: 1
 
     ChartView {
         id: chart
@@ -15,25 +16,22 @@ Window {
         anchors.fill: parent
         antialiasing: true
 
+        LineSeries {
+            //graph two
+            id: seriesBLUE
+            name: "blue"
+            color: "blue"
 
-//        LineSeries {
-//            //graph one
-//            id: series
-//            name: "red"
-//            color: "red"
-//            width: 5
-//            XYPoint { x: 0; y: 0 }
-//            XYPoint { x: 1.1; y: 2.1 }
-//            onClicked: {console.log("onClicked: " + point.x + ", " + point.y);}
-//
-//        }
-//
+            axisX: valueAxisX
+            axisY: valueAxisY
+        }
 
         LineSeries {
             //graph two
-            id: series2
-            name: "blue"
-            color: "blue"
+            id: seriesRED
+            name: "red"
+            color: "red"
+
             axisX: valueAxisX
             axisY: valueAxisY
         }
@@ -68,58 +66,94 @@ Window {
             }
             onClicked: {
                 console.log("onClicked: " + point.x + ", " + point.y)
-                series2.append(point.x,point.y)
-                series2.append(point.x,point.y)
+                if(curve == 0){ //state of toggle button //blue
+                    seriesBLUE.append(point.x,point.y)
+                    seriesBLUE.append(point.x,point.y)
+                }else if (curve == 1){// state of toggle button // red
+                    seriesRED.append(point.x,point.y)
+                    seriesRED.append(point.x,point.y)
+                }
             }
 
-}
+       }
 
-//        MouseArea {
-//            anchors.fill: parent
-//            acceptedButtons: Qt.LeftButton | Qt.RightButton
-//            propagateComposedEvents: true
-//            onClicked: {
-//                if(mouseX >= 55 && mouseY >= 427){
-//                    console.log(mouseX-55)
-//                    console.log(mouseY-848)
-//                    console.log("added point")
-//                    //chart.axisX(series)
-//                }
-//            }
-//            onWheel: {
+    }
+ //Buttons
 
-//            }
-//        }
+    //remove button
+    Rectangle {
+        id: rectangleRemove
+        x: 745
+        y: 148
+        width: 108
+        height: 26
+        color: "#000000"
+    }
 
-       // focus: true // focus for zooming with keys
-//        Keys.onPressed: {
-//            /*
-//             * zoom
-//             * i -> zoom in
-//             * o -> zoom out
-//             * left -> go left
-//             * right -> go right
-//             * up -> go up
-//             * down -> go down
-//              */
-//                if (event.key == Qt.Key_I) {
-//                    chart.zoomIn()
-//                    console.log("axisX: "+backgroundSeries.axisX.min+" and axisY: "+backgroundSeries.axisY)
-//                    //backgroundSeries.upperSeries.append(backgroundSeries.axisX,backgroundSeries.axisY)
-//                    //backgroundSeries.upperSeries.append()
-//                }else if(event.key == Qt.Key_O) {
-//                    chart.zoomOut()
-//                }else if(event.key == Qt.Key_Left) {
-//                    chart.scrollLeft(10)
-//                }else if(event.key == Qt.Key_Right) {
-//                    chart.scrollRight(10)
-//                }else if(event.key == Qt.Key_Up) {
-//                    chart.scrollUp(10)
-//                }else if(event.key == Qt.Key_Down) {
-//                    chart.scrollDown(10)
-//                }
-//            }
+    MouseArea {
+        id: mouseAreaRemove
+        x: 745
+        y: 148
+        width: 108
+        height: 26
+        onClicked: {console.log("onClicked:button " + curve );
+            console.log(rectangleRemove.color);
+            if(rectangleToggleR.color == "#0000ff"){//blue
+                seriesBLUE.clear();
+            }else if(rectangleToggleL.color == "#ff0000"){//red
+                seriesRED.clear();
+            }
+        }
+    }
+    //toggle button
+    MouseArea {
+        id: mouseAreaToggle
+        x: 745
+        y: 116
+        width: 108
+        height: 26
+        onClicked: {curve = 2; console.log("onClicked:button " + curve );
+            console.log(rectangleToggleR.color);
+            rectangleRemove.color = "#000000"; // black
+            if(rectangleToggleR.color == "#0000ff"){ //blue
+                rectangleToggleR.color = "black";
+                rectangleToggleL.color = "red";
+                console.log("blue");
+                curve = 1;
+            }else if(rectangleToggleL.color == "#ff0000"){ //red
+                rectangleToggleL.color = "black";
+                rectangleToggleR.color = "blue";
+                console.log("red");
+                curve = 0;
+            }
+        }
+    }
 
+    Rectangle {
+        id: rectangleToggleBlack
+        x: 773
+        y: 116
+        width: 50
+        height: 26
+        color: "black"
+    }
+
+    Rectangle {
+        id: rectangleToggleR
+        x: 823
+        y: 116
+        width: 30
+        height: 26
+        color: "black"
+    }
+
+    Rectangle {
+        id: rectangleToggleL
+        x: 745
+        y: 116
+        width: 28
+        height: 26
+        color: "red"
     }
 }
 

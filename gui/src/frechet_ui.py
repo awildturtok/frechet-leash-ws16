@@ -9,7 +9,7 @@ if __name__ == '__main__':
     myApp = QApplication(sys.argv)
     # Create a label and set its properties
     appLabel = QQuickView()
-    appLabel.setSource(QUrl('ui/main.qml'))
+    appLabel.setSource(QUrl('C:/Users/Fine/Documents/frechet-leash-ws16/gui/src/ui/main.qml'))
 
     # Show the Label
     appLabel.show()
