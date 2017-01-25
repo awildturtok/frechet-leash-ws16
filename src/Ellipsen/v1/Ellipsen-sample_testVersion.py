@@ -263,8 +263,8 @@ def zelleZuMatplotlib(ausgabe):  # plot sample with matplotlib
 
 #st1 = S(P(0.0, 0.0), P(1.0, 0.0))
 #st2 = S(P(0.0, 0.0), P(1.0, 1.0))
-st1 = S(P(4.0, 2.0), P(80, 156)) #a
-st2 = S(P(-10.0, 3.0), P(50, -1)) #b
+st1 = S(P(0.0, 0.0), P(10.0, 0.0)) #a
+st2 = S(P(0.0, 0.0), P(10.0, 1.0)) #b
 eing = Eingabe(st1, st2)
 zelle = zellenAusgabe(eing, 7, 1000, (0, 1), (0, 1))
 #zelleZuPlotly(zelle)

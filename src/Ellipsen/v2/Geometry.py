@@ -159,6 +159,30 @@ class LineSegment:
         else:
             return min(self.p1.d(p), self.p2.d(p))
 
+    def segment(self, bounds: ((float, float), (float, float))) -> [Vector]:
+        x1 = bounds[0][0]
+        x2 = bounds[0][1]
+        y1 = bounds[1][0]
+        y2 = bounds[1][1]
+
+        yx1 = self.fx(x1)
+        yx2 = self.fx(x2)
+        xy1 = self.fy(y1)
+        xy2 = self.fy(y2)
+
+        points = []
+
+        if x1 <= xy1 <= x2:
+            points.append(Vector(xy1, y1))
+        if x1 <= xy2 <= x2:
+            points.append(Vector(xy2, y2))
+        if y1 <= yx1 <= y2:
+            points.append(Vector(x1, yx1))
+        if y1 <= yx2 <= y2:
+            points.append(Vector(x2, yx2))
+
+        return points
+
 
 class Ellipse:
     def __init__(self, m: Vector, a: Vector, b: Vector):
@@ -174,5 +198,8 @@ class Ellipse:
         b = self.b * l
         return Ellipse(self.m, a, b)
 
+    def p_no_offset(self, t: float) -> Vector:  # point on ellipse for set parameter t without regard for offset
+        return self.a * math.cos(t) + self.b * math.sin(t)
+
     def p(self, t: float) -> Vector:  # point on ellipse for set parameter t
-        return ((self.a * math.cos(t)) + (self.b * math.sin(t))) + self.m
+        return self.p_no_offset(t) + self.m

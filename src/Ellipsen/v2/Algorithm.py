@@ -40,8 +40,17 @@ class Cell:
         self.bounds_xy = bounds_xy  # cell bounds
         self.bounds_l = bounds_l  # line length bounds
 
+        # steepest decent lines l=l_ver and l'=l_hor
+        t_l_ver = math.atan(d.x/c.x)
+        t_l_hor = math.atan(d.y/c.y)
+        self.l_ver = LineSegment(offset, self.norm_ellipsis.p_no_offset(t_l_ver)) # Vector(c.x, d.x))
+        self.l_hor = LineSegment(offset, self.norm_ellipsis.p_no_offset(t_l_hor))  # Vector(c.y, d.y))
+
     def __str__(self):
         return "Cell:\n   Norm-" + str(self.norm_ellipsis) + '\n' + \
+               "   Steepest Decent Lines:\n" + \
+               "     l: " + str(self.l_ver.d) + '\n' + \
+               "     l': " + str(self.l_hor.d) + '\n' + \
                "   Bounds l: " + str(self.bounds_l) + '\n' + \
                "   Bounds XY: " + str(self.bounds_xy)
 
@@ -51,8 +60,9 @@ class Cell:
 
         bounds = ((rel_bounds[0][0] * self.bounds_xy[0], rel_bounds[0][1] * self.bounds_xy[0]),
                   (rel_bounds[1][0] * self.bounds_xy[1], rel_bounds[1][1] * self.bounds_xy[1]))
-        ellipses_sample = []  # holds ellipses in form: (l, [Points])
 
+        # Sample Ellipses
+        ellipses_sample = []  # holds ellipses in form: (l, [Points])
         for i1 in range(n1):
             l = self.bounds_l[0] + (float(i1) / (n1 - 1)) * (self.bounds_l[1] - self.bounds_l[0])
             ellipsis = self.norm_ellipsis * l
@@ -63,6 +73,14 @@ class Cell:
                 if p.in_bounds(bounds):
                     ellipsis_sample.append(p)
             ellipses_sample.append((l, ellipsis_sample))
+
+        # Sample Ellipsis axis
+        ellipses_sample.append(("c", LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.a).segment(bounds)))
+        ellipses_sample.append(("d", LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.b).segment(bounds)))
+
+        # Sample steepest decent lines
+        ellipses_sample.append(("l", self.l_ver.segment(bounds)))
+        ellipses_sample.append(("l'", self.l_hor.segment(bounds)))
 
         return ellipses_sample
 
@@ -160,8 +178,8 @@ def sample_to_matplotlib(sample):  # plot sample with matplotlib
     plt.legend()
     plt.show()
 
-st1 = LineSegment(Vector(4, 2), Vector(80, 156))
-st2 = LineSegment(Vector(-10, 3), Vector(50, -1))
+st1 = LineSegment(Vector(0, 0), Vector(10, 0))
+st2 = LineSegment(Vector(0, 0), Vector(10, 10))
 eingabe1 = TwoLineSegments(st1, st2)
 print(eingabe1)
 cell1 = eingabe1.cell()
