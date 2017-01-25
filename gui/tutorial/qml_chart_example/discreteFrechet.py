@@ -36,8 +36,7 @@ def frechetDist(P,Q):
 	frechetDistance= _c(ca,len(P)-1,len(Q)-1,P,Q)
 	
 	
-	plt.imshow(ca,'gray'),plt.title('ORIGINAL')
-	
+	plt.imshow(ca,'gray'),plt.title('ORIGINAL')	
 	"""plt.imshow(ca, cmap='hot', interpolation='nearest')"""
 	plt.show()
 	
@@ -50,3 +49,15 @@ def main():
 	frechetDist(_p,_q)
 
 main()
+"""
+how to run the code
+open ipython
+
+
+	run C:/....
+	
+	_p = np.asarray([(1,1), (2,2), (3,3), (4,4)])
+	_q = np.asarray([(1,0),(2,0),(3,0),(4,0)])
+	frechet(_p,_q)
+"""
+
