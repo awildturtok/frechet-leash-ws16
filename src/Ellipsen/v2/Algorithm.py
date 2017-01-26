@@ -41,10 +41,10 @@ class Cell:
         self.bounds_l = bounds_l  # line length bounds
 
         # steepest decent lines l=l_ver and l'=l_hor
-        t_l_ver = math.atan(d.x/c.x)
-        t_l_hor = math.atan(d.y/c.y)
-        self.l_ver = LineSegment(offset, self.norm_ellipsis.p_no_offset(t_l_ver)) # Vector(c.x, d.x))
-        self.l_hor = LineSegment(offset, self.norm_ellipsis.p_no_offset(t_l_hor))  # Vector(c.y, d.y))
+        t_l_ver = math.atan(d.x / c.x)
+        t_l_hor = math.atan(d.y / c.y)
+        self.l_ver = LineSegment(offset, self.norm_ellipsis.p(t_l_ver)) # Vector(c.x, d.x))
+        self.l_hor = LineSegment(offset, self.norm_ellipsis.p(t_l_hor))  # Vector(c.y, d.y))
 
     def __str__(self):
         return "Cell:\n   Norm-" + str(self.norm_ellipsis) + '\n' + \
@@ -179,7 +179,7 @@ def sample_to_matplotlib(sample):  # plot sample with matplotlib
     plt.show()
 
 st1 = LineSegment(Vector(0, 0), Vector(10, 0))
-st2 = LineSegment(Vector(0, 0), Vector(10, 10))
+st2 = LineSegment(Vector(10, 10), Vector(0, 0))
 eingabe1 = TwoLineSegments(st1, st2)
 print(eingabe1)
 cell1 = eingabe1.cell()
