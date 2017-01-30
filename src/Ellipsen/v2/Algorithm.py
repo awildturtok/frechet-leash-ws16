@@ -29,7 +29,7 @@ class OneLineSegment(LineSegment):  # one of the two input line segments
         self.rs = self.r_point(s)  # S in parametric terms of line segment
 
     def __str__(self):
-        return str(self.p1) + "->" + str(self.p2) + ": m=" + str(self.m) + " n=" + str(self.n) + \
+        return str(self.p1) + "->" + str(self.p2) + ": l=" + str(self.l) + "m=" + str(self.m) + " n=" + str(self.n) + \
                "\n   Intersects:" + str(self.intersects) + " Direction:" + str(self.dir) + \
                " r(S): " + str(self.rs)  # + " Offset:" + str(self.offset)
 
@@ -54,22 +54,32 @@ class Cell:
                "   Bounds l: " + str(self.bounds_l) + '\n' + \
                "   Bounds XY: " + str(self.bounds_xy)
 
-    def sample(self, n1: int, n2: int, rel_bounds: ((float, float), (float, float)) = ((0, 1), (0, 1)))\
+    def sample_l(self, nl: int, np: int, rel_bounds: ((float, float), (float, float)) = ((0, 1), (0, 1)))\
             -> [(float, [Vector])]:
-        # n1: # of ellipsis, n2: # of points per ellipsis, bounds: relative xy bounds
+        ls = []
+        for i in range(nl):
+            l = self.bounds_l[0] + (float(i) / (nl - 1)) * (self.bounds_l[1] - self.bounds_l[0])
+            ls.append(l)
+
+        return self.sample(ls, np, rel_bounds)
+
+    def sample(self, ls: [float], n: int, rel_bounds: ((float, float), (float, float)) = ((0, 1), (0, 1)))\
+            -> [(float, [Vector])]:
+        # n: # of points per ellipsis, bounds: relative xy bounds
 
         bounds = ((rel_bounds[0][0] * self.bounds_xy[0], rel_bounds[0][1] * self.bounds_xy[0]),
                   (rel_bounds[1][0] * self.bounds_xy[1], rel_bounds[1][1] * self.bounds_xy[1]))
 
         # Sample Ellipses
         ellipses_sample = []  # holds ellipses in form: (l, [Points])
-        for i1 in range(n1):
-            l = self.bounds_l[0] + (float(i1) / (n1 - 1)) * (self.bounds_l[1] - self.bounds_l[0])
+        for l in ls:
+            if l < self.bounds_l[0] or l > self.bounds_l[1]:
+                continue
             ellipsis = self.norm_ellipsis * l
             ellipsis_sample = []
             tps = {}
-            for i2 in range(n2):
-                t = (i2 / (n2 - 1)) * (2 * math.pi)
+            for i2 in range(n):
+                t = (i2 / (n - 1)) * (2 * math.pi)
                 p = ellipsis.p(t)
                 if p.in_bounds(bounds) and p not in tps.values():
                     tps[t] = p
@@ -81,6 +91,9 @@ class Cell:
                     ellipsis_sample.append(tps[t])
                     print(str(t) + " -> " + str(tps[t]))
             ellipses_sample.append((l, ellipsis_sample))
+
+        # Sample Ellipsis center-point
+        # ellipses_sample.append(("S", [self.norm_ellipsis.m]))
 
         # Sample Ellipsis axis
         ellipses_sample.append(("c", LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.a).cuts_bounds(bounds)))
@@ -182,20 +195,24 @@ def sample_to_matplotlib(sample):  # plot sample with matplotlib
         for p in s[1]:
             x.append(p.x)
             y.append(p.y)
-        if len(x) > 1:
+        len_x = len(x)
+        if len_x > 1:
             plt.plot(x, y, label=str(l))
-        else:
+        elif len_x == 1:
             plt.plot(x, y, 'x', label=str(l))
+        else:
+            plt.plot(x, y, 'o', label=str(l))
     plt.legend()
     plt.show()
 
-st1 = LineSegment(Vector(0, 0), Vector(10, 0))
-st2 = LineSegment(Vector(10, 10), Vector(0, 0))
+st1 = LineSegment(Vector(0, 0), Vector(10, 10))
+st2 = LineSegment(Vector(0, 10), Vector(0, 0))
 eingabe1 = TwoLineSegments(st1, st2)
 print(eingabe1)
 cell1 = eingabe1.cell()
 print(cell1)
-sample1 = cell1.sample(7, 20)  # , ((-2, 3), (-2, 3)))
+# sample1 = cell1.sample_l(7, 100)  # , ((-2, 3), (-4, 6)))
+sample1 = cell1.sample([0,2,4,6,8,10,12,14,math.sqrt(200), 15], 20)
 print(sample1)
 sample_to_matplotlib(sample1)
 

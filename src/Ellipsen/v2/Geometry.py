@@ -121,7 +121,7 @@ class LineSegment:
 
     @property
     def __str__(self):
-        return str(self.p1) + "->" + str(self.p2) + ": m=" + str(self.m) + " n=" + str(self.n)
+        return str(self.p1) + "->" + str(self.p2) + ": l=" + str(self.l) + " m=" + str(self.m) + " n=" + str(self.n)
 
     # Line Arithmetic
 
@@ -270,7 +270,17 @@ class Ellipse:
             if self.p(t).in_bounds_x(x_bounds):
                 ts.append(t)
 
-        return ts
+        if len(ts) == 0:
+            return []
+
+        ts.sort()
+
+        ret_ts = [ts[0]]
+        for i in range(len(ts) - 1):
+            if not math.isclose(ts[i], ts[i+1], rel_tol=1e-13):
+                ret_ts.append(ts[i+1])
+
+        return ret_ts
 
     def cuts_bounds_p(self, bounds: ((float, float), (float, float))) -> [Vector]:
         points = []
