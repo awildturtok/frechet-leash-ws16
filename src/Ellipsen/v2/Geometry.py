@@ -13,6 +13,7 @@
 # -*- coding: utf-8 -*-
 
 import math
+from typing import Tuple
 
 
 class Vector:
@@ -21,25 +22,35 @@ class Vector:
         self.y = float(y)
         self.l = math.sqrt(x ** 2 + y ** 2)
 
+    @staticmethod
+    def from_tuple(t: Tuple[float, float]) -> 'Vector':
+        return Vector(t[0], t[1])
+
+    def to_tuple(self) -> Tuple[float, float]:
+        return self.x, self.y
+
+    def __hash__(self):
+        return hash((self.x, self.y))
+
     def __str__(self):
         return "(%s,%s)" % (self.x, self.y)
 
     # Vector Arithmetic
 
-    def __add__(self, other):
+    def __add__(self, other: 'Vector') -> 'Vector':
         x = self.x + other.x
         y = self.y + other.y
         return Vector(x, y)
 
-    def __neg__(self):
+    def __neg__(self) -> 'Vector':
         return Vector(-self.x, -self.y)
 
-    def __sub__(self, other):
+    def __sub__(self, other: 'Vector') -> 'Vector':
         x = self.x - other.x
         y = self.y - other.y
         return Vector(x, y)
 
-    def __mul__(self, s: float):
+    def __mul__(self, s: float) -> 'Vector':
         x = self.x * s
         y = self.y * s
         return Vector(x, y)
@@ -47,20 +58,20 @@ class Vector:
     def __abs__(self) -> float:
         return self.l
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return self.x == other.x and self.y == other.y
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not self.__eq__(other)
 
     def d(self, other) -> float:  # distance to other point
         d = other - self
         return d.l
 
-    def norm(self):  # normalized vector (lenght = 1)
+    def norm(self) -> 'Vector':  # normalized vector (lenght = 1)
         return self * (1 / self.l)
 
-    def cross_product(self, other):
+    def cross_product(self, other) -> float:
         return self.x * other.y - self.y * other.x
 
     def angle(self) -> float:
@@ -71,10 +82,10 @@ class Vector:
         y = self.x * math.sin(a) + self.y * math.cos(a)
         return Vector(x, y)
 
-    def rotate_90_l(self):  # rotate 90° to the left
+    def rotate_90_l(self) -> 'Vector':  # rotate 90° to the left
         return Vector(-self.y, self.x)
 
-    def rotate_90_r(self):  # rotate 90° to the right
+    def rotate_90_r(self) -> 'Vector':  # rotate 90° to the right
         return Vector(-self.y, self.x)
 
     def in_bounds(self, bounds: ((float, float), (float, float))) -> bool:
@@ -84,9 +95,7 @@ class Vector:
 class LineSegment:
     def __init__(self, p1: Vector, p2: Vector):
 
-        if p1 == p2:
-            print("Error: Start- and Endpoint are equal.")
-            p2 = p2 + Vector(1, 0)
+        assert p1 != p2, "Error: Start- and Endpoint are equal."
 
         self.p1 = p1  # Startpoint P1
         self.p2 = p2  # Endpoint P2
