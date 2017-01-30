@@ -12,7 +12,7 @@
 
 # -*- coding: utf-8 -*-
 
-from Geometry import *
+from src.Ellipsen.v2.Geometry import *
 
 import plotly.plotly as py
 import plotly.graph_objs as go
