@@ -35,6 +35,9 @@ class Vector:
     def __str__(self):
         return "(%s,%s)" % (self.x, self.y)
 
+    def __hash__(self):
+        return hash((self.x, self.y))
+
     # Vector Arithmetic
 
     def __add__(self, other: 'Vector') -> 'Vector':
@@ -89,7 +92,13 @@ class Vector:
         return Vector(-self.y, self.x)
 
     def in_bounds(self, bounds: ((float, float), (float, float))) -> bool:
-        return bounds[0][0] <= self.x <= bounds[0][1] and bounds[1][0] <= self.y <= bounds[1][1]
+        return self.in_bounds_x(bounds[0]) and self.in_bounds_y(bounds[1])
+
+    def in_bounds_x(self, bounds: (float, float)) -> bool:
+        return bounds[0] <= self.x <= bounds[1]
+
+    def in_bounds_y(self, bounds: (float, float)) -> bool:
+        return bounds[0] <= self.y <= bounds[1]
 
 
 class LineSegment:
@@ -168,7 +177,7 @@ class LineSegment:
         else:
             return min(self.p1.d(p), self.p2.d(p))
 
-    def segment(self, bounds: ((float, float), (float, float))) -> [Vector]:
+    def cuts_bounds(self, bounds: ((float, float), (float, float))) -> [Vector]:
         x1 = bounds[0][0]
         x2 = bounds[0][1]
         y1 = bounds[1][0]
@@ -212,3 +221,62 @@ class Ellipse:
 
     def p(self, t: float) -> Vector:  # point on ellipse for set parameter t
         return self.p_no_offset(t) + self.m
+
+    def tx(self, x: float) -> [float]:  # parameter t for given x-value
+        return self.txy(self.a.x, self.b.x, self.m.x, x)
+
+    def ty(self, y: float) -> [float]:  # parameter t for given y-value
+        return self.txy(self.a.y, self.b.y, self.m.y, y)
+
+    @staticmethod
+    def txy(a: float, b: float, m: float, xy: float) -> [float]:  # helper function for tx and ty
+        w = a**2 + b**2 - m**2 + 2*m*xy - xy**2
+        if w < 0:
+            return []
+        elif w == 0:
+            return [2*math.atan2(b, a-m+xy)]
+        return [2*math.atan2(b - math.sqrt(w), a-m+xy), 2*math.atan2(b + math.sqrt(w), a-m+xy)]
+
+    def cuts_bounds_t(self, bounds: ((float, float), (float, float))) -> [float]:
+        x_bounds = bounds[0]
+        y_bounds = bounds[1]
+
+        x1 = x_bounds[0]
+        x2 = x_bounds[1]
+        y1 = y_bounds[0]
+        y2 = y_bounds[1]
+
+        tx1 = self.tx(x1)
+        tx2 = self.tx(x2)
+        ty1 = self.ty(y1)
+        ty2 = self.ty(y2)
+
+        tx = tx1 + tx2
+        ty = ty1 + ty2
+
+        ts = []
+
+        for t in tx:
+            t %= 2 * math.pi
+            if t < 0:
+                t += 2*math.pi
+            if self.p(t).in_bounds_y(y_bounds):
+                ts.append(t)
+
+        for t in ty:
+            t %= (2*math.pi)
+            if t < 0:
+                t += 2*math.pi
+            if self.p(t).in_bounds_x(x_bounds):
+                ts.append(t)
+
+        return ts
+
+    def cuts_bounds_p(self, bounds: ((float, float), (float, float))) -> [Vector]:
+        points = []
+        ts = self.cuts_bounds_t(bounds)
+
+        for t in ts:
+            points.append(self.p(t))
+
+        return points

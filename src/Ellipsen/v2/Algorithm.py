@@ -12,7 +12,7 @@
 
 # -*- coding: utf-8 -*-
 
-from src.Ellipsen.v2.Geometry import *
+from Geometry import *
 
 import plotly.plotly as py
 import plotly.graph_objs as go
@@ -67,20 +67,28 @@ class Cell:
             l = self.bounds_l[0] + (float(i1) / (n1 - 1)) * (self.bounds_l[1] - self.bounds_l[0])
             ellipsis = self.norm_ellipsis * l
             ellipsis_sample = []
+            tps = {}
             for i2 in range(n2):
                 t = (i2 / (n2 - 1)) * (2 * math.pi)
                 p = ellipsis.p(t)
-                if p.in_bounds(bounds):
-                    ellipsis_sample.append(p)
+                if p.in_bounds(bounds) and p not in tps.values():
+                    tps[t] = p
+            for t in ellipsis.cuts_bounds_t(bounds):
+                tps[t] = ellipsis.p(t)
+            print("====")
+            print(l)
+            for t in sorted(tps.keys()):
+                    ellipsis_sample.append(tps[t])
+                    print(str(t) + " -> " + str(tps[t]))
             ellipses_sample.append((l, ellipsis_sample))
 
         # Sample Ellipsis axis
-        ellipses_sample.append(("c", LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.a).segment(bounds)))
-        ellipses_sample.append(("d", LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.b).segment(bounds)))
+        ellipses_sample.append(("c", LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.a).cuts_bounds(bounds)))
+        ellipses_sample.append(("d", LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.b).cuts_bounds(bounds)))
 
         # Sample steepest decent lines
-        ellipses_sample.append(("l", self.l_ver.segment(bounds)))
-        ellipses_sample.append(("l'", self.l_hor.segment(bounds)))
+        ellipses_sample.append(("l", self.l_ver.cuts_bounds(bounds)))
+        ellipses_sample.append(("l'", self.l_hor.cuts_bounds(bounds)))
 
         return ellipses_sample
 
@@ -99,7 +107,7 @@ def intersection(a: LineSegment, b: LineSegment):  # calculates the intersection
 
 class TwoLineSegments:  # Input: two line segments
     def __init__(self, a: LineSegment, b: LineSegment):
-        # calculate shortest and longest possible line length - FALSCH: ex. 0,0->0,2 und 1,1->2,2
+        # calculate shortest and longest possible line length
         self.bounds_l = (min(a.d_ls_point(b.p1), a.d_ls_point(b.p2), b.d_ls_point(a.p1), b.d_ls_point(a.p2)),
                          max(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2)))
 
@@ -174,7 +182,10 @@ def sample_to_matplotlib(sample):  # plot sample with matplotlib
         for p in s[1]:
             x.append(p.x)
             y.append(p.y)
-        plt.plot(x, y, label=str(l))
+        if len(x) > 1:
+            plt.plot(x, y, label=str(l))
+        else:
+            plt.plot(x, y, 'x', label=str(l))
     plt.legend()
     plt.show()
 
@@ -184,7 +195,7 @@ eingabe1 = TwoLineSegments(st1, st2)
 print(eingabe1)
 cell1 = eingabe1.cell()
 print(cell1)
-sample1 = cell1.sample(7, 1000)  # , ((-2, 3), (-2, 3)))
+sample1 = cell1.sample(7, 20)  # , ((-2, 3), (-2, 3)))
 print(sample1)
 sample_to_matplotlib(sample1)
 
