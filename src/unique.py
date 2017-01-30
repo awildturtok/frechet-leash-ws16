@@ -5,7 +5,7 @@ def unique(elements, key):
     for element in elements:
         k = key(element)
         if k not in test:
-            set.add(k)
+            test.add(k)
             out.append(element)
 
     return out
