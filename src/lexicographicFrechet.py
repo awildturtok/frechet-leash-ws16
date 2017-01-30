@@ -1,17 +1,15 @@
 from matplotlib import pyplot as plt
 from src.discreteFrechet import *
-from typing import Tuple, List, Dict, Any
+from src.Types import *
 import math as math
 
 
-Point = Tuple[float, float]
-Curve = List[Point]
-Matrix = Dict[Point, float]
 
 '''
 dists = frechetDistance Matrix
 preds = predecessors of Points
 '''
+
 
 def unzip(zipped : List[Tuple[Any, Any]]) -> Tuple[List[Any], Tuple[List[Any]]] :
     unzipped = zip(*zipped)
