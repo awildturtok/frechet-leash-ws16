@@ -13,8 +13,11 @@
 # -*- coding: utf-8 -*-
 
 import math
+
 import plotly.plotly as py
 import plotly.graph_objs as go
+
+import matplotlib.pyplot as plt
 
 class P: # Punkt Klasse
     def __init__(self, x, y):
@@ -248,10 +251,21 @@ def zelleZuPlotly(ausgabe):
     fig = dict(data=data)
     py.plot(fig, filename='Ellipsen-Test')
 
+def zelleZuMatplotlib(ausgabe):  # plot sample with matplotlib
+    for a in ausgabe:
+        aus1 = a[0]
+        aus2 = a[1]
+        l = a[2]
+        plt.plot(aus1[0], aus1[1], label=(str(l)+'a'))
+        plt.plot(aus2[0], aus2[1], label=(str(l)+'b'))
+    plt.legend()
+    plt.show()
+
 #st1 = S(P(0.0, 0.0), P(1.0, 0.0))
 #st2 = S(P(0.0, 0.0), P(1.0, 1.0))
-st1 = S(P(0.0, 0.0), P(1.0, 0.0)) #a
-st2 = S(P(0.0, 2.0), P(0.0, 1.0)) #b
+st1 = S(P(0.0, 0.0), P(10.0, 0.0)) #a
+st2 = S(P(10.0, 10.0), P(0.0, 0.0)) #b
 eing = Eingabe(st1, st2)
-zelle = zellenAusgabe(eing, 8, 100, (-2,3), (-2,3))
-zelleZuPlotly(zelle)
+zelle = zellenAusgabe(eing, 7, 1000, (0, 1), (0, 1))
+#zelleZuPlotly(zelle)
+zelleZuMatplotlib(zelle)

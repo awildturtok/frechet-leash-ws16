@@ -60,6 +60,9 @@ class Vector:
     def norm(self):  # normalized vector (lenght = 1)
         return self * (1 / self.l)
 
+    def cross_product(self, other):
+        return self.x * other.y - self.y * other.x
+
     def angle(self) -> float:
         return math.atan2(self.y, self.x)
 
@@ -67,6 +70,15 @@ class Vector:
         x = self.x * math.cos(a) - self.y * math.sin(a)
         y = self.x * math.sin(a) + self.y * math.cos(a)
         return Vector(x, y)
+
+    def rotate_90_l(self):  # rotate 90° to the left
+        return Vector(-self.y, self.x)
+
+    def rotate_90_r(self):  # rotate 90° to the right
+        return Vector(-self.y, self.x)
+
+    def in_bounds(self, bounds: ((float, float), (float, float))) -> bool:
+        return bounds[0][0] <= self.x <= bounds[0][1] and bounds[1][0] <= self.y <= bounds[1][1]
 
 
 class LineSegment:
@@ -127,7 +139,7 @@ class LineSegment:
     def contains_point(self, p: Vector) -> bool:  # does point p lie on the line segment
         return (self.m == float("inf") or 0 <= self.rx(p.x) <= 1) and (self.m == 0 or 0 <= self.ry(p.y) <= 1)
 
-    def r_point(self, p: Vector) -> float:  # parameter r for set point
+    def r_point(self, p: Vector) -> float:  # parameter r for set point (result only relevant for case p lies on line)
         rx = self.rx(p.x)
         ry = self.ry(p.y)
         if math.isinf(self.m):
@@ -136,6 +148,41 @@ class LineSegment:
             ry = rx
         return 0.5 * (rx + ry)
 
+    def d_l_point(self, p: Vector) -> float:  # closest distance of p to line
+        return abs(self.d.cross_product(p - self.p1)) / self.d.l
+
+    def d_ls_point(self, p: Vector) -> float:  # closest distance of p to line segment
+        d_l = self.d_l_point(p)  # closest distance of p to line
+        r = self.r_point(p + self.d.rotate_90_l().norm() * d_l)  # parameter r for this distance
+        if 0 <= r <= 1:  # if the projection of p lies on the segment return this distance
+            return d_l
+        else:
+            return min(self.p1.d(p), self.p2.d(p))
+
+    def segment(self, bounds: ((float, float), (float, float))) -> [Vector]:
+        x1 = bounds[0][0]
+        x2 = bounds[0][1]
+        y1 = bounds[1][0]
+        y2 = bounds[1][1]
+
+        yx1 = self.fx(x1)
+        yx2 = self.fx(x2)
+        xy1 = self.fy(y1)
+        xy2 = self.fy(y2)
+
+        points = []
+
+        if x1 <= xy1 <= x2:
+            points.append(Vector(xy1, y1))
+        if x1 <= xy2 <= x2:
+            points.append(Vector(xy2, y2))
+        if y1 <= yx1 <= y2:
+            points.append(Vector(x1, yx1))
+        if y1 <= yx2 <= y2:
+            points.append(Vector(x2, yx2))
+
+        return points
+
 
 class Ellipse:
     def __init__(self, m: Vector, a: Vector, b: Vector):
@@ -143,10 +190,16 @@ class Ellipse:
         self.a = a  # axis vector a
         self.b = b  # axis vector b
 
+    def __str__(self):
+        return "Ellipsis: M" + str(self.m) + " a:" + str(self.a) + " b:" + str(self.b)
+
     def __mul__(self, l: float):
         a = self.a * l
         b = self.b * l
         return Ellipse(self.m, a, b)
 
+    def p_no_offset(self, t: float) -> Vector:  # point on ellipse for set parameter t without regard for offset
+        return self.a * math.cos(t) + self.b * math.sin(t)
+
     def p(self, t: float) -> Vector:  # point on ellipse for set parameter t
-        return self.m + (math.cos(t) * self.a) + (math.sin(t) * self.b)
+        return self.p_no_offset(t) + self.m
