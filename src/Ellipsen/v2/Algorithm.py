@@ -85,19 +85,21 @@ class Cell:
                     tps[t] = p
             for t in ellipsis.cuts_bounds_t(bounds):
                 tps[t] = ellipsis.p(t)
-            print("====")
-            print(l)
+            #print("====")
+            #print(l)
             for t in sorted(tps.keys()):
                     ellipsis_sample.append(tps[t])
-                    print(str(t) + " -> " + str(tps[t]))
+                    #print(str(t) + " -> " + str(tps[t]))
             ellipses_sample.append((l, ellipsis_sample))
 
         # Sample Ellipsis center-point
         # ellipses_sample.append(("S", [self.norm_ellipsis.m]))
 
         # Sample Ellipsis axis
-        ellipses_sample.append(("c", LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.a).cuts_bounds(bounds)))
-        ellipses_sample.append(("d", LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.b).cuts_bounds(bounds)))
+        ellipses_sample.append(("c", LineSegment(self.norm_ellipsis.m,
+                                                 self.norm_ellipsis.m + self.norm_ellipsis.a).cuts_bounds(bounds)))
+        ellipses_sample.append(("d", LineSegment(self.norm_ellipsis.m,
+                                                 self.norm_ellipsis.m + self.norm_ellipsis.b).cuts_bounds(bounds)))
 
         # Sample steepest decent lines
         ellipses_sample.append(("l", self.l_ver.cuts_bounds(bounds)))
@@ -205,15 +207,15 @@ def sample_to_matplotlib(sample):  # plot sample with matplotlib
     plt.legend()
     plt.show()
 
-st1 = LineSegment(Vector(0, 0), Vector(10, 10))
-st2 = LineSegment(Vector(0, 10), Vector(0, 0))
+st1 = LineSegment(Vector(0, 0), Vector(1, 1))
+st2 = LineSegment(Vector(1, 0), Vector(0, 1))
 eingabe1 = TwoLineSegments(st1, st2)
 print(eingabe1)
 cell1 = eingabe1.cell()
 print(cell1)
 # sample1 = cell1.sample_l(7, 100)  # , ((-2, 3), (-4, 6)))
-sample1 = cell1.sample([0,2,4,6,8,10,12,14,math.sqrt(200), 15], 20)
-print(sample1)
+sample1 = cell1.sample_l(200, 1000, rel_bounds=((0,1), (0,1)))  # ([0,2,4,6,8,10,12,14,math.sqrt(200), 15], 20)
+#print(sample1)
 sample_to_matplotlib(sample1)
 
 '''cell2 = Cell(Vector(1.307, 1.307), Vector(-0.5412, 0.5412), Vector(0, 0), (1, 1), (0, 0.77))
