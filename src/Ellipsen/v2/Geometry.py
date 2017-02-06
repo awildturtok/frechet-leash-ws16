@@ -62,7 +62,7 @@ class Vector:
         return self.l
 
     def __eq__(self, other) -> bool:
-        return self.x == other.x and self.y == other.y
+        return math.isclose(self.x, other.x, rel_tol=1e-13) and math.isclose(self.y, other.y, rel_tol=1e-13)
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
@@ -99,6 +99,8 @@ class Vector:
 
     def in_bounds_y(self, bounds: (float, float)) -> bool:
         return bounds[0] <= self.y <= bounds[1]
+
+    #def in_bounds_approx(self, bounds: ((float, float), (float, float))) -> bool:
 
 
 class LineSegment:
@@ -177,6 +179,15 @@ class LineSegment:
         else:
             return min(self.p1.d(p), self.p2.d(p))
 
+    def point_above(self, p: Vector) -> bool:  # is given point above line
+        return p.y > self.fx(p.x)
+
+    def point_right(self, p: Vector) -> bool:  # is given point on the right side of line
+        return p.x > self.fy(p.y)
+
+    def point_on(self, p: Vector) -> bool:  # is given point on line
+        return math.isclose(p.y, self.fx(p.x), rel_tol=1e-13)
+
     def cuts_bounds(self, bounds: ((float, float), (float, float))) -> [Vector]:
         x1 = bounds[0][0]
         x2 = bounds[0][1]
@@ -230,26 +241,21 @@ class Ellipse:
 
     @staticmethod
     def txy(a: float, b: float, m: float, xy: float) -> [float]:  # helper function for tx and ty
-        w = a**2 + b**2 - m**2 + 2*m*xy - xy**2
-        if w < 0:
-            return []
-        elif w == 0:
-            return [2*math.atan2(b, a-m+xy)]
-        return [2*math.atan2(b - math.sqrt(w), a-m+xy), 2*math.atan2(b + math.sqrt(w), a-m+xy)]
+        if a != 0 and not math.isclose(m, xy + a, rel_tol=1e-13):
+            w = a**2 + b**2 - m**2 + 2*m*xy - xy**2
+            if w < 0:
+                return []
+            elif w == 0:
+                return [2*math.atan2(b, a-m+xy)]
+            return [2*math.atan2(b - math.sqrt(w), a-m+xy), 2*math.atan2(b + math.sqrt(w), a-m+xy)]
+        else:
+            return [math.pi, 2*(math.pi-math.atan2(a, b))]
 
     def cuts_bounds_t(self, bounds: ((float, float), (float, float))) -> [float]:
-        x_bounds = bounds[0]
-        y_bounds = bounds[1]
-
-        x1 = x_bounds[0]
-        x2 = x_bounds[1]
-        y1 = y_bounds[0]
-        y2 = y_bounds[1]
-
-        tx1 = self.tx(x1)
-        tx2 = self.tx(x2)
-        ty1 = self.ty(y1)
-        ty2 = self.ty(y2)
+        tx1 = self.tx(bounds[0][0])
+        tx2 = self.tx(bounds[0][1])
+        ty1 = self.ty(bounds[1][0])
+        ty2 = self.ty(bounds[1][1])
 
         tx = tx1 + tx2
         ty = ty1 + ty2
@@ -260,14 +266,15 @@ class Ellipse:
             t %= 2 * math.pi
             if t < 0:
                 t += 2*math.pi
-            if self.p(t).in_bounds_y(y_bounds):
+            p = self.p(t)
+            if self.p(t).in_bounds_y(bounds[1]):
                 ts.append(t)
 
         for t in ty:
             t %= (2*math.pi)
             if t < 0:
                 t += 2*math.pi
-            if self.p(t).in_bounds_x(x_bounds):
+            if self.p(t).in_bounds_x(bounds[0]):
                 ts.append(t)
 
         if len(ts) == 0:
