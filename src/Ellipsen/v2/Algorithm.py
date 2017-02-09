@@ -29,57 +29,43 @@ class OneLineSegment(LineSegment):  # one of the two input line segments
         self.rs = self.r_point(s)  # S in parametric terms of line segment
 
     def __str__(self):
-        return str(self.p1) + "->" + str(self.p2) + ": l=" + str(self.l) + "m=" + str(self.m) + " n=" + str(self.n) + \
-               "\n   Intersects:" + str(self.intersects) + " Direction:" + str(self.dir) + \
-               " r(S): " + str(self.rs)  # + " Offset:" + str(self.offset)
+        return str(self.p1) + "->" + str(self.p2) + ": l=" + str(self.l) + " m=" + str(self.m) + " n=" + str(self.n) + \
+               "\n      Intersects:" + str(self.intersects) + " Direction:" + str(self.dir) + " r(S): " + str(self.rs)
 
 
 class Cell:
-    def __init__(self, a: OneLineSegment, b: OneLineSegment, c: Vector, d: Vector, offset: Vector, bounds_xy: (float, float), bounds_l: (float, float)):
+    def __init__(self, a: OneLineSegment, b: OneLineSegment, c: Vector, d: Vector, m: Vector, bounds_xy: (float, float),
+                 bounds_l: (float, float), offset: Vector = Vector(0, 0), start: Vector = Vector(0, 0)):
         self.a = a
         self.b = b
-        self.norm_ellipsis = Ellipse(offset, c, d)  # Ellipsis for l = 1
+        self.norm_ellipsis = Ellipse(m, c, d)  # Ellipsis for l = 1
         self.bounds_xy = bounds_xy  # cell bounds
         self.bounds_l = bounds_l  # line length bounds
+        self.offset = offset
 
         # steepest decent lines l=l_ver and l'=l_hor
         t_l_ver = math.atan(d.x / c.x)
         t_l_hor = math.atan(d.y / c.y)
-        self.l_ver = LineSegment(offset, self.norm_ellipsis.p(t_l_ver))
-        self.l_hor = LineSegment(offset, self.norm_ellipsis.p(t_l_hor))
+        self.l_ver = LineSegment(m, self.norm_ellipsis.p(t_l_ver))
+        self.l_hor = LineSegment(m, self.norm_ellipsis.p(t_l_hor))
         self.l_ver_cut = Vector(bounds_xy[0], self.l_ver.fx(bounds_xy[0]))
-        self.l_hor_cut = Vector(bounds_xy[1], self.l_hor.fy(bounds_xy[1]))
-        self.l_ver_cut_l = self.lp(self.l_ver_cut)
-        self.l_hor_cut_l = self.lp(self.l_hor_cut)
-        self.which_l = self.find_better_l()
-        self.traverse_all = False
+        self.l_hor_cut = Vector(self.l_hor.fy(bounds_xy[1]), bounds_xy[1])
+
+        self.traversals = self.traverse((self.lp(start - offset), [start]))
 
     def __str__(self):
-        return "Cell:\n   Norm-" + str(self.norm_ellipsis) + '\n' + \
-               "   Steepest Decent Lines:\n" + \
-               "     l: " + str(self.l_ver.d) + '\n' + \
-               "     l': " + str(self.l_hor.d) + '\n' + \
-               "   Bounds l: " + str(self.bounds_l) + '\n' + \
-               "   Bounds XY: " + str(self.bounds_xy)
+        return "    Norm-" + str(self.norm_ellipsis) + '\n' + \
+               "    Steepest Decent Lines:\n" + \
+               "      l: " + str(self.l_ver.d) + '\n' + \
+               "      l': " + str(self.l_hor.d) + '\n' + \
+               "    Bounds l: " + str(self.bounds_l) + '\n' + \
+               "    Bounds XY: " + str(self.bounds_xy) + '\n' + \
+               "    Traversals:\n" + \
+               "      right: " + str(self.traversals[0]) + '\n' + \
+               "      top-right: " + str(self.traversals[1]) + '\n' + \
+               "      top: " + str(self.traversals[2])
 
-    def find_better_l(self) -> bool:
-        v_b = 0 <= self.l_ver_cut.y <= self.bounds_xy[1]
-        h_b = 0 <= self.l_hor_cut.x <= self.bounds_xy[0]
-        if v_b and h_b:
-            l_v = self.l_ver_cut_l
-            l_h = self.l_hor_cut_l
-            if math.isclose(l_v, l_h, rel_tol=1e-13):
-                return 0
-            if l_v < l_h:
-                return 1
-            return 2
-        if v_b:
-            return 1
-        if h_b:
-            return 2
-        return -1
-
-    def sample_l(self, nl: int, np: int, rel_bounds: ((float, float), (float, float)) = ((0, 1), (0, 1)))\
+    def sample_l(self, nl: int, np: int, rel_bounds: ((float, float), (float, float)) = ((0, 1), (0, 1))) \
             -> [(float, [Vector])]:
         ls = []
         for i in range(nl):
@@ -88,7 +74,7 @@ class Cell:
 
         return self.sample(ls, np, rel_bounds)
 
-    def sample(self, ls: [float], n: int, rel_bounds: ((float, float), (float, float)) = ((0, 1), (0, 1)))\
+    def sample(self, ls: [float], n: int, rel_bounds: ((float, float), (float, float)) = ((0, 1), (0, 1))) \
             -> [(float, [Vector])]:
         # n: # of points per ellipsis, bounds: relative xy bounds
 
@@ -111,65 +97,95 @@ class Cell:
             for t in ellipsis.cuts_bounds_t(bounds):
                 tps[t] = ellipsis.p(t)
             for t in sorted(tps.keys()):
-                    ellipsis_sample.append(tps[t])
+                ellipsis_sample.append(tps[t] + self.offset)
             ellipses_sample.append((l, ellipsis_sample))
 
         # Sample Ellipsis center-point
         # ellipses_sample.append(("S", [self.norm_ellipsis.m]))
 
         # Sample Ellipsis axis
-        ellipses_sample.append(("c", LineSegment(self.norm_ellipsis.m,
+        '''ellipses_sample.append(("c", LineSegment(self.norm_ellipsis.m,
                                                  self.norm_ellipsis.m + self.norm_ellipsis.a).cuts_bounds(bounds)))
         ellipses_sample.append(("d", LineSegment(self.norm_ellipsis.m,
-                                                 self.norm_ellipsis.m + self.norm_ellipsis.b).cuts_bounds(bounds)))
+                                                 self.norm_ellipsis.m + self.norm_ellipsis.b).cuts_bounds(bounds)))'''
 
         # Sample steepest decent lines
-        ellipses_sample.append(("l", self.l_ver.cuts_bounds(bounds)))
-        ellipses_sample.append(("l'", self.l_hor.cuts_bounds(bounds)))
+        ellipses_sample.append(("l", [p + self.offset for p in self.l_ver.cuts_bounds(bounds)]))
+        ellipses_sample.append(("l'", [p + self.offset for p in self.l_hor.cuts_bounds(bounds)]))
+
+        # Sample traversals
+        for i in range(len(self.traversals)):
+            traversal = self.traversals[i]
+            if traversal[0] != -1:
+                ellipses_sample.append(("t" + str(i) + ": " + str(traversal[0]), traversal[1]))
 
         return ellipses_sample
 
     def lp(self, p: Vector) -> float:  # l for given point
-        return self.a.fr(p.x).d(self.b.fr(p.y))
+        return self.a.frl(p.x).d(self.b.frl(p.y))
 
-    '''def traverse_rec(self, traversal: (float, [Vector])) -> (float, [Vector]):
-        s =  self.norm_ellipsis.m
-        l1 = self.l_ver
-        l2 = self.l_hor
+    def traverse_right(self, traversal: (float, [Vector])) -> (float, [Vector]):
+        l1x = self.l_ver_cut
 
         max_l = traversal[0]
-        a = traversal[1][-1]
-        if l1.m >= 0:  # Case 1: l, l' ascend or lay on axis
-            if a.x >= self.bounds_xy[0] or a.y >= self.bounds_xy[1]:
-                return traversal
-            if a == s:
-                if self.which_l == 0 or self.traverse_all:
-                    return [(max(max_l, self.l_ver_cut_l), traversal[1].append(self.l_ver_cut)),
-                            (max(max_l, self.l_hor_cut_l), traversal[1].append(self.l_hor_cut))]
-                elif self.which_l == 1:
-                    return (max(max_l, self.l_ver_cut_l), traversal[1].append(self.l_ver_cut))
-                elif self.which_l == 2:
-                    return (max(max_l, self.l_hor_cut_l), traversal[1].append(self.l_hor_cut))
-            if l1.point_on(a):
-                if a.x < s.x:
-                    return (max_l, traversal[1].append(s))
-                else:
-                    p_l2 = Vector(a.x, l2.fx(a.x))
-                    if self.which_l == 0 or self.traverse_all:
-                        return [(max(max_l, self.l_ver_cut_l), traversal[1].append(self.l_ver_cut)), (max(max_l, self.lp(p_l2)), traversal[1].append(p_l2))]
-                    elif self.which_l == 1:
-                        return (max(max_l, self.l_ver_cut_l), traversal[1].append(self.l_ver_cut))
-                    elif self.which_l == 2:
-                        return (max(max_l, self.lp(p_l2)), traversal[1].append(p_l2))
-            if l2.point_on(a):
-                if a.y < s.y:
-                    return (max_l, traversal[1].append(s))
-                else:
-                    # go to best l cut border, first to correct l
-        else: # Case 2: l, l' descend
+        start = traversal[1][-1] - self.offset
 
+        if l1x.y <= start.y:
+            end = Vector(self.bounds_xy[0], start.y)
+            max_l = max(max_l, self.lp(end))
+        elif start.y < l1x.y < self.bounds_xy[1]:
+            end = l1x
+            max_l = max(max_l, self.lp(end))
+        else:
+            max_l = -1
+            end = -self.offset
 
-        return traversal'''
+        return max_l, traversal[1] + [end + self.offset]
+
+    def traverse_top(self, traversal: (float, [Vector])) -> (float, [Vector]):
+        l2x = self.l_hor_cut
+
+        max_l = traversal[0]
+        start = traversal[1][-1] - self.offset
+
+        if l2x.x <= start.x:
+            end = Vector(start.x, self.bounds_xy[1])
+            max_l = max(max_l, self.lp(end))
+        elif start.x < l2x.x < self.bounds_xy[0]:
+            end = l2x
+            max_l = max(max_l, self.lp(end))
+        else:
+            max_l = -1
+            end = -self.offset
+
+        return max_l, traversal[1] + [end + self.offset]
+
+    def traverse_top_right(self, traversal: (float, [Vector])) -> (float, [Vector]):
+        l1x = self.l_ver_cut
+        l2x = self.l_hor_cut
+
+        max_l = traversal[0]
+        start = traversal[1][-1] - self.offset
+
+        if (l1x.y > self.bounds_xy[1] and l2x.x > self.bounds_xy[0]) or \
+                math.isclose(l1x.y, self.bounds_xy[1], rel_tol=1e-13) or \
+                math.isclose(l2x.x, self.bounds_xy[0], rel_tol=1e-13):
+            end = Vector(self.bounds_xy[0], self.bounds_xy[1])
+            max_l = max(max_l, self.lp(end))
+        else:
+            max_l = -1
+            end = -self.offset
+
+        return max_l, traversal[1] + [end + self.offset]
+
+    def traverse(self, traversal: (float, [Vector])) -> [(float, [Vector])]:
+        traversal_right = self.traverse_right(traversal)
+        traversal_top = self.traverse_top(traversal)
+        traversal_top_right = self.traverse_top_right(traversal)
+
+        traversals = [traversal_right, traversal_top_right, traversal_top]
+
+        return traversals
 
 
 def intersection(a: LineSegment, b: LineSegment):  # calculates the intersection point of two line segments
@@ -211,32 +227,95 @@ class TwoLineSegments:  # Input: two line segments
             # Hier weiter Spezialfall: Parallel implementieren
 
     def __str__(self):
-        return "Two Line Segments:\n Line Segment A: " + str(self.a) + "\n Line Segment B: " + str(
-            self.b) + "\n  Intersect (" + str(self.intersect) + "): " + str(self.s)
+        return "    Line Segment A: " + str(self.a) + "\n    Line Segment B: " + str(
+            self.b) + "\n     Intersect (" + str(self.intersect) + "): " + str(self.s)
 
-    def cell(self) -> Cell:
+    def cell(self, offset: Vector = Vector(0, 0), start: Vector = Vector(0, 0)) -> Cell:
         # Vectors a and b normalised
         norm_a = self.a.d.norm()
         norm_b = self.b.d.norm()
 
         # x- and y-coordinates for ellipsis vectors c and d for l = 1
-        c_xy = 1/(norm_a - norm_b).l
-        d_xy = 1/(norm_a + norm_b).l
+        c_xy = 1 / (norm_a - norm_b).l
+        d_xy = 1 / (norm_a + norm_b).l
 
         # Ellipsis vectors c and d for l = 1
         c = Vector(c_xy, c_xy)
         d = Vector(-d_xy, d_xy)
 
         # Calculate ellipsis offset:
-        offset_a = Vector(self.a.l, 0) * (self.a.rs)
-        offset_b = Vector(0, self.b.l) * (self.b.rs)
-        offset = offset_a + offset_b
+        offset_a = Vector(self.a.l, 0) * self.a.rs
+        offset_b = Vector(0, self.b.l) * self.b.rs
+        m = offset_a + offset_b
 
         # set cell bounds: length of a and b
         bounds_xy = (self.a.d.l, self.b.d.l)
 
-        return Cell(self.a, self.b, c, d, offset, bounds_xy, self.bounds_l)
+        return Cell(self.a, self.b, c, d, m, bounds_xy, self.bounds_l, offset=offset, start=start)
 
+
+class Input:  # Input: two paths
+    def __init__(self, path_a: [LineSegment], path_b: [LineSegment]):
+        self.path_a = path_a
+        self.path_b = path_b
+        self.count_a = len(path_a)
+        self.count_b = len(path_b)
+        self.length_a = 0
+        self.length_b = 0
+        self.bounds_l = (math.inf, 0)
+
+        self.offsets_x = [0] * (self.count_a + 1)
+        self.offsets_y = [0] * (self.count_b + 1)
+
+        for i in range(self.count_a):
+            a = path_a[i]
+            self.length_a += a.l
+            self.offsets_x[i + 1] = a.l
+
+        for i in range(self.count_b):
+            b = path_b[i]
+            self.length_b += b.l
+            self.offsets_y[i + 1] = b.l
+
+        self.twoLSs = []
+        self.cells = []
+
+        for i_a in range(self.count_a):
+            self.twoLSs.append([])
+            self.cells.append([])
+            for i_b in range(self.count_b):
+                two_line_segments = TwoLineSegments(path_a[i_a], path_b[i_b])
+                self.bounds_l = (min(self.bounds_l[0], two_line_segments.bounds_l[0]),
+                                 max(self.bounds_l[1], two_line_segments.bounds_l[1]))
+                self.twoLSs[i_a].append(two_line_segments)
+                self.cells[i_a].append(two_line_segments.cell(offset=Vector(self.offsets_x[i_a], self.offsets_y[i_b]),
+                                                              start=Vector(0, 0)))
+
+    def __str__(self):
+        desc = "Input (" + str(self.count_a) + "x" + str(self.count_a) + ") (" + \
+                 str(self.length_a) + "x" + str(self.length_b) + "):\n"
+        desc += " Path A:\n"
+        for i in range(self.count_a):
+            desc += "  " + str(i) + ": " + str(self.path_a[i]) + '\n'
+        desc += " Path B:\n"
+        for i in range(self.count_b):
+            desc += "  " + str(i) + ": " + str(self.path_b[i]) + '\n'
+        desc += "==>\n"
+        desc += " Bounds_l: " + str(self.bounds_l) + '\n'
+        desc += " Two Line Segments & Cells:\n"
+        for i_a in range(self.count_a):
+            for i_b in range(self.count_b):
+                desc += " Cell " + str(i_a) + "x" + str(i_b) + '\n'
+                desc += str(self.twoLSs[i_a][i_b]) + '\n'
+                desc += str(self.cells[i_a][i_b]) + '\n'
+
+        return desc
+
+    def sample(self, nl: int, np: int) -> [(str, [float], [float])]:
+        name = "0"
+        x = [0]
+        y = [0]
+        return [(name, x, y)]
 
 def sample_to_plotly(sample):  # send sample to plotly
     data = []
@@ -271,16 +350,29 @@ def sample_to_matplotlib(sample):  # plot sample with matplotlib
     plt.legend()
     plt.show()
 
-st1 = LineSegment(Vector(0, 0), Vector(1.2, 0))
-st2 = LineSegment(Vector(0.7, 0.7), Vector(1.5, 1.5))
-eingabe1 = TwoLineSegments(st1, st2)
+
+sta1 = LineSegment(Vector(0, 0), Vector(1, 0))
+sta2 = LineSegment(Vector(1, 0), Vector(2, 0))
+sta3 = LineSegment(Vector(2, 0), Vector(3, 0))
+stb1 = LineSegment(Vector(0, 0), Vector(1, 1))
+stb2 = LineSegment(Vector(1, 1), Vector(2, 2))
+stb3 = LineSegment(Vector(2, 2), Vector(3, 3))
+
+patha = [sta1, sta2, sta3]
+pathb = [stb1, stb2, stb3]
+
+input1 = Input(patha, pathb)
+print(input1)
+
+'''eingabe1 = TwoLineSegments(sta1, stb1)
 print(eingabe1)
-cell1 = eingabe1.cell()
+cell1 = eingabe1.cell(offset=Vector(10, 10), start=Vector(10, 10))
 print(cell1)
 # sample1 = cell1.sample_l(7, 100)  # , ((-2, 3), (-4, 6)))
-sample1 = cell1.sample_l(7, 100)  # , rel_bounds=((-3,-1), (0,2)))  # ([0,2,4,6,8,10,12,14,math.sqrt(200), 15], 20)
-#print(sample1)
-sample_to_matplotlib(sample1)
+sample1 = cell1.sample_l(7,
+                         100)  # , rel_bounds=((0.1, 0.6), (0, 0.3)))  # ([0,2,4,6,8,10,12,14,math.sqrt(200), 15], 20)
+# print(sample1)
+sample_to_matplotlib(sample1)'''
 
 '''cell2 = Cell(Vector(1.307, 1.307), Vector(-0.5412, 0.5412), Vector(0, 0), (1, 1), (0, 0.77))
 print(cell2)

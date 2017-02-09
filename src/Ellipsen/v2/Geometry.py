@@ -121,14 +121,16 @@ class LineSegment:
             self.m = float("inf")
             self.n = p1.x
 
-    @property
     def __str__(self):
         return str(self.p1) + "->" + str(self.p2) + ": l=" + str(self.l) + " m=" + str(self.m) + " n=" + str(self.n)
 
     # Line Arithmetic
 
-    def fr(self, r: float) -> Vector:  # point for set parameter r
+    def fr(self, r: float) -> Vector:  # point for set parameter r = [0,1]
         return self.p1 + self.d * r
+
+    def frl(self, r: float) -> Vector:  # point for set parameter r = [0,l]
+        return self.p1 + self.d * (r/self.l)
 
     def fx(self, x: float) -> float:  # y-Value for set x-Value
         if not math.isinf(self.m):
