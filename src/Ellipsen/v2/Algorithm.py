@@ -6,7 +6,7 @@
 #                                                                                                                      #
 #                                    Team: Josephine Mertens, Jana Kirschner,                                          #
 #                                    Alexander Korzech, Fabian Kovacs, Alexander                                       #
-#                                    Timme, Kilian Kraatz, Anton Begehr                                                #
+#                                    Timme, Kilian Kraatz & Anton Begehr                                               #
 #                                                                                                                      #
 ########################################################################################################################
 
@@ -43,6 +43,8 @@ class Cell:
         self.bounds_xy = bounds_xy  # cell bounds
         self.bounds_l = bounds_l  # line length bounds
         self.offset = offset
+        self.end = Vector(bounds_xy[0], bounds_xy[1])
+        self.end_l = self.lp(self.end)
 
         # steepest decent lines l=l_ver and l'=l_hor
         t_l_ver = math.atan(d.x / c.x)
@@ -59,6 +61,7 @@ class Cell:
     def __str__(self):
         return "    Norm-" + str(self.norm_ellipsis) + '\n' + \
                "    Offset: " + str(self.offset) + '\n' + \
+               "    End: " + str(self.end) + '\n' + \
                "    Steepest Decent Lines:\n" + \
                "      l: " + str(self.l_ver.d) + '\n' + \
                "      l': " + str(self.l_hor.d) + '\n' + \
@@ -82,23 +85,43 @@ class Cell:
                   (rel_bounds[1][0] * self.bounds_xy[1], rel_bounds[1][1] * self.bounds_xy[1]))
 
         # Sample Ellipses
-        ellipses_sample = []  # holds ellipses in form: (l, [Points])
+        ellipses_sample = []  # holds sample ellipses & lines in form: (name, [Vector])
+
         for l in ls:
+
             if l < self.bounds_l[0] or l > self.bounds_l[1]:
                 continue
+
             ellipsis = self.norm_ellipsis * l
-            ellipsis_sample = []
-            tps = {}
-            for i2 in range(n):
-                t = (i2 / (n - 1)) * (2 * math.pi)
-                p = ellipsis.p(t)
-                if p.in_bounds(bounds) and p not in tps.values():
-                    tps[t] = p
-            for t in ellipsis.cuts_bounds_t(bounds):
-                tps[t] = ellipsis.p(t)
-            for t in sorted(tps.keys()):
-                ellipsis_sample.append(tps[t] + self.offset)
-            ellipses_sample.append((0, ellipsis_sample))  # (l, ellipsis_sample))
+            ts = ellipsis.cuts_bounds_t(bounds)
+            l_ts = len(ts)
+
+            if l_ts == 0:
+                ts.append(0)
+
+            for i in range(len(ts)):
+
+                t1 = ts[i-1]
+                t2 = ts[i]
+                if t1 >= t2:
+                    t2 += 2*math.pi
+
+                d_t = t2 - t1
+                mid_t = t1 + 0.5*d_t
+
+                if ellipsis.p(mid_t).in_bounds(bounds):
+                    ellipsis_sample = [ellipsis.p(t1) + self.offset]
+
+                    np1 = math.ceil((t1 / (2 * math.pi)) * n)
+                    np2 = math.ceil((t2 / (2 * math.pi)) * n)
+
+                    for ip in range(np1, np2):
+                        t = (ip / n) * 2*math.pi
+                        ellipsis_sample.append(ellipsis.p(t) + self.offset)
+
+                    ellipsis_sample.append(ellipsis.p(t2) + self.offset)
+
+                    ellipses_sample.append((0, ellipsis_sample))
 
         # Sample Ellipsis center-point
         # ellipses_sample.append(("S", [self.norm_ellipsis.m]))
@@ -294,18 +317,29 @@ class Input:  # Input: two paths
         print(self.traversals)
 
     def traverse(self, i_a: int, i_b: int, traversal: (float, [Vector])) -> [(float, [Vector])]:
-        if i_a >= self.count_a or i_b >= self.count_b:
+        if i_a >= self.count_a and i_b >= self.count_b:
             return [traversal]
 
         traversals = []
-        next_traversal = self.cells[i_a][i_b].traverse(traversal)
 
-        if next_traversal[0][0] != -1:
-            traversals += self.traverse(i_a + 1, i_b, next_traversal[0])
-        if next_traversal[1][0] != -1:
-            traversals += self.traverse(i_a + 1, i_b + 1, next_traversal[1])
-        if next_traversal[2][0] != -1:
-            traversals += self.traverse(i_a, i_b + 1, next_traversal[2])
+        if i_a >= self.count_a or i_b >= self.count_b:
+            if i_a < self.count_a:
+                cell = self.cells[i_a][self.count_b - 1]
+                traversals += self.traverse(i_a + 1, i_b, (max(traversal[0], cell.end_l),
+                                                           traversal[1] + [cell.end + cell.offset]))
+            if i_b < self.count_b:
+                cell = self.cells[self.count_a - 1][i_b]
+                traversals += self.traverse(i_a, i_b + 1, (max(traversal[0], cell.end_l),
+                                                           traversal[1] + [cell.end + cell.offset]))
+        else:
+            next_traversal = self.cells[i_a][i_b].traverse(traversal)
+
+            if next_traversal[0][0] != -1:
+                traversals += self.traverse(i_a + 1, i_b, next_traversal[0])
+            if next_traversal[1][0] != -1:
+                traversals += self.traverse(i_a + 1, i_b + 1, next_traversal[1])
+            if next_traversal[2][0] != -1:
+                traversals += self.traverse(i_a, i_b + 1, next_traversal[2])
 
         return traversals
 
@@ -345,7 +379,7 @@ class Input:  # Input: two paths
         # sample cell borders
         '''for i in range(1, self.count_a):  # vertical
             samples.append(("border", [Vector(self.offsets_a[i], 0), Vector(self.offsets_a[i], self.length_b)]))
-        for i in range(1, self.count_a):  # horizontal
+        for i in range(1, self.count_b):  # horizontal
             samples.append(("border", [Vector(0, self.offsets_b[i]), Vector(self.length_a, self.offsets_b[i])]))'''
 
         # sample traversals
@@ -396,21 +430,22 @@ def sample_to_matplotlib(sample):  # plot sample with matplotlib
 
 
 ap1 = Vector(0, 0)
-ap2 = Vector(2, 0)
+ap2 = Vector(2, -0.5)
 ap3 = Vector(2, -3)
 ap4 = Vector(4, 0)
 
 bp1 = Vector(0, 0)
 bp2 = Vector(1, 1)
 bp3 = Vector(2, 0)
-bp4 = Vector(4, 0.0001)
+bp4 = Vector(4, 0.5)
+bp5 = Vector(1, -3)
 
 patha = [ap1, ap2, ap3, ap4]
-pathb = [bp1, bp2, bp3, bp4]#, bp5]
+pathb = [bp1, bp2, bp3, bp4, bp5]
 
 input1 = Input(patha, pathb)
 print(input1)
-sample1 = input1.sample(27, 100)
+sample1 = input1.sample(17, 100)
 print(sample1)
 sample_to_matplotlib(sample1)
 
