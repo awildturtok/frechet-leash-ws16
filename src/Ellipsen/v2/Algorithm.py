@@ -84,6 +84,25 @@ class Cell:
         bounds = ((rel_bounds[0][0] * self.bounds_xy[0], rel_bounds[0][1] * self.bounds_xy[0]),
                   (rel_bounds[1][0] * self.bounds_xy[1], rel_bounds[1][1] * self.bounds_xy[1]))
 
+        # Sample Ellipses Ellipses old
+        '''ellipses_sample = []  # holds ellipses in form: (l, [Points])
+        for l in ls:
+            if l < self.bounds_l[0] or l > self.bounds_l[1]:
+                continue
+            ellipsis = self.norm_ellipsis * l
+            ellipsis_sample = []
+            tps = {}
+            for i2 in range(n):
+                t = (i2 / (n - 1)) * (2 * math.pi)
+                p = ellipsis.p(t)
+                if p.in_bounds(bounds) and p not in tps.values():
+                    tps[t] = p
+            for t in ellipsis.cuts_bounds_t(bounds):
+                tps[t] = ellipsis.p(t)
+            for t in sorted(tps.keys()):
+                ellipsis_sample.append(tps[t] + self.offset)
+            ellipses_sample.append((0, ellipsis_sample))  # (l, ellipsis_sample))'''
+
         # Sample Ellipses
         ellipses_sample = []  # holds sample ellipses & lines in form: (name, [Vector])
 
@@ -383,9 +402,9 @@ class Input:  # Input: two paths
             samples.append(("border", [Vector(0, self.offsets_b[i]), Vector(self.length_a, self.offsets_b[i])]))'''
 
         # sample traversals
-        for traversal in self.traversals:
+        '''for traversal in self.traversals:
             if traversal[0] != -1:
-                samples.append(("t: " + str(traversal[0]), traversal[1]))
+                samples.append(("t: " + str(traversal[0]), traversal[1]))'''
 
         return samples
 
@@ -429,23 +448,23 @@ def sample_to_matplotlib(sample):  # plot sample with matplotlib
     plt.show()
 
 
-ap1 = Vector(0, 0)
-ap2 = Vector(2, -0.5)
-ap3 = Vector(2, -3)
-ap4 = Vector(4, 0)
+ap1 = Vector(0, 3)
+ap2 = Vector(5, 8)
+ap3 = Vector(7, 28)
+ap4 = Vector(-5, 2)
+ap5 = Vector(9, 9)
 
-bp1 = Vector(0, 0)
-bp2 = Vector(1, 1)
-bp3 = Vector(2, 0)
-bp4 = Vector(4, 0.5)
-bp5 = Vector(1, -3)
+bp1 = Vector(57, 23)
+bp2 = Vector(28, 3)
+bp3 = Vector(37, 89)
+bp4 = Vector(-36, -38)
 
-patha = [ap1, ap2, ap3, ap4]
-pathb = [bp1, bp2, bp3, bp4, bp5]
+patha = [ap1, ap2, ap3, ap4, ap5]
+pathb = [bp1, bp2, bp3, bp4]
 
 input1 = Input(patha, pathb)
 print(input1)
-sample1 = input1.sample(17, 100)
+sample1 = input1.sample(23, 500)
 print(sample1)
 sample_to_matplotlib(sample1)
 

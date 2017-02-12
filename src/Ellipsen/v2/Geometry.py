@@ -86,7 +86,7 @@ class Vector:
         return Vector(x, y)
 
     def rotate_90_l(self) -> 'Vector':  # rotate 90° to the left
-        return Vector(-self.y, self.x)
+        return Vector(self.y, -self.x)
 
     def rotate_90_r(self) -> 'Vector':  # rotate 90° to the right
         return Vector(-self.y, self.x)
@@ -99,8 +99,6 @@ class Vector:
 
     def in_bounds_y(self, bounds: (float, float)) -> bool:
         return bounds[0] <= self.y <= bounds[1]
-
-    #def in_bounds_approx(self, bounds: ((float, float), (float, float))) -> bool:
 
 
 class LineSegment:
@@ -175,8 +173,9 @@ class LineSegment:
 
     def d_ls_point(self, p: Vector) -> float:  # closest distance of p to line segment
         d_l = self.d_l_point(p)  # closest distance of p to line
-        r = self.r_point(p + self.d.rotate_90_l().norm() * d_l)  # parameter r for this distance
-        if 0 <= r <= 1:  # if the projection of p lies on the segment return this distance
+        pl = p + self.d.rotate_90_l().norm() * d_l
+        pr = p + self.d.rotate_90_r().norm() * d_l
+        if self.contains_point(pl) or self.contains_point(pr):  # if the projection of p lies on the segment return d_l
             return d_l
         else:
             return min(self.p1.d(p), self.p2.d(p))
