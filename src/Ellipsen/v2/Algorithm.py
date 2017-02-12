@@ -111,6 +111,12 @@ class Cell:
             if l < self.bounds_l[0] or l > self.bounds_l[1]:
                 continue
 
+            if l == 0:
+                p = self.norm_ellipsis.m
+                if p.in_bounds(bounds):
+                    ellipses_sample.append((0, [p + self.offset]))
+                continue
+
             ellipsis = self.norm_ellipsis * l
             ts = ellipsis.cuts_bounds_t(bounds)
             l_ts = len(ts)
@@ -402,9 +408,9 @@ class Input:  # Input: two paths
             samples.append(("border", [Vector(0, self.offsets_b[i]), Vector(self.length_a, self.offsets_b[i])]))'''
 
         # sample traversals
-        '''for traversal in self.traversals:
+        for traversal in self.traversals:
             if traversal[0] != -1:
-                samples.append(("t: " + str(traversal[0]), traversal[1]))'''
+                samples.append(("t: " + str(traversal[0]), traversal[1]))
 
         return samples
 
@@ -444,23 +450,24 @@ def sample_to_matplotlib(sample):  # plot sample with matplotlib
             plt.plot(x, y, 'x')
         else:
             plt.plot(x, y, 'o', label=str(l))
-    plt.legend()
+    #plt.legend()
     plt.show()
 
 
-ap1 = Vector(0, 3)
-ap2 = Vector(5, 8)
-ap3 = Vector(7, 28)
-ap4 = Vector(-5, 2)
-ap5 = Vector(9, 9)
+ap1 = Vector(0, 0)
+ap2 = Vector(2, 1)
+ap3 = Vector(1.5, 2.5)
+ap4 = Vector(1, -2)
+ap5 = Vector(-3, 1)
 
-bp1 = Vector(57, 23)
-bp2 = Vector(28, 3)
-bp3 = Vector(37, 89)
-bp4 = Vector(-36, -38)
+bp1 = Vector(2, 0)
+bp2 = Vector(0, 1)
+bp3 = Vector(-3, 1)
+bp4 = Vector(-1, 0)
+bp5 = Vector(-3, 0)
 
 patha = [ap1, ap2, ap3, ap4, ap5]
-pathb = [bp1, bp2, bp3, bp4]
+pathb = [bp1, bp2, bp3, bp4, bp5]
 
 input1 = Input(patha, pathb)
 print(input1)
