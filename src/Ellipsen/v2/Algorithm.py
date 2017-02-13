@@ -14,11 +14,6 @@
 
 from Geometry import *
 
-import plotly.plotly as py
-import plotly.graph_objs as go
-
-import matplotlib.pyplot as plt
-
 
 class OneLineSegment(LineSegment):  # one of the two input line segments
     def __init__(self, ls: LineSegment, s: Vector):
@@ -69,7 +64,7 @@ class Cell:
                "    Bounds XY: " + str(self.bounds_xy)
 
     def sample_l(self, nl: int, np: int, rel_bounds: ((float, float), (float, float)) = ((0, 1), (0, 1))) \
-            -> [(float, [Vector])]:
+            -> {}:
         ls = []
         for i in range(nl):
             l = self.bounds_l[0] + (float(i) / (nl - 1)) * (self.bounds_l[1] - self.bounds_l[0])
@@ -78,7 +73,7 @@ class Cell:
         return self.sample(ls, np, rel_bounds)
 
     def sample(self, ls: [float], n: int, rel_bounds: ((float, float), (float, float)) = ((0, 1), (0, 1))) \
-            -> [(float, [Vector])]:
+            -> {}:
         # n: # of points per ellipsis, bounds: relative xy bounds
 
         bounds = ((rel_bounds[0][0] * self.bounds_xy[0], rel_bounds[0][1] * self.bounds_xy[0]),
@@ -103,9 +98,10 @@ class Cell:
                 ellipsis_sample.append(tps[t] + self.offset)
             ellipses_sample.append((0, ellipsis_sample))  # (l, ellipsis_sample))'''
 
-        # Sample Ellipses
-        ellipses_sample = []  # holds sample ellipses & lines in form: (name, [Vector])
+        # holds ellipses, steepest decent lines and axis in form: (name, [Vector])
+        sample = {"ellipses": [], "l-lines": [], "axis": []}
 
+        # Sample Ellipses
         for l in ls:
 
             if l < self.bounds_l[0] or l > self.bounds_l[1]:
@@ -114,7 +110,7 @@ class Cell:
             if l == 0:
                 p = self.norm_ellipsis.m
                 if p.in_bounds(bounds):
-                    ellipses_sample.append((0, [p + self.offset]))
+                    sample["ellipses"].append(("l=0", [p + self.offset]))
                 continue
 
             ellipsis = self.norm_ellipsis * l
@@ -146,22 +142,21 @@ class Cell:
 
                     ellipsis_sample.append(ellipsis.p(t2) + self.offset)
 
-                    ellipses_sample.append((0, ellipsis_sample))
-
-        # Sample Ellipsis center-point
-        # ellipses_sample.append(("S", [self.norm_ellipsis.m]))
+                    sample["ellipses"].append(("l=" + str(l), ellipsis_sample))
 
         # Sample Ellipsis axis
-        '''ellipses_sample.append(("c", LineSegment(self.norm_ellipsis.m,
-                                                 self.norm_ellipsis.m + self.norm_ellipsis.a).cuts_bounds(bounds)))
-        ellipses_sample.append(("d", LineSegment(self.norm_ellipsis.m,
-                                                 self.norm_ellipsis.m + self.norm_ellipsis.b).cuts_bounds(bounds)))'''
+        sample["axis"].append(("c", [p + self.offset for p in
+                                     LineSegment(self.norm_ellipsis.m,
+                                                 self.norm_ellipsis.m + self.norm_ellipsis.a).cuts_bounds(bounds)]))
+        sample["axis"].append(("d", [p + self.offset for p in
+                                     LineSegment(self.norm_ellipsis.m,
+                                                 self.norm_ellipsis.m + self.norm_ellipsis.b).cuts_bounds(bounds)]))
 
         # Sample steepest decent lines
-        '''ellipses_sample.append(("l", [p + self.offset for p in self.l_ver.cuts_bounds(bounds)]))
-        ellipses_sample.append(("l'", [p + self.offset for p in self.l_hor.cuts_bounds(bounds)]))'''
+        sample["l-lines"].append(("l", [p + self.offset for p in self.l_ver.cuts_bounds(bounds)]))
+        sample["l-lines"].append(("l'", [p + self.offset for p in self.l_hor.cuts_bounds(bounds)]))
 
-        return ellipses_sample
+        return sample
 
     def lp(self, p: Vector) -> float:  # l for given point
         return self.a.frl(p.x).d(self.b.frl(p.y))
@@ -297,7 +292,7 @@ class TwoLineSegments:  # Input: two line segments
                     start=start)
 
 
-class Input:  # Input: two paths
+class CellMatrix:  # : Matrix of Cells
     def __init__(self, points_a: [Vector], points_b: [Vector]):
         self.path_a = [LineSegment(points_a[i], points_a[i+1]) for i in range(len(points_a)-1)]
         self.path_b = [LineSegment(points_b[i], points_b[i+1]) for i in range(len(points_b)-1)]
@@ -388,105 +383,31 @@ class Input:  # Input: two paths
 
         return desc
 
-    def sample(self, nl: int, np: int) -> [(str, [Vector])]:
+    def sample(self, nl: int, np: int) -> {}:
         ls = []
-        samples = []
+        samples = {"borders-v": [], "borders-h": [], "cells": [], "traversals": []}
 
         for i in range(nl + 1):
             l = self.bounds_l[0] + (float(i) / (nl - 1)) * (self.bounds_l[1] - self.bounds_l[0])
             ls.append(l)
 
         # sample cells
-        for columns in self.cells:
-            for cell in columns:
-                samples += cell.sample(ls, np)
+        for i_a in range(self.count_a):
+            for i_b in range(self.count_b):
+                cell = self.cells[i_a][i_b]
+                samples["cells"].append((str(i_a) + "x" + str(i_b), cell.sample(ls, np)))
 
         # sample cell borders
-        '''for i in range(1, self.count_a):  # vertical
-            samples.append(("border", [Vector(self.offsets_a[i], 0), Vector(self.offsets_a[i], self.length_b)]))
+        for i in range(1, self.count_a):  # vertical
+            samples["borders-v"].append(("border-v: " + str(i), [Vector(self.offsets_a[i], 0),
+                                                                      Vector(self.offsets_a[i], self.length_b)]))
         for i in range(1, self.count_b):  # horizontal
-            samples.append(("border", [Vector(0, self.offsets_b[i]), Vector(self.length_a, self.offsets_b[i])]))'''
+            samples["borders-h"].append(("border-h: " + str(i), [Vector(0, self.offsets_b[i]),
+                                                                        Vector(self.length_a, self.offsets_b[i])]))
 
         # sample traversals
         for traversal in self.traversals:
             if traversal[0] != -1:
-                samples.append(("t: " + str(traversal[0]), traversal[1]))
+                samples["traversals"].append(("traversal: " + str(traversal[0]), traversal[1]))
 
         return samples
-
-
-def sample_to_plotly(sample):  # send sample to plotly
-    data = []
-    for s in sample:
-        l = s[0]
-        x = []
-        y = []
-        for p in s[1]:
-            x.append(p.x)
-            y.append(p.y)
-        trace = go.Scatter(x=x, y=y, name=str(l))
-        data.append(trace)
-    fig = dict(data=data)
-    py.plot(fig, filename='Ellipsen-Test')
-
-
-def sample_to_matplotlib(sample):  # plot sample with matplotlib
-    for s in sample:
-        l = s[0]
-        x = []
-        y = []
-        for p in s[1]:
-            if isinstance(p, Vector):
-                x.append(p.x)
-                y.append(p.y)
-            else:
-                print("Wrong Type: " + str(l) + ": " + str(p))
-        len_x = len(x)
-        if len_x > 1 and l != 0:
-            plt.plot(x, y, label=l)
-        elif len_x > 1:
-            plt.plot(x, y)
-        elif len_x == 1:
-            plt.plot(x, y, 'x')
-        else:
-            plt.plot(x, y, 'o', label=str(l))
-    #plt.legend()
-    plt.show()
-
-
-ap1 = Vector(0, 0)
-ap2 = Vector(2, 1)
-ap3 = Vector(1.5, 2.5)
-ap4 = Vector(1, -2)
-ap5 = Vector(-3, 1)
-
-bp1 = Vector(2, 0)
-bp2 = Vector(0, 1)
-bp3 = Vector(-3, 1)
-bp4 = Vector(-1, 0)
-bp5 = Vector(-3, 0)
-
-patha = [ap1, ap2, ap3, ap4, ap5]
-pathb = [bp1, bp2, bp3, bp4, bp5]
-
-input1 = Input(patha, pathb)
-print(input1)
-sample1 = input1.sample(23, 500)
-print(sample1)
-sample_to_matplotlib(sample1)
-
-'''eingabe1 = TwoLineSegments(sta1, stb1)
-print(eingabe1)
-cell1 = eingabe1.cell(offset=Vector(10, 10), start=Vector(10, 10))
-print(cell1)
-# sample1 = cell1.sample_l(7, 100)  # , ((-2, 3), (-4, 6)))
-sample1 = cell1.sample_l(7,
-                         100)  # , rel_bounds=((0.1, 0.6), (0, 0.3)))  # ([0,2,4,6,8,10,12,14,math.sqrt(200), 15], 20)
-# print(sample1)
-sample_to_matplotlib(sample1)'''
-
-'''cell2 = Cell(Vector(1.307, 1.307), Vector(-0.5412, 0.5412), Vector(0, 0), (1, 1), (0, 0.77))
-print(cell2)
-sample2 = cell2.sample(1, 100, ((-2, 3), (-2, 3)))
-print(sample2)
-sample_to_plotly(sample2)'''

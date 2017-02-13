@@ -206,9 +206,9 @@ class LineSegment:
             points.append(Vector(xy1, y1))
         if x1 <= xy2 <= x2:
             points.append(Vector(xy2, y2))
-        if y1 <= yx1 <= y2:
+        if y1 < yx1 < y2:
             points.append(Vector(x1, yx1))
-        if y1 <= yx2 <= y2:
+        if y1 < yx2 < y2:
             points.append(Vector(x2, yx2))
 
         return points
