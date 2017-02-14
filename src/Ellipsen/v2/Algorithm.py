@@ -110,7 +110,7 @@ class Cell:
             if l == 0:
                 p = self.norm_ellipsis.m
                 if p.in_bounds(bounds):
-                    sample["ellipses"].append(("l=0", [p + self.offset]))
+                    sample["ellipses"].append((l, [p + self.offset]))
                 continue
 
             ellipsis = self.norm_ellipsis * l
@@ -142,7 +142,7 @@ class Cell:
 
                     ellipsis_sample.append(ellipsis.p(t2) + self.offset)
 
-                    sample["ellipses"].append(("l=" + str(l), ellipsis_sample))
+                    sample["ellipses"].append((l, ellipsis_sample))
 
         # Sample Ellipsis axis
         sample["axis"].append(("c", [p + self.offset for p in
