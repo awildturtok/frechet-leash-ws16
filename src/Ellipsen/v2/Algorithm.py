@@ -422,6 +422,9 @@ class CellMatrix:  # : Matrix of Cells
             if traversal[0] != -1:
                 samples["traversals"].append(("traversal: " + str(traversal[0]), traversal[1]))
 
+        # include size in sample
+        samples["size"] = (self.length_a, self.length_b)
+
         return samples
 
     def sample_heatmap_a(self, n_a: int) -> []:
@@ -439,19 +442,23 @@ class CellMatrix:  # : Matrix of Cells
         x = 0
         y = 0
 
+        i_x = 0
+        i_y = 0
+
         c_a = 0
         c_b = 0
 
         while c_b < self.count_b:
 
-            while y <= self.offsets_b[c_b + 1]:
+            while y <= self.offsets_b[c_b + 1] or (c_b >= self.count_b - 1 and i_y <= n_b):
 
-                while x <= self.offsets_a[c_a + 1]:
+                while x <= self.offsets_a[c_a + 1] or (c_a >= self.count_a - 1 and i_x <= n_a):
                     xs[-1].append(x)
                     ys[-1].append(y)
                     z = self.cells[c_a][c_b].lp(Vector(x - self.offsets_a[c_a], y - self.offsets_b[c_b]))
                     zs[-1].append(z)
 
+                    i_x += 1
                     x += s_a
 
                 c_a += 1
@@ -462,7 +469,9 @@ class CellMatrix:  # : Matrix of Cells
                     zs.append([])
                     x = 0
                     c_a = 0
+                    i_x = 0
                     y += s_b
+                    i_y += 1
 
             c_b += 1
 
