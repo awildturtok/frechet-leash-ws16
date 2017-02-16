@@ -35,7 +35,8 @@ def vectors_to_xy(vectors: [Vector]) -> ([float], [float]):
 
 def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool = True, plot_hight_card: bool = True,
                          plot_traversals: bool = True, plot_axis: bool = False, plot_l_lines: bool = False,
-                         plot_3d: bool = False, show_legend: bool = False):
+                         plot_3d: bool = True, show_legend: bool = False):
+
     # plot sample with matplotlib
     if plot_3d:
         fig = plt.figure(figsize=plt.figaspect(0.5))
@@ -44,6 +45,16 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     else:
         fig = plt.figure()
         ax_2d = fig.add_subplot(1, 1, 1)
+
+    # plot 3d
+    if plot_3d:
+        heatmap = sample["heatmap"]
+        x = heatmap[0]
+        y = heatmap[1]
+        z = heatmap[2]
+        surf = ax_3d.plot_surface(x, y, z, cmap=cm.coolwarm, rstride=1, cstride=1,
+                                  linewidth=0, antialiased=False)
+        fig.colorbar(surf, shrink=0.5, aspect=5)
 
     # plot borders
     if plot_borders:
@@ -71,23 +82,6 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
                 else:
                     ax_2d.plot(x, y, "b")
 
-        # plot 3d
-        if plot_3d:
-            x = []
-            y = []
-            z = []
-            for ellipsis in data["ellipses"]:
-                num = len(ellipsis[1])
-                if num == 0:
-                    continue
-                for vector in ellipsis[1]:
-                    x.append(vector.x)
-                    y.append(vector.y)
-                    z.append(ellipsis[0])
-            ax_3d.plot_wireframe(x, y, z, cmap=cm.coolwarm, rstride=1, cstride=1,
-                               linewidth=0, antialiased=False)
-
-
         # plot axis
         if plot_axis:
             for axis in data["axis"]:
@@ -112,39 +106,24 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     plt.show()
 
 
-'''ap1 = Vector(0, 0)
-ap2 = Vector(2, 1)
-ap3 = Vector(1.5, 2.5)
-ap4 = Vector(1, -2)
-ap5 = Vector(-3, 1)
-
-bp1 = Vector(2, 0)
-bp2 = Vector(0, 1)
-bp3 = Vector(-3, 1)
-bp4 = Vector(-1, 0)
-bp5 = Vector(-3, 0)'''
-
 ap1 = Vector(0, 0)
-ap2 = Vector(1, 1)
-ap3 = Vector(3, 0)
-ap4 = Vector(4, 1)
-ap5 = Vector(6, 0)
-ap6 = Vector(0, 1)
+ap2 = Vector(1, 0)
+ap3 = Vector(2, 1)
 
-bp1 = Vector(0, 1)
-bp2 = Vector(1, 0)
-bp3 = Vector(3, 1)
-bp4 = Vector(4, 0)
-bp5 = Vector(6, 1)
-bp6 = Vector(0, 0)
+bp1 = Vector(0, 0)
+bp2 = Vector(0, 1)
+bp3 = Vector(2, 2)
 
-patha = [ap1, ap2, ap3, ap4, ap5, ap6]
-pathb = [bp1, bp2, bp3, bp4, bp5, bp6]
+patha = [ap1, ap2, ap3]
+pathb = [bp1, bp2, bp3]
 
 input1 = CellMatrix(patha, pathb)
 print(input1)
 sample1 = input1.sample(7, 20)
-print(sample1)
+#print(sample1)
+sample_heatmap1 = input1.sample_heatmap_a(200)
+sample1["heatmap"] = sample_heatmap1
+#print(sample_heatmap1)
 sample_to_matplotlib(sample1, plot_3d=True)
 
 '''eingabe1 = TwoLineSegments(sta1, stb1)

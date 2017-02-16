@@ -333,8 +333,16 @@ class CellMatrix:  # : Matrix of Cells
                 self.cells[i_a].append(two_line_segments.cell(offset=Vector(self.offsets_a[i_a], self.offsets_b[i_b])))
 
         # traverse
-        self.traversals = self.traverse(0, 0, (0, [Vector(0, 0)]))
-        print(self.traversals)
+        traversals = self.traverse(0, 0, (0, [Vector(0, 0)]))
+
+        # select best traversals
+        self.best_l = math.inf
+        for traversal in traversals:
+            self.best_l = min(self.best_l, traversal[0])
+        self.traversals = []
+        for traversal in traversals:
+            if traversal[0] <= self.best_l:
+                self.traversals.append(traversal)
 
     def traverse(self, i_a: int, i_b: int, traversal: (float, [Vector])) -> [(float, [Vector])]:
         if i_a >= self.count_a and i_b >= self.count_b:
@@ -374,6 +382,10 @@ class CellMatrix:  # : Matrix of Cells
             desc += "  " + str(i) + ": " + str(self.path_b[i]) + '\n'
         desc += "==>\n"
         desc += " Bounds_l: " + str(self.bounds_l) + '\n'
+        desc += " Best_l: " + str(self.best_l) + '\n'
+        desc += " Traversals:\n"
+        for traversal in self.traversals:
+            desc += "   " + str(traversal) + '\n'
         desc += " Two Line Segments & Cells:\n"
         for i_a in range(self.count_a):
             for i_b in range(self.count_b):
@@ -411,3 +423,52 @@ class CellMatrix:  # : Matrix of Cells
                 samples["traversals"].append(("traversal: " + str(traversal[0]), traversal[1]))
 
         return samples
+
+    def sample_heatmap_a(self, n_a: int) -> []:
+        n_b = math.floor(n_a * (self.length_b/self.length_a))
+        return self.sample_heatmap(n_a, n_b)
+
+    def sample_heatmap(self, n_a: int, n_b: int) -> []:
+        xs = [[]]
+        ys = [[]]
+        zs = [[]]
+
+        s_a = self.length_a / n_a
+        s_b = self.length_b / n_b
+
+        x = 0
+        y = 0
+
+        c_a = 0
+        c_b = 0
+
+        while c_b < self.count_b:
+
+            while y <= self.offsets_b[c_b + 1]:
+
+                while x <= self.offsets_a[c_a + 1]:
+                    xs[-1].append(x)
+                    ys[-1].append(y)
+                    z = self.cells[c_a][c_b].lp(Vector(x - self.offsets_a[c_a], y - self.offsets_b[c_b]))
+                    zs[-1].append(z)
+
+                    x += s_a
+
+                c_a += 1
+
+                if c_a >= self.count_a and c_b < self.count_b:
+                    xs.append([])
+                    ys.append([])
+                    zs.append([])
+                    x = 0
+                    c_a = 0
+                    y += s_b
+
+            c_b += 1
+
+        del xs[-1]
+        del ys[-1]
+        del zs[-1]
+
+        return [xs, ys, zs]
+
