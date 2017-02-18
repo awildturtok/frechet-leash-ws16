@@ -249,7 +249,7 @@ class TwoLineSegments:  # Input: two line segments
         self.bounds_l = (min(a.d_ls_point(b.p1), a.d_ls_point(b.p2), b.d_ls_point(a.p1), b.d_ls_point(a.p2)),
                          max(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2)))
 
-        self.parallel = a.m == b.m
+        self.parallel = math.isclose(a.m, b.m, rel_tol=1e-13)
         if not self.parallel:  # case 1: lines are not parallel
             self.s = intersection(a, b)  # intersection point S
 
@@ -375,7 +375,6 @@ class CellMatrix:  # : Matrix of Cells
         traversals2 = []
         for traversal in traversals1:
             avg_ls = sum(traversal[1])/len(traversal[1])
-            print(avg_ls)
             if avg_ls <= lowest_avg_ls or math.isclose(avg_ls, lowest_avg_ls, rel_tol=1e-10):
                 traversals2.append(traversal)
         self.traversals = traversals2
@@ -431,13 +430,17 @@ class CellMatrix:  # : Matrix of Cells
 
         return desc
 
-    def sample(self, nl: int, np: int) -> {}:
+    def sample_l(self, nl: int, np: int) -> {}:  # sample cell with nl: number of ls and np: points per ellipses
         ls = []
-        samples = {"borders-v": [], "borders-h": [], "cells": [], "traversals": []}
 
         for i in range(nl + 1):
             l = self.bounds_l[0] + (float(i) / (nl - 1)) * (self.bounds_l[1] - self.bounds_l[0])
             ls.append(l)
+
+        return self.sample(ls, np)
+
+    def sample(self, ls: [float], np: int) -> {}:  # sample cell for given ls and np: points per ellipses
+        samples = {"borders-v": [], "borders-h": [], "cells": [], "traversals": []}
 
         # sample cells
         for i_a in range(self.count_a):
@@ -448,10 +451,10 @@ class CellMatrix:  # : Matrix of Cells
         # sample cell borders
         for i in range(1, self.count_a):  # vertical
             samples["borders-v"].append(("border-v: " + str(i), [Vector(self.offsets_a[i], 0),
-                                                                      Vector(self.offsets_a[i], self.length_b)]))
+                                                                 Vector(self.offsets_a[i], self.length_b)]))
         for i in range(1, self.count_b):  # horizontal
             samples["borders-h"].append(("border-h: " + str(i), [Vector(0, self.offsets_b[i]),
-                                                                        Vector(self.length_a, self.offsets_b[i])]))
+                                                                 Vector(self.length_a, self.offsets_b[i])]))
 
         # sample traversals
         for traversal in self.traversals:
