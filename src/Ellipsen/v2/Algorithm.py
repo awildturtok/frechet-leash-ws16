@@ -14,8 +14,6 @@
 
 from Geometry import *
 
-from src.Ellipsen.v2.Geometry import *
-
 
 class OneLineSegment(LineSegment):  # one of the two input line segments
     def __init__(self, ls: LineSegment, s: Vector):
@@ -443,6 +441,12 @@ class CellMatrix:  # : Matrix of Cells
 
     def sample(self, ls: [float], np: int) -> {}:  # sample cell for given ls and np: points per ellipses
         samples = {"borders-v": [], "borders-h": [], "cells": [], "traversals": []}
+
+        # are all ls in bounds
+        for l in ls:
+            if l < self.bounds_l[0] or l > self.bounds_l[1]:
+                print("l: " + str(l) + " is not in bounds_l: " + str(self.bounds_l))
+                ls.remove(l)
 
         # sample cells
         for i_a in range(self.count_a):
