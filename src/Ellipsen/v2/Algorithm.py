@@ -14,6 +14,8 @@
 
 from Geometry import *
 
+from src.Ellipsen.v2.Geometry import *
+
 
 class OneLineSegment(LineSegment):  # one of the two input line segments
     def __init__(self, ls: LineSegment, s: Vector):

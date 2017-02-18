@@ -120,6 +120,7 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
         ax_2d.legend()
 
     plt.show()
+<<<<<<< HEAD
 
 
 ap1 = Vector(0, 0)
@@ -173,3 +174,5 @@ print(cell2)
 sample2 = cell2.sample(1, 100, ((-2, 3), (-2, 3)))
 print(sample2)
 sample_to_plotly(sample2)'''
+=======
+>>>>>>> origin/master
