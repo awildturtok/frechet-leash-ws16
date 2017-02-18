@@ -95,16 +95,16 @@ class Vector:
         return self.in_bounds_x(bounds[0]) and self.in_bounds_y(bounds[1])
 
     def in_bounds_x(self, bounds: (float, float)) -> bool:
-        return bounds[0] <= self.x <= bounds[1]
+        return bounds[0] - 1e-13 <= self.x <= bounds[1] + 1e-13
 
     def in_bounds_y(self, bounds: (float, float)) -> bool:
-        return bounds[0] <= self.y <= bounds[1]
+        return bounds[0] - 1e-13 <= self.y <= bounds[1] + 1e-13
 
 
 class LineSegment:
     def __init__(self, p1: Vector, p2: Vector):
 
-        assert p1 != p2, "Error: Start- and Endpoint are equal."
+        assert p1 != p2, "Error: Start- and Endpoint are equal. p1: " + str(p1) + " p2: " + str(p2)
 
         self.p1 = p1  # Startpoint P1
         self.p2 = p2  # Endpoint P2
@@ -157,7 +157,8 @@ class LineSegment:
             return float("nan")
 
     def contains_point(self, p: Vector) -> bool:  # does point p lie on the line segment
-        return (self.m == float("inf") or 0 <= self.rx(p.x) <= 1) and (self.m == 0 or 0 <= self.ry(p.y) <= 1)
+        return (self.m == float("inf") or 0 - 1e-13 <= self.rx(p.x) <= 1 + 1e-13) and\
+               (self.m == 0 or 0 - 1e-13 <= self.ry(p.y) <= 1 + 1e-13)
 
     def r_point(self, p: Vector) -> float:  # parameter r for set point (result only relevant for case p lies on line)
         rx = self.rx(p.x)

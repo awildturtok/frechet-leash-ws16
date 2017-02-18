@@ -120,3 +120,33 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
         ax_2d.legend()
 
     plt.show()
+
+
+'''ap1 = Vector(0, 0)
+ap2 = Vector(1.2, -0.2)
+ap3 = Vector(1, 1)
+ap4 = Vector(2.2, 0.8)
+ap5 = Vector(2, 2)
+ap6 = Vector(3.2, 1.8)
+ap7 = Vector(3, 3)
+
+bp1 = Vector(0, 0)
+bp2 = Vector(-0.2, 1.2)
+bp3 = Vector(1, 1)
+bp4 = Vector(0.8, 2.2)
+bp5 = Vector(2, 2)
+bp6 = Vector(1.8, 3.2)
+bp7 = Vector(3, 3)
+
+patha = [ap1, ap2, ap3, ap4, ap5, ap6, ap7]
+pathb = [bp1, bp2, bp3, bp4, bp5, bp6, bp7]
+
+input1 = CellMatrix(patha, pathb)
+print(input1)
+sample1 = input1.sample_l(7, 100)
+#print(sample1)
+sample_heatmap1 = input1.sample_heatmap_a(100)
+sample1["heatmap"] = sample_heatmap1
+#print(sample_heatmap1)
+sample_to_matplotlib(sample1, plot_3d=True, show_legend=False)'''
+
