@@ -127,7 +127,7 @@ ap2 = Vector(1.2, -0.2)
 ap3 = Vector(1, 1)
 ap4 = Vector(2.2, 0.8)
 ap5 = Vector(2, 2)
-ap6 = Vector(3.3, 1.8)
+ap6 = Vector(3.2, 1.8)
 ap7 = Vector(3, 3)
 
 

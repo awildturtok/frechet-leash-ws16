@@ -357,21 +357,28 @@ class CellMatrix:  # : Matrix of Cells
         l_start = self.cells[0][0].lp(start)
         traversals0 = self.traverse(0, 0, (0, [l_start], [start]))
 
-        # select best traversal(s), 1. lowest l, 2. lowest average of ls
+        # select best traversal(s):
+        # 1. lowest l
         self.lowest_l = math.inf
-        lowest_avg_ls = math.inf
         for traversal in traversals0:
             self.lowest_l = min(self.lowest_l, traversal[0])
-            lowest_avg_ls = min(lowest_avg_ls, sum(traversal[1])/len(traversal[1]))
         traversals1 = []
         for traversal in traversals0:
-            if traversal[0] <= self.lowest_l:
+            if traversal[0] <= self.lowest_l or math.isclose(traversal[0], self.lowest_l, rel_tol=1e-13):
                 traversals1.append(traversal)
+
+        # 2. lowest average of ls
+        lowest_avg_ls = math.inf
+        for traversal in traversals1:
+            avg_ls = sum(traversal[1])/len(traversal[1])
+            lowest_avg_ls = min(lowest_avg_ls, avg_ls)
         traversals2 = []
         for traversal in traversals1:
-            if sum(traversal[1])/len(traversal[1]) <= lowest_avg_ls:
+            avg_ls = sum(traversal[1])/len(traversal[1])
+            print(avg_ls)
+            if avg_ls <= lowest_avg_ls or math.isclose(avg_ls, lowest_avg_ls, rel_tol=1e-10):
                 traversals2.append(traversal)
-        self.traversals = traversals1
+        self.traversals = traversals2
 
     def traverse(self, i_a: int, i_b: int, traversal: (float, [float], [Vector])) -> [(float, [float], [Vector])]:
         if i_a >= self.count_a and i_b >= self.count_b:
