@@ -143,7 +143,7 @@ pathb = [bp1, bp2, bp3, bp4, bp5, bp6, bp7]
 
 input1 = CellMatrix(patha, pathb)
 print(input1)
-sample1 = input1.sample_l(7, 100)
+sample1 = input1.sample([1, 10], 100)
 #print(sample1)
 sample_heatmap1 = input1.sample_heatmap_a(100)
 sample1["heatmap"] = sample_heatmap1
