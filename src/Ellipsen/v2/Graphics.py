@@ -113,7 +113,7 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     if plot_traversals:
         for traversal in sample["traversals"]:
             x, y = vectors_to_xy(traversal[2])
-            ax_2d.plot(x, y, "r--", label=traversal[0], linewidth=1.5) # "r-"
+            ax_2d.plot(x, y, "r--", label=traversal[0], linewidth=1.5)
 
     # show legend
     if show_legend:
@@ -123,25 +123,28 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
 
 
 ap1 = Vector(0, 0)
-ap2 = Vector(1, 0)
+ap2 = Vector(1.2, -0.2)
 ap3 = Vector(1, 1)
-ap4 = Vector(2, 1)
+ap4 = Vector(2.2, 0.8)
 ap5 = Vector(2, 2)
-ap6 = Vector(3, 2)
+ap6 = Vector(3.3, 1.8)
+ap7 = Vector(3, 3)
+
 
 bp1 = Vector(0, 0)
-bp2 = Vector(0.1, 1.2)
-bp3 = Vector(1.2, 1.3)
-bp4 = Vector(1.3, 2.4)
-bp5 = Vector(2.4, 2.5)
-bp6 = Vector(2.5, 3.6)
+bp2 = Vector(0, 1)
+bp3 = Vector(1, 1)
+bp4 = Vector(1, 2)
+bp5 = Vector(2, 2)
+bp6 = Vector(2, 3)
+bp7 = Vector(3, 3)
 
-patha = [ap1, ap2, ap3, ap4, ap5, ap6]
-pathb = [bp1, bp2, bp3, bp4, bp5, bp6]
+patha = [ap1, ap2, ap3, ap4, ap5, ap6, ap7]
+pathb = [bp1, bp2, bp3, bp4, bp5, bp6, bp7]
 
 input1 = CellMatrix(patha, pathb)
 print(input1)
-sample1 = input1.sample(7, 100)
+sample1 = input1.sample(8, 100)
 #print(sample1)
 sample_heatmap1 = input1.sample_heatmap_a(100)
 sample1["heatmap"] = sample_heatmap1
