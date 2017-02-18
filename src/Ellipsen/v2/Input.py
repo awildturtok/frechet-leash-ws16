@@ -16,7 +16,7 @@ for name, value in options:
     if name == "-n":
         n_samples = int(value)
     elif name == "-l":
-        specific_l = [float for val in value.split(",")]
+        specific_l = [float(val) for val in value.split(",")]
     elif name == "-s":
         n_samples = int(value)
 
