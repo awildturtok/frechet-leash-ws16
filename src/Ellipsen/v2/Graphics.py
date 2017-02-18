@@ -120,10 +120,9 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
         ax_2d.legend()
 
     plt.show()
-<<<<<<< HEAD
 
 
-ap1 = Vector(0, 0)
+'''ap1 = Vector(0, 0)
 ap2 = Vector(1.2, -0.2)
 ap3 = Vector(1, 1)
 ap4 = Vector(2.2, 0.8)
@@ -132,20 +131,12 @@ ap6 = Vector(3.2, 1.8)
 ap7 = Vector(3, 3)
 
 bp1 = Vector(0, 0)
-bp2 = Vector(0, 1)
-bp3 = Vector(1, 1)
-bp4 = Vector(1, 2)
-bp5 = Vector(2, 2)
-bp6 = Vector(2, 3)
-bp7 = Vector(3, 3)
-
-'''bp1 = Vector(0, 0)
 bp2 = Vector(-0.2, 1.2)
 bp3 = Vector(1, 1)
 bp4 = Vector(0.8, 2.2)
 bp5 = Vector(2, 2)
 bp6 = Vector(1.8, 3.2)
-bp7 = Vector(3, 3)'''
+bp7 = Vector(3, 3)
 
 patha = [ap1, ap2, ap3, ap4, ap5, ap6, ap7]
 pathb = [bp1, bp2, bp3, bp4, bp5, bp6, bp7]
@@ -157,22 +148,5 @@ sample1 = input1.sample_l(7, 100)
 sample_heatmap1 = input1.sample_heatmap_a(100)
 sample1["heatmap"] = sample_heatmap1
 #print(sample_heatmap1)
-sample_to_matplotlib(sample1, plot_3d=True, show_legend=False)
+sample_to_matplotlib(sample1, plot_3d=True, show_legend=False)'''
 
-'''eingabe1 = TwoLineSegments(sta1, stb1)
-print(eingabe1)
-cell1 = eingabe1.cell(offset=Vector(10, 10), start=Vector(10, 10))
-print(cell1)
-# sample1 = cell1.sample_l(7, 100)  # , ((-2, 3), (-4, 6)))
-sample1 = cell1.sample_l(7,
-                         100)  # , rel_bounds=((0.1, 0.6), (0, 0.3)))  # ([0,2,4,6,8,10,12,14,math.sqrt(200), 15], 20)
-# print(sample1)
-sample_to_matplotlib(sample1)'''
-
-'''cell2 = Cell(Vector(1.307, 1.307), Vector(-0.5412, 0.5412), Vector(0, 0), (1, 1), (0, 0.77))
-print(cell2)
-sample2 = cell2.sample(1, 100, ((-2, 3), (-2, 3)))
-print(sample2)
-sample_to_plotly(sample2)'''
-=======
->>>>>>> origin/master
