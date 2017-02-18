@@ -9,8 +9,8 @@ reader = csv.reader(iter(sys.stdin.readline, ''))
 
 firstln = next(reader)
 
-heights = firstln[0]
-samples = firstln[1]
+heights = int(firstln[0])
+samples = int(firstln[1])
 
 paths = []
 
