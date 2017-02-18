@@ -122,32 +122,6 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     plt.show()
 
 
-ap1 = Vector(0, 0)
-ap2 = Vector(1, 0)
-ap3 = Vector(1, 1)
-ap4 = Vector(2, 1)
-ap5 = Vector(2, 2)
-ap6 = Vector(3, 2)
-
-bp1 = Vector(0, 0)
-bp2 = Vector(0.1, 1.2)
-bp3 = Vector(1.2, 1.3)
-bp4 = Vector(1.3, 2.4)
-bp5 = Vector(2.4, 2.5)
-bp6 = Vector(2.5, 3.6)
-
-patha = [ap1, ap2, ap3, ap4, ap5, ap6]
-pathb = [bp1, bp2, bp3, bp4, bp5, bp6]
-
-input1 = CellMatrix(patha, pathb)
-print(input1)
-sample1 = input1.sample(7, 100)
-#print(sample1)
-sample_heatmap1 = input1.sample_heatmap_a(100)
-sample1["heatmap"] = sample_heatmap1
-#print(sample_heatmap1)
-sample_to_matplotlib(sample1, plot_3d=True, show_legend=True)
-
 '''eingabe1 = TwoLineSegments(sta1, stb1)
 print(eingabe1)
 cell1 = eingabe1.cell(offset=Vector(10, 10), start=Vector(10, 10))
