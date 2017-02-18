@@ -314,6 +314,8 @@ class TwoLineSegments:  # Input: two line segments
 
 class CellMatrix:  # : Matrix of Cells
     def __init__(self, points_a: [Vector], points_b: [Vector]):
+        self.points_a = points_a
+        self.points_b = points_b
         self.path_a = [LineSegment(points_a[i], points_a[i+1]) for i in range(len(points_a)-1)]
         self.path_b = [LineSegment(points_b[i], points_b[i+1]) for i in range(len(points_b)-1)]
         self.count_a = len(self.path_a)
@@ -434,7 +436,7 @@ class CellMatrix:  # : Matrix of Cells
         ls = []
 
         for i in range(nl + 1):
-            l = self.bounds_l[0] + (float(i) / (nl - 1)) * (self.bounds_l[1] - self.bounds_l[0])
+            l = self.bounds_l[0] + (float(i) / nl) * (self.bounds_l[1] - self.bounds_l[0])
             ls.append(l)
 
         return self.sample(ls, np)
@@ -447,6 +449,9 @@ class CellMatrix:  # : Matrix of Cells
             if l < self.bounds_l[0] or l > self.bounds_l[1]:
                 print("l: " + str(l) + " is not in bounds_l: " + str(self.bounds_l))
                 ls.remove(l)
+
+        # sample input
+        samples["input"] = [self.points_a, self.points_b]
 
         # sample cells
         for i_a in range(self.count_a):
@@ -526,3 +531,51 @@ class CellMatrix:  # : Matrix of Cells
 
         return [xs, ys, zs]
 
+    def sample_traversal(self, traversal: (float, [float], [Vector]), n: int) -> []:
+
+        traversal_ls = []
+        traversal_length = 0
+        traversal_offsets = [0]
+        for i in range(1, len(traversal[2])):
+            p1 = traversal[2][i-1]
+            p2 = traversal[2][i]
+            if p1 != p2:
+                ls = LineSegment(p1, p2)
+                traversal_ls.append(ls)
+                traversal_length += ls.l
+                traversal_offsets.append(traversal_offsets[i-1] + ls.l)
+
+        step = traversal_length / n
+        i_t = 0
+        c_t = 0
+        c_a = 0
+        c_b = 0
+
+        lines = []
+
+        while i_t <= traversal_length:
+
+            while i_t <= traversal_offsets[c_t + 1]:
+
+                ls = traversal_ls[c_t]
+                vec = ls.fr((i_t - traversal_offsets[c_t]) / ls.l)
+                r_a = vec.x
+                r_b = vec.y
+
+                while r_a > self.offsets_a[c_a + 1] and c_a < self.count_a - 1:
+                    c_a += 1
+                while r_b > self.offsets_b[c_b + 1] and c_b < self.count_b - 1:
+                    c_b += 1
+
+                cell = self.cells[c_a][c_b]
+                r_a -= self.offsets_a[c_a]
+                r_b -= self.offsets_b[c_b]
+                pa = cell.a.fr(r_a/cell.a.l)
+                pb = cell.b.fr(r_b/cell.b.l)
+                lines.append([pa, pb])
+
+                i_t += step
+
+            c_t += 1
+
+        return lines

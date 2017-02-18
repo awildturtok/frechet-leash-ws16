@@ -1,6 +1,6 @@
-from src.Ellipsen.v2.Algorithm import CellMatrix
-from src.Ellipsen.v2.Geometry import *
-from src.Ellipsen.v2.Graphics import sample_to_matplotlib
+from Algorithm import CellMatrix
+from Geometry import *
+from Graphics import sample_to_matplotlib
 
 import sys
 import csv
