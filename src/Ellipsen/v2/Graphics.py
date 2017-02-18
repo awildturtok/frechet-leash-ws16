@@ -113,27 +113,10 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     if plot_traversals:
         for traversal in sample["traversals"]:
             x, y = vectors_to_xy(traversal[2])
-            ax_2d.plot(x, y, "r--", label=traversal[0], linewidth=1.5) # "r-"
+            ax_2d.plot(x, y, "r--", label=traversal[0], linewidth=1.5)
 
     # show legend
     if show_legend:
         ax_2d.legend()
 
     plt.show()
-
-
-'''eingabe1 = TwoLineSegments(sta1, stb1)
-print(eingabe1)
-cell1 = eingabe1.cell(offset=Vector(10, 10), start=Vector(10, 10))
-print(cell1)
-# sample1 = cell1.sample_l(7, 100)  # , ((-2, 3), (-4, 6)))
-sample1 = cell1.sample_l(7,
-                         100)  # , rel_bounds=((0.1, 0.6), (0, 0.3)))  # ([0,2,4,6,8,10,12,14,math.sqrt(200), 15], 20)
-# print(sample1)
-sample_to_matplotlib(sample1)'''
-
-'''cell2 = Cell(Vector(1.307, 1.307), Vector(-0.5412, 0.5412), Vector(0, 0), (1, 1), (0, 0.77))
-print(cell2)
-sample2 = cell2.sample(1, 100, ((-2, 3), (-2, 3)))
-print(sample2)
-sample_to_plotly(sample2)'''

@@ -171,11 +171,19 @@ class LineSegment:
     def d_l_point(self, p: Vector) -> float:  # closest distance of p to line
         return abs(self.d.cross_product(p - self.p1)) / self.d.l
 
-    def d_ls_point(self, p: Vector) -> float:  # closest distance of p to line segment
-        d_l = self.d_l_point(p)  # closest distance of p to line
+    def project_p(self, p: Vector) -> Vector:  # projects point onto line
+        d_l = self.d_l_point(p)
         pl = p + self.d.rotate_90_l().norm() * d_l
         pr = p + self.d.rotate_90_r().norm() * d_l
-        if self.contains_point(pl) or self.contains_point(pr):  # if the projection of p lies on the segment return d_l
+        if self.point_on(pl):
+            return pl
+        else:
+            return pr
+
+    def d_ls_point(self, p: Vector) -> float:  # closest distance of p to line segment
+        d_l = self.d_l_point(p)  # closest distance of p to line
+        projection_p = self.project_p(p)
+        if self.contains_point(projection_p):  # if the projection of p lies on the segment return d_l
             return d_l
         else:
             return min(self.p1.d(p), self.p2.d(p))
@@ -296,5 +304,36 @@ class Ellipse:
 
         for t in ts:
             points.append(self.p(t))
+
+        return points
+
+
+class EllipseInfinite:
+    def __init__(self, m: Vector, a: Vector, l1: float, l2: float = 0):
+        self.m = m  # anchor
+        self.m1 = m
+        self.m2 = m
+        if l2 > l1:
+            dm = Vector(math.sqrt(l2 ** 2 - l1 ** 2), 0)
+            self.m1 -= dm
+            self.m2 += dm
+        self.l1 = l1
+        self.l2 = l2
+        self.a = a
+
+    def __str__(self):
+        return "EllipseInfinite: M" + str(self.m) + " a:" + str(self.a) + " l1:" + str(self.l1)
+
+    def __mul__(self, l: float):
+        return EllipseInfinite(self.m, self.a, self.l1, l)
+
+    def cuts_bounds_p(self, bounds: ((float, float), (float, float))) -> [Vector]:
+        points = []
+
+        if self.l2 > self.l1:
+            points.append(LineSegment(self.m1, self.m1 + self.a).cuts_bounds(bounds))
+            points.append(LineSegment(self.m2, self.m2 + self.a).cuts_bounds(bounds))
+        else:
+            points.append(LineSegment(self.m, self.m + self.a).cuts_bounds(bounds))
 
         return points
