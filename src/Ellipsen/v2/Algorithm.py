@@ -79,25 +79,6 @@ class Cell:
         bounds = ((rel_bounds[0][0] * self.bounds_xy[0], rel_bounds[0][1] * self.bounds_xy[0]),
                   (rel_bounds[1][0] * self.bounds_xy[1], rel_bounds[1][1] * self.bounds_xy[1]))
 
-        # Sample Ellipses Ellipses old
-        '''ellipses_sample = []  # holds ellipses in form: (l, [Points])
-        for l in ls:
-            if l < self.bounds_l[0] or l > self.bounds_l[1]:
-                continue
-            ellipsis = self.norm_ellipsis * l
-            ellipsis_sample = []
-            tps = {}
-            for i2 in range(n):
-                t = (i2 / (n - 1)) * (2 * math.pi)
-                p = ellipsis.p(t)
-                if p.in_bounds(bounds) and p not in tps.values():
-                    tps[t] = p
-            for t in ellipsis.cuts_bounds_t(bounds):
-                tps[t] = ellipsis.p(t)
-            for t in sorted(tps.keys()):
-                ellipsis_sample.append(tps[t] + self.offset)
-            ellipses_sample.append((0, ellipsis_sample))  # (l, ellipsis_sample))'''
-
         # holds ellipses, steepest decent lines and axis in form: (name, [Vector])
         sample = {"ellipses": [], "l-lines": [], "axis": []}
 
@@ -161,61 +142,66 @@ class Cell:
     def lp(self, p: Vector) -> float:  # l for given point
         return self.a.frl(p.x).d(self.b.frl(p.y))
 
-    def traverse_right(self, traversal: (float, [Vector])) -> (float, [Vector]):
+    def traverse_right(self, traversal: (float, [float], [Vector])) -> (float, [float], [Vector]):
         l1x = self.l_ver_cut
 
-        start = traversal[1][-1] - self.offset
+        start = traversal[2][-1] - self.offset
 
         max_l = -1
+        end_l = -1
         end = -self.offset
 
         if not math.isclose(l1x.y, self.bounds_xy[1], rel_tol=1e-13):
             if l1x.y <= start.y:
                 end = Vector(self.bounds_xy[0], start.y)
-                max_l = max(traversal[0], self.lp(end))
+                end_l = self.lp(end)
+                max_l = max(traversal[0], end_l)
             elif start.y < l1x.y < self.bounds_xy[1]:
                 end = l1x
-                max_l = max(traversal[0], self.lp(end))
+                end_l = self.lp(end)
+                max_l = max(traversal[0], end_l)
 
-        return max_l, traversal[1] + [end + self.offset]
+        return max_l, traversal[1] + [end_l], traversal[2] + [end + self.offset]
 
-    def traverse_top(self, traversal: (float, [Vector])) -> (float, [Vector]):
+    def traverse_top(self, traversal: (float, [float], [Vector])) -> (float, [float], [Vector]):
         l2x = self.l_hor_cut
 
-        start = traversal[1][-1] - self.offset
+        start = traversal[2][-1] - self.offset
 
         max_l = -1
+        end_l = -1
         end = -self.offset
 
         if not math.isclose(l2x.x, self.bounds_xy[0], rel_tol=1e-13):
             if l2x.x <= start.x:
                 end = Vector(start.x, self.bounds_xy[1])
-                max_l = max(traversal[0], self.lp(end))
+                end_l = self.lp(end)
+                max_l = max(traversal[0], end_l)
             elif start.x < l2x.x < self.bounds_xy[0]:
                 end = l2x
-                max_l = max(traversal[0], self.lp(end))
+                end_l = self.lp(end)
+                max_l = max(traversal[0], end_l)
 
-        return max_l, traversal[1] + [end + self.offset]
+        return max_l, traversal[1] + [end_l], traversal[2] + [end + self.offset]
 
-    def traverse_top_right(self, traversal: (float, [Vector])) -> (float, [Vector]):
+    def traverse_top_right(self, traversal: (float, [float], [Vector])) -> (float, [float], [Vector]):
         l1x = self.l_ver_cut
         l2x = self.l_hor_cut
 
-        max_l = traversal[0]
-        start = traversal[1][-1] - self.offset
+        max_l = -1
+        end_l = -1
+        end = -self.offset
 
         if (l1x.y > self.bounds_xy[1] and l2x.x > self.bounds_xy[0]) or \
                 math.isclose(l1x.y, self.bounds_xy[1], rel_tol=1e-13) or \
                 math.isclose(l2x.x, self.bounds_xy[0], rel_tol=1e-13):
             end = Vector(self.bounds_xy[0], self.bounds_xy[1])
-            max_l = max(max_l, self.lp(end))
-        else:
-            max_l = -1
-            end = -self.offset
+            end_l = self.lp(end)
+            max_l = max(traversal[0], end_l)
 
-        return max_l, traversal[1] + [end + self.offset]
+        return max_l, traversal[1] + [end_l], traversal[2] + [end + self.offset]
 
-    def traverse(self, traversal: (float, [Vector])) -> [(float, [Vector])]:
+    def traverse(self, traversal: (float, [float], [Vector])) -> [(float, [float], [Vector])]:
         traversal_right = self.traverse_right(traversal)
         traversal_top = self.traverse_top(traversal)
         traversal_top_right = self.traverse_top_right(traversal)
@@ -244,24 +230,17 @@ class TwoLineSegments:  # Input: two line segments
                          max(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2)))
 
         self.parallel = a.m == b.m
-        if not self.parallel:  # case 1: lines are not parallel
-            self.s = intersection(a, b)  # intersection point S
+        #if self.parallel:
+            # what to do???
 
-            self.a = OneLineSegment(a, self.s)  # line segment a
-            self.b = OneLineSegment(b, self.s)  # line sqgment b
+        self.s = intersection(a, b)  # intersection point S
 
-            self.intersect = self.a.intersects and self.b.intersects  # does the intersection point lie on A and B
-            if self.intersect:  # if line segments intersect, set min length to 0
-                self.bounds_l = (0.0, self.bounds_l[1])
+        self.a = OneLineSegment(a, self.s)  # line segment a
+        self.b = OneLineSegment(b, self.s)  # line sqgment b
 
-        else:  # case 2: lines are parallel
-            """self.dirB = (a.rP(a.p1+b.d) >= 0)  # do A and B point in the same direction
-            self.stWinkel = math.atan(a.m) # Steigungswinkel der Geraden
-            # Distanz der 2 Geraden
-            if self.a.m == 0 or math.isinf(self.a.m): self.dist = abs(self.a.n - self.b.n)
-            else: self.dist = math.sin(self.stWinkel) * abs(a.fy(b.n))
-            self.ob = 0 # Offset Strecke B im Vergleich zu A"""
-            # Hier weiter Spezialfall: Parallel implementieren
+        self.intersect = self.a.intersects and self.b.intersects  # does the intersection point lie on A and B
+        if self.intersect:  # if line segments intersect, set min length to 0
+            self.bounds_l = (0.0, self.bounds_l[1])
 
     def __str__(self):
         return "    Line Segment A: " + str(self.a) + "\n    Line Segment B: " + str(
@@ -333,18 +312,27 @@ class CellMatrix:  # : Matrix of Cells
                 self.cells[i_a].append(two_line_segments.cell(offset=Vector(self.offsets_a[i_a], self.offsets_b[i_b])))
 
         # traverse
-        traversals = self.traverse(0, 0, (0, [Vector(0, 0)]))
+        start = Vector(0, 0)
+        l_start = self.cells[0][0].lp(start)
+        traversals0 = self.traverse(0, 0, (0, [l_start], [start]))
 
-        # select best traversals
-        self.best_l = math.inf
-        for traversal in traversals:
-            self.best_l = min(self.best_l, traversal[0])
-        self.traversals = []
-        for traversal in traversals:
-            if traversal[0] <= self.best_l:
-                self.traversals.append(traversal)
+        # select best traversal(s), 1. lowest l, 2. lowest average of ls
+        self.lowest_l = math.inf
+        lowest_avg_ls = math.inf
+        for traversal in traversals0:
+            self.lowest_l = min(self.lowest_l, traversal[0])
+            lowest_avg_ls = min(lowest_avg_ls, sum(traversal[1])/len(traversal[1]))
+        traversals1 = []
+        for traversal in traversals0:
+            if traversal[0] <= self.lowest_l:
+                traversals1.append(traversal)
+        traversals2 = []
+        for traversal in traversals1:
+            if sum(traversal[1])/len(traversal[1]) <= lowest_avg_ls:
+                traversals2.append(traversal)
+        self.traversals = traversals2
 
-    def traverse(self, i_a: int, i_b: int, traversal: (float, [Vector])) -> [(float, [Vector])]:
+    def traverse(self, i_a: int, i_b: int, traversal: (float, [float], [Vector])) -> [(float, [float], [Vector])]:
         if i_a >= self.count_a and i_b >= self.count_b:
             return [traversal]
 
@@ -353,12 +341,12 @@ class CellMatrix:  # : Matrix of Cells
         if i_a >= self.count_a or i_b >= self.count_b:
             if i_a < self.count_a:
                 cell = self.cells[i_a][self.count_b - 1]
-                traversals += self.traverse(i_a + 1, i_b, (max(traversal[0], cell.end_l),
-                                                           traversal[1] + [cell.end + cell.offset]))
+                traversals += self.traverse(i_a + 1, i_b, (max(traversal[0], cell.end_l), traversal[1] + [cell.end_l],
+                                                           traversal[2] + [cell.end + cell.offset]))
             if i_b < self.count_b:
                 cell = self.cells[self.count_a - 1][i_b]
-                traversals += self.traverse(i_a, i_b + 1, (max(traversal[0], cell.end_l),
-                                                           traversal[1] + [cell.end + cell.offset]))
+                traversals += self.traverse(i_a, i_b + 1, (max(traversal[0], cell.end_l), traversal[1] + [cell.end_l],
+                                                           traversal[2] + [cell.end + cell.offset]))
         else:
             next_traversal = self.cells[i_a][i_b].traverse(traversal)
 
@@ -382,7 +370,7 @@ class CellMatrix:  # : Matrix of Cells
             desc += "  " + str(i) + ": " + str(self.path_b[i]) + '\n'
         desc += "==>\n"
         desc += " Bounds_l: " + str(self.bounds_l) + '\n'
-        desc += " Best_l: " + str(self.best_l) + '\n'
+        desc += " Lowest_l: " + str(self.lowest_l) + '\n'
         desc += " Traversals:\n"
         for traversal in self.traversals:
             desc += "   " + str(traversal) + '\n'
@@ -420,7 +408,7 @@ class CellMatrix:  # : Matrix of Cells
         # sample traversals
         for traversal in self.traversals:
             if traversal[0] != -1:
-                samples["traversals"].append(("traversal: " + str(traversal[0]), traversal[1]))
+                samples["traversals"].append(("traversal: " + str(traversal[0]), traversal[1], traversal[2]))
 
         # include size in sample
         samples["size"] = (self.length_a, self.length_b)
