@@ -553,9 +553,9 @@ class CellMatrix:  # : Matrix of Cells
 
         lines = []
 
-        while i_t <= traversal_length:
+        while i_t <= traversal_length + 1e-13:
 
-            while i_t <= traversal_offsets[c_t + 1]:
+            while i_t <= traversal_offsets[c_t + 1] + 1e-13:
 
                 ls = traversal_ls[c_t]
                 vec = ls.fr((i_t - traversal_offsets[c_t]) / ls.l)

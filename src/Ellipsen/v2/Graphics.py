@@ -17,6 +17,8 @@ from Algorithm import *
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
+from numbers import Number
+import numpy as np
 
 
 def vectors_to_xy(vectors: [Vector]) -> ([float], [float]):
@@ -31,6 +33,20 @@ def vectors_to_xy(vectors: [Vector]) -> ([float], [float]):
             print("Error: not a Vector: " + str(vector))
 
     return x, y
+
+
+def xy_to_vectors(xs: [float], ys: [float]) -> [Vector]:
+    vectors = []
+
+    for i in range(min(len(xs), len(ys))):
+        x = xs[i]
+        y = ys[i]
+        if isinstance(x, Number) and isinstance(y, Number):
+            vectors.append(Vector(x, y))
+        else:
+            print("Error: either isn not a valid float: x:" + str(x) + " y:" + str(y))
+
+    return vectors
 
 
 def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool = True, plot_heatmap: bool = True,
@@ -139,64 +155,46 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
 
     # plot traversals
     if plot_traversals:
-        for traversal in sample["traversals"]:
+        for tra in sample["traversals"]:
             x, y = vectors_to_xy(traversal[2])
-            ax_2d.plot(x, y, "r--", label=traversal[0], linewidth=1.5)
+            ax_2d.plot(x, y, "r--", label=tra[0], linewidth=1.5)
             if plot_3d:
-                ax_3d.plot(x, y, traversal[1], "r", label=traversal[0], linewidth=0.5)
+                ax_3d.plot(x, y, tra[1], "r", label=tra[0], linewidth=0.5)
 
     # show legend
     if show_legend:
-        ax_2d.legend()
+        #ax_2d.legend()
         ax_3d.legend()
 
     plt.show()
 
 
-'''ap1 = Vector(0, 0)
-ap2 = Vector(1.2, -0.2)
-ap3 = Vector(1, 1)
-ap4 = Vector(2.2, 0.8)
-ap5 = Vector(2, 2)
-ap6 = Vector(3.2, 1.8)
-ap7 = Vector(3, 3)
+# Aktueller Test
 
-bp1 = Vector(0, 0)
-bp2 = Vector(-0.2, 1.2)
-bp3 = Vector(1, 1)
-bp4 = Vector(0.8, 2.2)
-bp5 = Vector(2, 2)
-bp6 = Vector(1.8, 3.2)
-bp7 = Vector(3, 3)'''
+# patha:
+a_xs = [0, 10]
+a_ys = [0, 0]
 
+# pathb:
+b_xs = [0, 10, 0, 10]
+b_ys = [-2, -2, 2, 2]
 
-# Aktueller Test:
+patha = xy_to_vectors(a_xs, a_ys)
+pathb = xy_to_vectors(b_xs, b_ys)
 
-'''ap1 = Vector(0, 0)
-ap2 = Vector(20, -3)
-ap3 = Vector(-10, 4)
-ap4 = Vector(3, 4)
-ap5 = Vector(-10, -2)
-
-
-bp1 = Vector(0, 5)
-bp2 = Vector(10, 3)
-bp3 = Vector(4, -12)
-bp4 = Vector(16, 5)
-bp5 = Vector(-12, 0)
-
-patha = [ap1, ap2, ap3, ap4, ap5]  # , ap6, ap7]
-pathb = [bp1, bp2, bp3, bp4, bp5]  # , bp6, bp7]
+print(patha)
+print (pathb)
 
 input1 = CellMatrix(patha, pathb)
 print(input1)
-sample1 = input1.sample_l(9, 100)
-#print(sample1)
+
+sample1 = input1.sample_l(9, 50)
+
 sample_heatmap1 = input1.sample_heatmap_a(100)
 sample1["heatmap"] = sample_heatmap1
-#print(sample_heatmap1)
+
 traversal = sample1["traversals"][0]
-sample_traversal = input1.sample_traversal(traversal, 100)
+sample_traversal = input1.sample_traversal(traversal, 5 * max(len(patha), len(pathb)))
 sample1["in-traversal"] = sample_traversal
-print(sample_traversal)
-sample_to_matplotlib(sample1, plot_3d=True, show_legend=False)'''
+
+sample_to_matplotlib(sample1, plot_3d=True, show_legend=True, plot_borders=False)
