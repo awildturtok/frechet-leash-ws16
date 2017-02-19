@@ -6,18 +6,13 @@ import QtQuick 2.0
 import QtQuick.Controls 1.0
 import QtQuick.Controls.Styles 1.0
 
-Window {
-    visible: true
-    width: 900
-    height: 900
-    title: qsTr("Hello World")
-    property int curve: 1
 
-    ChartView {
+     ChartView {
         id: chart
         title: "Line"
         anchors.fill: parent
         antialiasing: true
+        property int curve:1
 
         LineSeries {
             //graph two
@@ -198,4 +193,4 @@ Window {
     }
 }
 
-}
+
