@@ -35,16 +35,44 @@ def vectors_to_xy(vectors: [Vector]) -> ([float], [float]):
 
 def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool = True, plot_heatmap: bool = True,
                          plot_traversals: bool = True, plot_axis: bool = False, plot_l_lines: bool = False,
-                         plot_3d: bool = True, show_legend: bool = False, show_colorbar: bool = True):
+                         plot_3d: bool = True, show_legend: bool = False, show_colorbar: bool = True,
+                         plot_input: bool = True):
 
     # plot sample with matplotlib
-    if plot_3d:
+    if plot_3d and plot_input:
+        fig = plt.figure(figsize=plt.figaspect(0.5))
+        fig_in = plt.figure(figsize=plt.figaspect(0.5))
+        ax_2d = fig.add_subplot(1, 2, 1)
+        ax_3d = fig.add_subplot(1, 2, 2, projection='3d')
+        ax_in = fig_in.add_subplot(1, 1, 1)
+    elif plot_3d:
         fig = plt.figure(figsize=plt.figaspect(0.5))
         ax_2d = fig.add_subplot(1, 2, 1)
         ax_3d = fig.add_subplot(1, 2, 2, projection='3d')
-    else:
-        fig = plt.figure()
+    elif plot_input:
+        fig = plt.figure(figsize=plt.figaspect(0.5))
+        fig_in = plt.figure(figsize=plt.figaspect(0.5))
         ax_2d = fig.add_subplot(1, 1, 1)
+        ax_in = fig_in.add_subplot(1, 1, 1)
+    else:
+        fig = plt.figure(figsize=plt.figaspect(0.5))
+        ax_2d = fig.add_subplot(1, 1, 1)
+
+    # plot input
+    if plot_input:
+        paths = sample["input"]
+        xa, ya = vectors_to_xy(paths[0])
+        xb, yb = vectors_to_xy(paths[1])
+
+        ax_in.plot(xa, ya, "b", label="Path A", linewidth=2.5)
+        ax_in.plot(xb, yb, "c", label="Path B", linewidth=2.5)
+        ax_in.legend()
+
+        if plot_traversals:
+            in_traversal = sample["in-traversal"]
+            for ps in in_traversal:
+                x, y = vectors_to_xy(ps)
+                ax_in.plot(x, y, "k", linewidth=0.5)
 
     # plot 3d
     if plot_3d:
@@ -100,7 +128,7 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
 
     # plot colorbar
     if (plot_heatmap or plot_3d) and show_colorbar:
-        fig.colorbar(surf, shrink=0.5, aspect=5)
+        fig.colorbar(surf, shrink=0.95, aspect=5)
 
     # set padding
     l_a, l_b = sample["size"]
@@ -113,53 +141,62 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     if plot_traversals:
         for traversal in sample["traversals"]:
             x, y = vectors_to_xy(traversal[2])
-            ax_2d.plot(x, y, "r--", label=traversal[0], linewidth=1.5) # "r-"
+            ax_2d.plot(x, y, "r--", label=traversal[0], linewidth=1.5)
+            if plot_3d:
+                ax_3d.plot(x, y, traversal[1], "r", label=traversal[0], linewidth=0.5)
 
     # show legend
     if show_legend:
         ax_2d.legend()
+        ax_3d.legend()
 
     plt.show()
 
 
-ap1 = Vector(0, 0)
-ap2 = Vector(1, 0)
+'''ap1 = Vector(0, 0)
+ap2 = Vector(1.2, -0.2)
 ap3 = Vector(1, 1)
-ap4 = Vector(2, 1)
+ap4 = Vector(2.2, 0.8)
 ap5 = Vector(2, 2)
-ap6 = Vector(3, 2)
+ap6 = Vector(3.2, 1.8)
+ap7 = Vector(3, 3)
 
 bp1 = Vector(0, 0)
-bp2 = Vector(0.1, 1.2)
-bp3 = Vector(1.2, 1.3)
-bp4 = Vector(1.3, 2.4)
-bp5 = Vector(2.4, 2.5)
-bp6 = Vector(2.5, 3.6)
+bp2 = Vector(-0.2, 1.2)
+bp3 = Vector(1, 1)
+bp4 = Vector(0.8, 2.2)
+bp5 = Vector(2, 2)
+bp6 = Vector(1.8, 3.2)
+bp7 = Vector(3, 3)'''
 
-patha = [ap1, ap2, ap3, ap4, ap5, ap6]
-pathb = [bp1, bp2, bp3, bp4, bp5, bp6]
+
+# Aktueller Test:
+
+'''ap1 = Vector(0, 0)
+ap2 = Vector(20, -3)
+ap3 = Vector(-10, 4)
+ap4 = Vector(3, 4)
+ap5 = Vector(-10, -2)
+
+
+bp1 = Vector(0, 5)
+bp2 = Vector(10, 3)
+bp3 = Vector(4, -12)
+bp4 = Vector(16, 5)
+bp5 = Vector(-12, 0)
+
+patha = [ap1, ap2, ap3, ap4, ap5]  # , ap6, ap7]
+pathb = [bp1, bp2, bp3, bp4, bp5]  # , bp6, bp7]
 
 input1 = CellMatrix(patha, pathb)
 print(input1)
-sample1 = input1.sample(7, 100)
+sample1 = input1.sample_l(9, 100)
 #print(sample1)
 sample_heatmap1 = input1.sample_heatmap_a(100)
 sample1["heatmap"] = sample_heatmap1
 #print(sample_heatmap1)
-sample_to_matplotlib(sample1, plot_3d=True, show_legend=True)
-
-'''eingabe1 = TwoLineSegments(sta1, stb1)
-print(eingabe1)
-cell1 = eingabe1.cell(offset=Vector(10, 10), start=Vector(10, 10))
-print(cell1)
-# sample1 = cell1.sample_l(7, 100)  # , ((-2, 3), (-4, 6)))
-sample1 = cell1.sample_l(7,
-                         100)  # , rel_bounds=((0.1, 0.6), (0, 0.3)))  # ([0,2,4,6,8,10,12,14,math.sqrt(200), 15], 20)
-# print(sample1)
-sample_to_matplotlib(sample1)'''
-
-'''cell2 = Cell(Vector(1.307, 1.307), Vector(-0.5412, 0.5412), Vector(0, 0), (1, 1), (0, 0.77))
-print(cell2)
-sample2 = cell2.sample(1, 100, ((-2, 3), (-2, 3)))
-print(sample2)
-sample_to_plotly(sample2)'''
+traversal = sample1["traversals"][0]
+sample_traversal = input1.sample_traversal(traversal, 100)
+sample1["in-traversal"] = sample_traversal
+print(sample_traversal)
+sample_to_matplotlib(sample1, plot_3d=True, show_legend=False)'''

@@ -29,12 +29,13 @@ class OneLineSegment(LineSegment):  # one of the two input line segments
 
 
 class Cell:
-    def __init__(self, a: OneLineSegment, b: OneLineSegment, c: Vector, d: Vector, m: Vector, bounds_xy: (float, float),
-                 bounds_l: (float, float), offset: Vector = Vector(0, 0), do_traverse: bool = False,
-                 start: Vector = Vector(0, 0)):
+    def __init__(self, parallel: bool, a: LineSegment, b: LineSegment, norm_ellipsis: Ellipse,
+                 bounds_xy: (float, float), bounds_l: (float, float), offset: Vector = Vector(0, 0),
+                 do_traverse: bool = False, start: Vector = Vector(0, 0)):
+        self.parallel = parallel
         self.a = a
         self.b = b
-        self.norm_ellipsis = Ellipse(m, c, d)  # Ellipsis for l = 1
+        self.norm_ellipsis = norm_ellipsis
         self.bounds_xy = bounds_xy  # cell bounds
         self.bounds_l = bounds_l  # line length bounds
         self.offset = offset
@@ -42,12 +43,23 @@ class Cell:
         self.end_l = self.lp(self.end)
 
         # steepest decent lines l=l_ver and l'=l_hor
-        t_l_ver = math.atan(d.x / c.x)
-        t_l_hor = math.atan(d.y / c.y)
-        self.l_ver = LineSegment(m, self.norm_ellipsis.p(t_l_ver))
-        self.l_hor = LineSegment(m, self.norm_ellipsis.p(t_l_hor))
-        self.l_ver_cut = Vector(bounds_xy[0], self.l_ver.fx(bounds_xy[0]))
-        self.l_hor_cut = Vector(self.l_hor.fy(bounds_xy[1]), bounds_xy[1])
+        if not self.parallel:  # case 1: lines are not parallel
+            c = norm_ellipsis.a
+            d = norm_ellipsis.b
+            m = norm_ellipsis.m
+            t_l_ver = math.atan(d.x / c.x)
+            t_l_hor = math.atan(d.y / c.y)
+            self.l_ver = LineSegment(m, self.norm_ellipsis.p(t_l_ver))
+            self.l_hor = LineSegment(m, self.norm_ellipsis.p(t_l_hor))
+            self.l_ver_cut = Vector(bounds_xy[0], self.l_ver.fx(bounds_xy[0]))
+            self.l_hor_cut = Vector(self.l_hor.fy(bounds_xy[1]), bounds_xy[1])
+        else:  # case 2: line sare parallel
+            c = norm_ellipsis.a
+            m = norm_ellipsis.m
+            self.l_ver = LineSegment(m, m + c)
+            self.l_hor = LineSegment(m, m + c)
+            self.l_ver_cut = Vector(bounds_xy[0], self.l_ver.fx(bounds_xy[0]))
+            self.l_hor_cut = Vector(self.l_hor.fy(bounds_xy[1]), bounds_xy[1])
 
         self.do_traverse = do_traverse
         if do_traverse:
@@ -88,50 +100,58 @@ class Cell:
             if l < self.bounds_l[0] or l > self.bounds_l[1]:
                 continue
 
-            if l == 0:
-                p = self.norm_ellipsis.m
-                if p.in_bounds(bounds):
-                    sample["ellipses"].append((l, [p + self.offset]))
-                continue
+            if not self.parallel:  # case 1: lines are not parallel
+                if l == 0:
+                    p = self.norm_ellipsis.m
+                    if p.in_bounds(bounds):
+                        sample["ellipses"].append((l, [p + self.offset]))
+                    continue
 
-            ellipsis = self.norm_ellipsis * l
-            ts = ellipsis.cuts_bounds_t(bounds)
-            l_ts = len(ts)
+                ellipsis = self.norm_ellipsis * l
+                ts = ellipsis.cuts_bounds_t(bounds)
+                l_ts = len(ts)
 
-            if l_ts == 0:
-                ts.append(0)
+                if l_ts == 0:
+                    ts.append(0)
 
-            for i in range(len(ts)):
+                for i in range(len(ts)):
 
-                t1 = ts[i-1]
-                t2 = ts[i]
-                if t1 >= t2:
-                    t2 += 2*math.pi
+                    t1 = ts[i-1]
+                    t2 = ts[i]
+                    if t1 >= t2:
+                        t2 += 2*math.pi
 
-                d_t = t2 - t1
-                mid_t = t1 + 0.5*d_t
+                    d_t = t2 - t1
+                    mid_t = t1 + 0.5*d_t
 
-                if ellipsis.p(mid_t).in_bounds(bounds):
-                    ellipsis_sample = [ellipsis.p(t1) + self.offset]
+                    if ellipsis.p(mid_t).in_bounds(bounds):
+                        ellipsis_sample = [ellipsis.p(t1) + self.offset]
 
-                    np1 = math.ceil((t1 / (2 * math.pi)) * n)
-                    np2 = math.ceil((t2 / (2 * math.pi)) * n)
+                        np1 = math.ceil((t1 / (2 * math.pi)) * n)
+                        np2 = math.ceil((t2 / (2 * math.pi)) * n)
 
-                    for ip in range(np1, np2):
-                        t = (ip / n) * 2*math.pi
-                        ellipsis_sample.append(ellipsis.p(t) + self.offset)
+                        for ip in range(np1, np2):
+                            t = (ip / n) * 2*math.pi
+                            ellipsis_sample.append(ellipsis.p(t) + self.offset)
 
-                    ellipsis_sample.append(ellipsis.p(t2) + self.offset)
+                        ellipsis_sample.append(ellipsis.p(t2) + self.offset)
 
+                        sample["ellipses"].append((l, ellipsis_sample))
+
+            else:  # case 2: lines are parallel
+                ellipsis = self.norm_ellipsis * l
+                for ps in ellipsis.cuts_bounds_p(bounds):
+                    ellipsis_sample = [p + self.offset for p in ps]
                     sample["ellipses"].append((l, ellipsis_sample))
 
         # Sample Ellipsis axis
-        sample["axis"].append(("c", [p + self.offset for p in
-                                     LineSegment(self.norm_ellipsis.m,
-                                                 self.norm_ellipsis.m + self.norm_ellipsis.a).cuts_bounds(bounds)]))
-        sample["axis"].append(("d", [p + self.offset for p in
-                                     LineSegment(self.norm_ellipsis.m,
-                                                 self.norm_ellipsis.m + self.norm_ellipsis.b).cuts_bounds(bounds)]))
+        if not self.parallel:
+            sample["axis"].append(("c", [p + self.offset for p in
+                                         LineSegment(self.norm_ellipsis.m,
+                                                     self.norm_ellipsis.m + self.norm_ellipsis.a).cuts_bounds(bounds)]))
+            sample["axis"].append(("d", [p + self.offset for p in
+                                         LineSegment(self.norm_ellipsis.m,
+                                                     self.norm_ellipsis.m + self.norm_ellipsis.b).cuts_bounds(bounds)]))
 
         # Sample steepest decent lines
         sample["l-lines"].append(("l", [p + self.offset for p in self.l_ver.cuts_bounds(bounds)]))
@@ -229,50 +249,73 @@ class TwoLineSegments:  # Input: two line segments
         self.bounds_l = (min(a.d_ls_point(b.p1), a.d_ls_point(b.p2), b.d_ls_point(a.p1), b.d_ls_point(a.p2)),
                          max(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2)))
 
-        self.parallel = a.m == b.m
-        #if self.parallel:
-            # what to do???
+        self.parallel = math.isclose(a.m, b.m, rel_tol=1e-13)
+        if not self.parallel:  # case 1: lines are not parallel
+            self.s = intersection(a, b)  # intersection point S
 
-        self.s = intersection(a, b)  # intersection point S
+            self.a = OneLineSegment(a, self.s)  # line segment a
+            self.b = OneLineSegment(b, self.s)  # line segment b
 
-        self.a = OneLineSegment(a, self.s)  # line segment a
-        self.b = OneLineSegment(b, self.s)  # line sqgment b
+            self.intersect = self.a.intersects and self.b.intersects  # does the intersection point lie on A and B
+            if self.intersect:  # if line segments intersect, set min length to 0
+                self.bounds_l = (0.0, self.bounds_l[1])
 
-        self.intersect = self.a.intersects and self.b.intersects  # does the intersection point lie on A and B
-        if self.intersect:  # if line segments intersect, set min length to 0
-            self.bounds_l = (0.0, self.bounds_l[1])
+        else:  # case 2: lines are parallel
+            self.s = Vector(math.nan, math.nan)
+            self.a = a  # line segment a
+            self.b = b  # line segment b
+            self.intersect = False
+
+            self.dirB = (a.r_point(a.p1+b.d) >= 0)  # do A and B point in the same direction
+            b1_p = a.project_p(b.p1)  # projection of b1 on a
+            self.dist = b.p1.d(b1_p)  # distance of the two lines
+            self.anchor = Vector(a.r_point(b1_p) * a.l, 0)  # point with b(0) and minimal l
 
     def __str__(self):
-        return "    Line Segment A: " + str(self.a) + "\n    Line Segment B: " + str(
-            self.b) + "\n     Intersect (" + str(self.intersect) + "): " + str(self.s)
+        return "    Line Segment A: " + str(self.a) + "\n    Line Segment B: " + str(self.b) + '\n' + \
+               "       Parallel: " + str(self.parallel) + '\n' + \
+               "       Intersect (" + str(self.intersect) + "): " + str(self.s)
 
     def cell(self, offset: Vector = Vector(0, 0), do_traverse: bool = False, start:Vector = Vector(0, 0)) -> Cell:
         # Vectors a and b normalised
         norm_a = self.a.d.norm()
         norm_b = self.b.d.norm()
 
-        # x- and y-coordinates for ellipsis vectors c and d for l = 1
-        c_xy = 1 / (norm_a - norm_b).l
-        d_xy = 1 / (norm_a + norm_b).l
+        if not self.parallel:  # case 1: lines are not parallel
+            # x- and y-coordinates for ellipsis vectors c and d for l = 1
+            c_xy = 1 / (norm_a - norm_b).l
+            d_xy = 1 / (norm_a + norm_b).l
 
-        # Ellipsis vectors c and d for l = 1
-        c = Vector(c_xy, c_xy)
-        d = Vector(-d_xy, d_xy)
+            # Ellipsis vectors c and d for l = 1
+            c = Vector(c_xy, c_xy)
+            d = Vector(-d_xy, d_xy)
 
-        # Calculate ellipsis offset:
-        offset_a = Vector(self.a.l, 0) * self.a.rs
-        offset_b = Vector(0, self.b.l) * self.b.rs
-        m = offset_a + offset_b
+            # Calculate ellipsis offset:
+            offset_a = Vector(self.a.l, 0) * self.a.rs
+            offset_b = Vector(0, self.b.l) * self.b.rs
+            m = offset_a + offset_b
+
+            norm_ellipsis = Ellipse(m, c, d)
+
+        else:  # case 2: lines are parallel
+            if self.dirB:
+                a = Vector(1, 1)
+            else:
+                a = Vector(-1, 1)
+
+            norm_ellipsis = EllipseInfinite(self.anchor, a, self.dist)
 
         # set cell bounds: length of a and b
         bounds_xy = (self.a.d.l, self.b.d.l)
 
-        return Cell(self.a, self.b, c, d, m, bounds_xy, self.bounds_l, offset=offset, do_traverse=do_traverse,
-                    start=start)
+        return Cell(self.parallel, self.a, self.b, norm_ellipsis, bounds_xy, self.bounds_l, offset=offset,
+                    do_traverse=do_traverse, start=start)
 
 
 class CellMatrix:  # : Matrix of Cells
     def __init__(self, points_a: [Vector], points_b: [Vector]):
+        self.points_a = points_a
+        self.points_b = points_b
         self.path_a = [LineSegment(points_a[i], points_a[i+1]) for i in range(len(points_a)-1)]
         self.path_b = [LineSegment(points_b[i], points_b[i+1]) for i in range(len(points_b)-1)]
         self.count_a = len(self.path_a)
@@ -316,19 +359,25 @@ class CellMatrix:  # : Matrix of Cells
         l_start = self.cells[0][0].lp(start)
         traversals0 = self.traverse(0, 0, (0, [l_start], [start]))
 
-        # select best traversal(s), 1. lowest l, 2. lowest average of ls
+        # select best traversal(s):
+        # 1. lowest l
         self.lowest_l = math.inf
-        lowest_avg_ls = math.inf
         for traversal in traversals0:
             self.lowest_l = min(self.lowest_l, traversal[0])
-            lowest_avg_ls = min(lowest_avg_ls, sum(traversal[1])/len(traversal[1]))
         traversals1 = []
         for traversal in traversals0:
-            if traversal[0] <= self.lowest_l:
+            if traversal[0] <= self.lowest_l or math.isclose(traversal[0], self.lowest_l, rel_tol=1e-13):
                 traversals1.append(traversal)
+
+        # 2. lowest average of ls
+        lowest_avg_ls = math.inf
+        for traversal in traversals1:
+            avg_ls = sum(traversal[1])/len(traversal[1])
+            lowest_avg_ls = min(lowest_avg_ls, avg_ls)
         traversals2 = []
         for traversal in traversals1:
-            if sum(traversal[1])/len(traversal[1]) <= lowest_avg_ls:
+            avg_ls = sum(traversal[1])/len(traversal[1])
+            if avg_ls <= lowest_avg_ls or math.isclose(avg_ls, lowest_avg_ls, rel_tol=1e-10):
                 traversals2.append(traversal)
         self.traversals = traversals2
 
@@ -383,13 +432,26 @@ class CellMatrix:  # : Matrix of Cells
 
         return desc
 
-    def sample(self, nl: int, np: int) -> {}:
+    def sample_l(self, nl: int, np: int) -> {}:  # sample cell with nl: number of ls and np: points per ellipses
         ls = []
-        samples = {"borders-v": [], "borders-h": [], "cells": [], "traversals": []}
 
         for i in range(nl + 1):
-            l = self.bounds_l[0] + (float(i) / (nl - 1)) * (self.bounds_l[1] - self.bounds_l[0])
+            l = self.bounds_l[0] + (float(i) / nl) * (self.bounds_l[1] - self.bounds_l[0])
             ls.append(l)
+
+        return self.sample(ls, np)
+
+    def sample(self, ls: [float], np: int) -> {}:  # sample cell for given ls and np: points per ellipses
+        samples = {"borders-v": [], "borders-h": [], "cells": [], "traversals": []}
+
+        # are all ls in bounds
+        for l in ls:
+            if l < self.bounds_l[0] or l > self.bounds_l[1]:
+                print("l: " + str(l) + " is not in bounds_l: " + str(self.bounds_l))
+                ls.remove(l)
+
+        # sample input
+        samples["input"] = [self.points_a, self.points_b]
 
         # sample cells
         for i_a in range(self.count_a):
@@ -400,10 +462,10 @@ class CellMatrix:  # : Matrix of Cells
         # sample cell borders
         for i in range(1, self.count_a):  # vertical
             samples["borders-v"].append(("border-v: " + str(i), [Vector(self.offsets_a[i], 0),
-                                                                      Vector(self.offsets_a[i], self.length_b)]))
+                                                                 Vector(self.offsets_a[i], self.length_b)]))
         for i in range(1, self.count_b):  # horizontal
             samples["borders-h"].append(("border-h: " + str(i), [Vector(0, self.offsets_b[i]),
-                                                                        Vector(self.length_a, self.offsets_b[i])]))
+                                                                 Vector(self.length_a, self.offsets_b[i])]))
 
         # sample traversals
         for traversal in self.traversals:
@@ -469,3 +531,51 @@ class CellMatrix:  # : Matrix of Cells
 
         return [xs, ys, zs]
 
+    def sample_traversal(self, traversal: (float, [float], [Vector]), n: int) -> []:
+
+        traversal_ls = []
+        traversal_length = 0
+        traversal_offsets = [0]
+        for i in range(1, len(traversal[2])):
+            p1 = traversal[2][i-1]
+            p2 = traversal[2][i]
+            if p1 != p2:
+                ls = LineSegment(p1, p2)
+                traversal_ls.append(ls)
+                traversal_length += ls.l
+                traversal_offsets.append(traversal_offsets[i-1] + ls.l)
+
+        step = traversal_length / n
+        i_t = 0
+        c_t = 0
+        c_a = 0
+        c_b = 0
+
+        lines = []
+
+        while i_t <= traversal_length:
+
+            while i_t <= traversal_offsets[c_t + 1]:
+
+                ls = traversal_ls[c_t]
+                vec = ls.fr((i_t - traversal_offsets[c_t]) / ls.l)
+                r_a = vec.x
+                r_b = vec.y
+
+                while r_a > self.offsets_a[c_a + 1] and c_a < self.count_a - 1:
+                    c_a += 1
+                while r_b > self.offsets_b[c_b + 1] and c_b < self.count_b - 1:
+                    c_b += 1
+
+                cell = self.cells[c_a][c_b]
+                r_a -= self.offsets_a[c_a]
+                r_b -= self.offsets_b[c_b]
+                pa = cell.a.fr(r_a/cell.a.l)
+                pb = cell.b.fr(r_b/cell.b.l)
+                lines.append([pa, pb])
+
+                i_t += step
+
+            c_t += 1
+
+        return lines
