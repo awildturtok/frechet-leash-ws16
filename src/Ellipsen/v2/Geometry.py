@@ -62,7 +62,7 @@ class Vector:
         return self.l
 
     def __eq__(self, other) -> bool:
-        return math.isclose(self.x, other.x, rel_tol=1e-13) and math.isclose(self.y, other.y, rel_tol=1e-13)
+        return math.isclose(self.x, other.x, abs_tol=1e-10) and math.isclose(self.y, other.y, abs_tol=1e-10)
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
@@ -160,7 +160,8 @@ class LineSegment:
         return (self.m == float("inf") or 0 - 1e-13 <= self.rx(p.x) <= 1 + 1e-13) and\
                (self.m == 0 or 0 - 1e-13 <= self.ry(p.y) <= 1 + 1e-13)
 
-    def r_point(self, p: Vector) -> float:  # parameter r for set point (result only relevant for case p lies on line)
+    def r_point(self, p: Vector) -> float:  # parameter r: [0,1] for set point
+        # result only relevant for case p lies on line
         rx = self.rx(p.x)
         ry = self.ry(p.y)
         if math.isinf(self.m):
@@ -168,6 +169,10 @@ class LineSegment:
         if self.m == 0:
             ry = rx
         return 0.5 * (rx + ry)
+
+    def rl_point(self, p: Vector) -> float:  # parameter r: [0,l] for set point
+        # result only relevant for case p lies on line
+        return self.r_point(p) * self.l
 
     def d_l_point(self, p: Vector) -> float:  # closest distance of p to line
         return abs(self.d.cross_product(p - self.p1)) / self.d.l
@@ -196,7 +201,7 @@ class LineSegment:
         return p.x > self.fy(p.y)
 
     def point_on(self, p: Vector) -> bool:  # is given point on line
-        return math.isclose(p.y, self.fx(p.x), rel_tol=1e-13)
+        return math.isclose(p.y, self.fx(p.x), abs_tol=1e-13)
 
     def cuts_bounds(self, bounds: ((float, float), (float, float))) -> [Vector]:
         x1 = bounds[0][0]
@@ -251,7 +256,7 @@ class Ellipse:
 
     @staticmethod
     def txy(a: float, b: float, m: float, xy: float) -> [float]:  # helper function for tx and ty
-        if a != 0 and not math.isclose(m, xy + a, rel_tol=1e-13):
+        if a != 0 and not math.isclose(m, xy + a, abs_tol=1e-13):
             w = a**2 + b**2 - m**2 + 2*m*xy - xy**2
             if w < 0:
                 return []
@@ -294,7 +299,7 @@ class Ellipse:
 
         ret_ts = [ts[0]]
         for i in range(len(ts) - 1):
-            if not math.isclose(ts[i], ts[i+1], rel_tol=1e-13):
+            if not math.isclose(ts[i], ts[i+1], abs_tol=1e-13):
                 ret_ts.append(ts[i+1])
 
         return ret_ts
