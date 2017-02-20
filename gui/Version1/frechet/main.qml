@@ -134,8 +134,7 @@ import QtQuick.Controls.Styles 1.0
 //            }
 //        }
 		//test for using cpp methods
-		onDoubleClicked: {
-        //console.log("hihallo");
+        onDoubleClicked: {
             testData.cleanDataFile();
             testData.printPointSeries(chart.series(0));
             testData.printPointSeries(chart.series(1));

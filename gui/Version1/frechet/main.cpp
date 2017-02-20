@@ -48,16 +48,16 @@ int main(int argc, char *argv[])
 //    viewer.engine()->addImportPath(extraImportPath.arg(QGuiApplication::applicationDirPath(),
 //                                      QString::fromLatin1("qml")));
 
-//    QObject::connect(viewer.engine(), &QQmlEngine::quit, &viewer, &QWindow::close);
-//    viewer.setTitle(QStringLiteral("QML Curve Input"));
+    //QObject::connect(viewer.engine(), &QQmlEngine::quit, &viewer, &QWindow::close);
+    //viewer.setTitle(QStringLiteral("QML Curve Input"));
 
-//    Testdata testData(&viewer);
-//    viewer.rootContext()->setContextProperty("testData", &testData);
-//    viewer.setSource(QUrl("qrc:/main.qml"));
+    //QWidget container = QWidget::createWindowContainer(&viewer,this);
+    //Testdata testData(&viewer);
+    //viewer.rootContext()->setContextProperty("testData", &testData);
+    //viewer.setSource(QUrl("qrc:/main.qml"));
 
     MainWindow w;
     w.show();
 
     return app.exec();
 }
-
