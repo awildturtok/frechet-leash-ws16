@@ -160,7 +160,8 @@ class LineSegment:
         return (self.m == float("inf") or 0 - 1e-13 <= self.rx(p.x) <= 1 + 1e-13) and\
                (self.m == 0 or 0 - 1e-13 <= self.ry(p.y) <= 1 + 1e-13)
 
-    def r_point(self, p: Vector) -> float:  # parameter r for set point (result only relevant for case p lies on line)
+    def r_point(self, p: Vector) -> float:  # parameter r: [0,1] for set point
+        # result only relevant for case p lies on line
         rx = self.rx(p.x)
         ry = self.ry(p.y)
         if math.isinf(self.m):
@@ -168,6 +169,10 @@ class LineSegment:
         if self.m == 0:
             ry = rx
         return 0.5 * (rx + ry)
+
+    def rl_point(self, p: Vector) -> float:  # parameter r: [0,l] for set point
+        # result only relevant for case p lies on line
+        return self.r_point(p) * self.l
 
     def d_l_point(self, p: Vector) -> float:  # closest distance of p to line
         return abs(self.d.cross_product(p - self.p1)) / self.d.l

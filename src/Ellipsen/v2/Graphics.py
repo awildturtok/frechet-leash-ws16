@@ -156,7 +156,7 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     # plot traversals
     if plot_traversals:
         for tra in sample["traversals"]:
-            x, y = vectors_to_xy(traversal[2])
+            x, y = vectors_to_xy(tra[2])
             ax_2d.plot(x, y, "r--", label=tra[0], linewidth=1.5)
             if plot_3d:
                 ax_3d.plot(x, y, tra[1], "r", label=tra[0], linewidth=0.5)
@@ -171,13 +171,21 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
 
 # Aktueller Test
 
+'''# patha:
+a_xs = [0, 5, 10]
+a_ys = [0, 0, 0]
+
+# pathb:
+b_xs = [0, 10, 0, 10]
+b_ys = [-8, -8, 2, 2]'''
+
 # patha:
 a_xs = [0, 10]
 a_ys = [0, 0]
 
 # pathb:
 b_xs = [0, 10, 0, 10]
-b_ys = [-2, -2, 2, 2]
+b_ys = [-8, -8, 2, 2]
 
 patha = xy_to_vectors(a_xs, a_ys)
 pathb = xy_to_vectors(b_xs, b_ys)
@@ -197,4 +205,4 @@ traversal = sample1["traversals"][0]
 sample_traversal = input1.sample_traversal(traversal, 5 * max(len(patha), len(pathb)))
 sample1["in-traversal"] = sample_traversal
 
-sample_to_matplotlib(sample1, plot_3d=True, show_legend=True, plot_borders=False)
+sample_to_matplotlib(sample1, plot_3d=True, show_legend=True, plot_borders=True)
