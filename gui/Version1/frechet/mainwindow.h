@@ -14,6 +14,11 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
 
+public slots:
+    void changeSelectedGraph();
+    void deleteSelectedGraph();
+    void startFrechetCalculation();
+
 private:
     Ui::MainWindow *ui;
 

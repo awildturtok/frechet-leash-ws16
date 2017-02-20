@@ -13,6 +13,11 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     //connect buttons here
+    //ToDo: define functions
+    connect(ui->btn_change_graph,SIGNAL(clicked(bool)),this,SLOT(changeSelectedGraph()));
+    connect(ui->btn_deleteGraph, SIGNAL(clicked(bool)), this, SLOT(deleteSelectedGraph()));
+    connect(ui->btn_startCalc, SIGNAL(clicked(bool)), this, SLOT(startFrechetCalculation()));
+
     QQuickView *viewer = new QQuickView();
     QWidget *container = QWidget::createWindowContainer(viewer,this);
 
@@ -21,7 +26,7 @@ MainWindow::MainWindow(QWidget *parent) :
     Testdata testData(viewer);
     viewer->rootContext()->setContextProperty("testData", &testData);
     viewer->setSource(QUrl("qrc:/main.qml"));
-    ui->verticalLayout->addWidget(container);
+    ui->verticalLayout_3->addWidget(container);
 
 }
 
@@ -29,3 +34,13 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
+
+//change actual graph from blue to red or otherhand
+void MainWindow::changeSelectedGraph(){}
+
+//delete selected graph
+void MainWindow::deleteSelectedGraph(){}
+
+
+//get information from line edit or from qml chart
+void MainWindow::startFrechetCalculation(){}
