@@ -4,6 +4,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <testdata.h>
+#include <datahandling.h>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -20,11 +21,15 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QQuickView *viewer = new QQuickView();
     QWidget *container = QWidget::createWindowContainer(viewer,this);
+    //QObject *item = viewer->rootObject();
 
-    connect(viewer->engine(), &QQmlEngine::quit, viewer, &QApplication::quit);
+    //connect(viewer->engine(), &QQmlEngine::quit, viewer, &QApplication::quit);
 
-    Testdata testData(viewer);
-    viewer->rootContext()->setContextProperty("testData", &testData);
+    //Testdata testData(viewer);
+    DataHandling pointData;
+    connect(viewer->rootObject(), SIGNAL(sendPoints(QString)), this, SLOT(getPointsFromQML(QString)));
+
+    //viewer->rootContext()->setContextProperty("pointData", &pointData);
     viewer->setSource(QUrl("qrc:/main.qml"));
     ui->verticalLayout_3->addWidget(container);
 
@@ -44,3 +49,7 @@ void MainWindow::deleteSelectedGraph(){}
 
 //get information from line edit or from qml chart
 void MainWindow::startFrechetCalculation(){}
+
+void MainWindow::getPointsFromQML(QString pointInformation){
+    qDebug()<< "Points from QML signal" << pointInformation;
+}

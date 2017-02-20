@@ -7,107 +7,116 @@ import QtQuick.Controls 1.0
 import QtQuick.Controls.Styles 1.0
 
 
-     ChartView {
-        id: chart
-        title: "Line"
-        anchors.fill: parent
-        antialiasing: true
-        property int curve:1
+ChartView {
+    id: chart
+    title: "Line"
+    anchors.fill: parent
+    antialiasing: true
 
-        LineSeries {
-            //graph two
-            id: seriesBLUE
-            name: "blue"
-            color: "steelblue"
+    //define signals to communicate with cpp classes
+    signal sendPoints(string pointInfo)
 
-            axisX: valueAxisX
-            axisY: valueAxisY
-        }
 
-        LineSeries {
-            //graph two
-            id: seriesRED
-            name: "red"
-            color: "firebrick"
+    property int curve:1
 
-            axisX: valueAxisX
-            axisY: valueAxisY
-        }
+    LineSeries {
+        //graph two
+        id: seriesBLUE
+        name: "blue"
+        color: "steelblue"
 
-        ValueAxis {
-               id: valueAxisX
-               min: 0
-               max: 10
-               tickCount: 21
-               labelFormat: "%.1f"
-           }
-
-        ValueAxis {
-               id: valueAxisY
-               min: 0
-               max: 10
-               tickCount: 21
-               labelFormat: "%.1f"
-           }
-
-        AreaSeries {
-            id:backgroundSeries
-            name: "test"
-            color: "#00FF11FF"
-            borderColor: "#ff0039A5"
-            borderWidth: 0
-            axisX: valueAxisX
-            axisY: valueAxisY
-            upperSeries: LineSeries {
-                XYPoint { x: valueAxisX.min; y: valueAxisY.max}
-                XYPoint { x: valueAxisX.max; y: valueAxisY.max }
-            }
-            onClicked: {
-                console.log("onClicked: " + point.x + ", " + point.y)
-                if(curve == 0){ //state of toggle button //blue
-                    seriesBLUE.append(point.x,point.y)
-                    //scatterBLUE.append(point.x, point.y)
-                    scatterBLUE.insert(scatterBLUE.index,point.x,point.y)
-                    scatterBLUE.index++
-                    console.log("scatterBLUE point: "+scatterBLUE.at(0));
-
-                }else if (curve == 1){// state of toggle button // red
-                    //scatterRED.append(point.x, point.y)
-                    console.log("ick hab nen roten punkt")
-                    scatterRED.insert(scatterRED.index,point.x,point.y)
-                    scatterRED.index++
-                    console.log("scatterRED point: "+scatterRED.at(0));
-                    seriesRED.append(point.x,point.y);
-                }
-
-            }
-
-       }
-
-        ScatterSeries {
-            id: scatterRED
-            property int index;
-            name:"fancyScatter2"
-            axisX: valueAxisX
-            axisY: valueAxisY
-            color: "firebrick"
-            onHovered: {
-               //console.log("onClicked: " + point.x + ", " + point.y+" and test is : "+m.testfunction())
-            }
-        }
-
-        ScatterSeries {
-            id: scatterBLUE
-            property int index;
-            name:"fancyScatter"
-            axisX: valueAxisX
-            axisY: valueAxisY
-            color: "steelblue"
-            onHovered: {
-               //console.log("onClicked: " + point.x + ", " + point.y+" and test is : "+m.testfunction())
-            }
+        axisX: valueAxisX
+        axisY: valueAxisY
     }
- //Buttons
+
+    LineSeries {
+        //graph two
+        id: seriesRED
+        name: "red"
+        color: "firebrick"
+
+        axisX: valueAxisX
+        axisY: valueAxisY
+    }
+
+    ValueAxis {
+        id: valueAxisX
+        min: 0
+        max: 10
+        tickCount: 21
+        labelFormat: "%.1f"
+    }
+
+    ValueAxis {
+        id: valueAxisY
+        min: 0
+        max: 10
+        tickCount: 21
+        labelFormat: "%.1f"
+    }
+
+    AreaSeries {
+        id:backgroundSeries
+        name: "test"
+        color: "#00FF11FF"
+        borderColor: "#ff0039A5"
+        borderWidth: 0
+        axisX: valueAxisX
+        axisY: valueAxisY
+        upperSeries: LineSeries {
+            XYPoint { x: valueAxisX.min; y: valueAxisY.max}
+            XYPoint { x: valueAxisX.max; y: valueAxisY.max}
+            }
+        onClicked: {
+            console.log("onClicked: " + point.x + ", " + point.y)
+            if(curve == 0){ //state of toggle button //blue
+                //send pointinformation over signal to cpp class
+                chart.sendPoints("blue")
+
+                seriesBLUE.append(point.x,point.y)
+                //scatterBLUE.append(point.x, point.y)
+                scatterBLUE.insert(scatterBLUE.index,point.x,point.y)
+                scatterBLUE.index++
+                console.log("scatterBLUE point: "+scatterBLUE.at(0));
+
+            }else if (curve == 1){// state of toggle button // red
+                //scatterRED.append(point.x, point.y)
+                chart.sendPoints("red")
+
+                console.log("ick hab nen roten punkt")
+                scatterRED.insert(scatterRED.index,point.x,point.y)
+                scatterRED.index++
+                console.log("scatterRED point: "+scatterRED.at(0));
+                seriesRED.append(point.x,point.y);
+            }
+        }
+    }
+
+    ScatterSeries {
+        id: scatterRED
+        property int index;
+        name:"fancyScatter2"
+        axisX: valueAxisX
+        axisY: valueAxisY
+        color: "firebrick"
+        onHovered: {
+            //console.log("onClicked: " + point.x + ", " + point.y+" and test is : "+m.testfunction())
+            }
+        }
+
+    ScatterSeries {
+        id: scatterBLUE
+        property int index;
+        name:"fancyScatter"
+        axisX: valueAxisX
+        axisY: valueAxisY
+        color: "steelblue"
+        onHovered: {
+            //console.log("onClicked: " + point.x + ", " + point.y+" and test is : "+m.testfunction())
+        }
+    }
+
+    //Buttons
 
     //remove button
     Rectangle {
@@ -191,5 +200,3 @@ import QtQuick.Controls.Styles 1.0
         color: "red"
     }
 }
-
-

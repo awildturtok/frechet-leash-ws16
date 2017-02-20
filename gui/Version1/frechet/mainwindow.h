@@ -18,6 +18,7 @@ public slots:
     void changeSelectedGraph();
     void deleteSelectedGraph();
     void startFrechetCalculation();
+    void getPointsFromQML(QString pointInfo);
 
 private:
     Ui::MainWindow *ui;
