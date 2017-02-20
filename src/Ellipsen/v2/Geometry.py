@@ -62,7 +62,7 @@ class Vector:
         return self.l
 
     def __eq__(self, other) -> bool:
-        return math.isclose(self.x, other.x, rel_tol=1e-13) and math.isclose(self.y, other.y, rel_tol=1e-13)
+        return math.isclose(self.x, other.x, abs_tol=1e-10) and math.isclose(self.y, other.y, abs_tol=1e-10)
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
@@ -201,7 +201,7 @@ class LineSegment:
         return p.x > self.fy(p.y)
 
     def point_on(self, p: Vector) -> bool:  # is given point on line
-        return math.isclose(p.y, self.fx(p.x), rel_tol=1e-13)
+        return math.isclose(p.y, self.fx(p.x), abs_tol=1e-13)
 
     def cuts_bounds(self, bounds: ((float, float), (float, float))) -> [Vector]:
         x1 = bounds[0][0]
@@ -256,7 +256,7 @@ class Ellipse:
 
     @staticmethod
     def txy(a: float, b: float, m: float, xy: float) -> [float]:  # helper function for tx and ty
-        if a != 0 and not math.isclose(m, xy + a, rel_tol=1e-13):
+        if a != 0 and not math.isclose(m, xy + a, abs_tol=1e-13):
             w = a**2 + b**2 - m**2 + 2*m*xy - xy**2
             if w < 0:
                 return []
@@ -299,7 +299,7 @@ class Ellipse:
 
         ret_ts = [ts[0]]
         for i in range(len(ts) - 1):
-            if not math.isclose(ts[i], ts[i+1], rel_tol=1e-13):
+            if not math.isclose(ts[i], ts[i+1], abs_tol=1e-13):
                 ret_ts.append(ts[i+1])
 
         return ret_ts

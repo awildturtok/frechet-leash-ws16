@@ -77,11 +77,14 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     # plot input
     if plot_input:
         paths = sample["input"]
-        xa, ya = vectors_to_xy(paths[0])
-        xb, yb = vectors_to_xy(paths[1])
+        xa, ya = np.array(vectors_to_xy(paths[0]))
+        xb, yb = np.array(vectors_to_xy(paths[1]))
 
-        ax_in.plot(xa, ya, "b", label="Path A", linewidth=2.5)
-        ax_in.plot(xb, yb, "c", label="Path B", linewidth=2.5)
+        ax_in.quiver(xa[:-1], ya[:-1], xa[1:] - xa[:-1], ya[1:] - ya[:-1], color="b", scale_units='xy', angles='xy', scale=1)
+        ax_in.quiver(xb[:-1], yb[:-1], xb[1:] - xb[:-1], yb[1:] - yb[:-1], color="c", scale_units='xy', angles='xy', scale=1)
+
+        ax_in.plot([], [], "b", label="Path A")
+        ax_in.plot([], [], "c", label="Path B")
         ax_in.legend()
 
         if plot_traversals:
@@ -110,7 +113,6 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
 
     # plot cells
     for cell in sample["cells"]:
-        name = cell[0]
         data = cell[1]
 
         # plot ellipses
@@ -156,10 +158,14 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     # plot traversals
     if plot_traversals:
         for tra in sample["traversals"]:
+            for i in range(len(tra[2])):
+                if tra[0] <= tra[1][i] + 1e-13:
+                    p = tra[2][i]
+                    ax_2d.plot([p.x], [p.y], "r.")
             x, y = vectors_to_xy(tra[2])
-            ax_2d.plot(x, y, "r--", label=tra[0], linewidth=1.5)
+            ax_2d.plot(x, y, "r--", label="traversal: l=" + str(tra[0]), linewidth=1.5)
             if plot_3d:
-                ax_3d.plot(x, y, tra[1], "r", label=tra[0], linewidth=0.5)
+                ax_3d.plot(x, y, tra[1], "r", label="traversal: l=" + str(tra[0]), linewidth=0.5)
 
     # show legend
     if show_legend:
@@ -172,26 +178,23 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
 # Aktueller Test
 
 '''# patha:
-a_xs = [0, 5, 10]
-a_ys = [0, 0, 0]
+a_xs = [0, 0, 10, 10]
+a_ys = [-8, -3, -3, 2]
 
 # pathb:
 b_xs = [0, 10, 0, 10]
 b_ys = [-8, -8, 2, 2]'''
 
 # patha:
-a_xs = [0, 10]
-a_ys = [0, 0]
+a_xs = np.random.random_sample(5)
+a_ys = np.random.random_sample(5)
 
 # pathb:
-b_xs = [0, 10, 0, 10]
-b_ys = [-8, -8, 2, 2]
+b_xs = np.random.random_sample(5)
+b_ys = np.random.random_sample(5)
 
 patha = xy_to_vectors(a_xs, a_ys)
 pathb = xy_to_vectors(b_xs, b_ys)
-
-print(patha)
-print (pathb)
 
 input1 = CellMatrix(patha, pathb)
 print(input1)

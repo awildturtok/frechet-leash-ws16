@@ -169,7 +169,7 @@ class Cell:
         end_l = -1
         end = -self.offset
 
-        if not math.isclose(l1x.y, self.bounds_xy[1], rel_tol=1e-13):
+        if not math.isclose(l1x.y, self.bounds_xy[1], abs_tol=1e-13):
             if l1x.y <= start.y:
                 end = Vector(self.bounds_xy[0], start.y)
                 end_l = self.lp(end)
@@ -190,7 +190,7 @@ class Cell:
         end_l = -1
         end = -self.offset
 
-        if not math.isclose(l2x.x, self.bounds_xy[0], rel_tol=1e-13):
+        if not math.isclose(l2x.x, self.bounds_xy[0], abs_tol=1e-13):
             if l2x.x <= start.x:
                 end = Vector(start.x, self.bounds_xy[1])
                 end_l = self.lp(end)
@@ -211,8 +211,8 @@ class Cell:
         end = -self.offset
 
         if (l1x.y > self.bounds_xy[1] or l2x.x > self.bounds_xy[0]) or \
-                math.isclose(l1x.y, self.bounds_xy[1], rel_tol=1e-13) or \
-                math.isclose(l2x.x, self.bounds_xy[0], rel_tol=1e-13):
+                math.isclose(l1x.y, self.bounds_xy[1], abs_tol=1e-13) or \
+                math.isclose(l2x.x, self.bounds_xy[0], abs_tol=1e-13):
             end = Vector(self.bounds_xy[0], self.bounds_xy[1])
             end_l = self.lp(end)
             max_l = max(traversal[0], end_l)
@@ -247,7 +247,7 @@ class TwoLineSegments:  # Input: two line segments
         self.bounds_l = (min(a.d_ls_point(b.p1), a.d_ls_point(b.p2), b.d_ls_point(a.p1), b.d_ls_point(a.p2)),
                          max(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2)))
 
-        self.parallel = math.isclose(a.m, b.m, rel_tol=1e-13)
+        self.parallel = math.isclose(a.m, b.m, abs_tol=1e-13)
         if not self.parallel:  # case 1: lines are not parallel
             self.s = intersection(a, b)  # intersection point S
 
@@ -387,8 +387,10 @@ class CellMatrix:  # : Matrix of Cells
         return desc
 
     def calculate_critical_points(self) -> ([float], [float]):
-        cps_a = []
-        cps_b = []
+        cps_a = self.offsets_a
+        cps_a.pop(-1)
+        cps_b = self.offsets_b
+        cps_b.pop(-1)
 
         for i_a in range(self.count_a):
             for i_b in range(self.count_b):
@@ -403,17 +405,20 @@ class CellMatrix:  # : Matrix of Cells
                 p_a = intersection(a, n_b)
                 p_b = intersection(b, n_a)
 
-                if a.contains_point(p_a):
+                d_a = 0.5 * (p_a.d(b.p1) + p_a.d(b.p2))
+                if a.contains_point(p_a) and d_a < a.p1.d(b.p1) and d_a < a.p2.d(b.p2):
                     cps_a.append(self.offsets_a[i_a] + a.rl_point(p_a))
-                if b.contains_point(p_b):
+                d_b = 0.5 * (p_b.d(a.p1) + p_b.d(a.p2))
+                if b.contains_point(p_b) and d_b < a.p1.d(b.p1) and d_b < a.p2.d(b.p2):
                     cps_b.append(self.offsets_b[i_b] + b.rl_point(p_b))
 
-        cps_a.sort()
-        cps_b.sort()
+        cps_a = sorted(set(cps_a))
+        cps_b = sorted(set(cps_b))
 
         return cps_a, cps_b
 
-    def traverse_best(self, criteria: int = 2, start: Vector = Vector(0, 0)) -> [(float, [float], [Vector])]:
+    def traverse_best(self, criteria: int = 2, delete_duplicates: bool = True, start: Vector = Vector(0, 0))\
+            -> [(float, [float], [Vector])]:
         i_a = 0
         i_b = 0
         while start.x > self.offsets_a[i_a + 1]:
@@ -433,22 +438,36 @@ class CellMatrix:  # : Matrix of Cells
                 lowest_l = min(lowest_l, traversal[0])
             traversals1 = []
             for traversal in traversals0:
-                if traversal[0] <= lowest_l or math.isclose(traversal[0], lowest_l, rel_tol=1e-13):
+                if traversal[0] <= lowest_l or math.isclose(traversal[0], lowest_l, abs_tol=1e-13):
                     traversals1.append(traversal)
             traversals = traversals1
 
             if criteria > 1:
-                # 2. lowest average of ls
+                # 2. lowest sum of ls
                 lowest_avg_ls = math.inf
                 for traversal in traversals1:
-                    avg_ls = sum(traversal[1]) / len(traversal[1])
+                    avg_ls = sum(traversal[1])/len(traversal[1])
                     lowest_avg_ls = min(lowest_avg_ls, avg_ls)
                 traversals2 = []
                 for traversal in traversals1:
-                    avg_ls = sum(traversal[1]) / len(traversal[1])
-                    if avg_ls <= lowest_avg_ls or math.isclose(avg_ls, lowest_avg_ls, rel_tol=1e-10):
+                    avg_ls = sum(traversal[1])/len(traversal[1])
+                    if avg_ls <= lowest_avg_ls or math.isclose(avg_ls, lowest_avg_ls, abs_tol=1e-10):
                         traversals2.append(traversal)
                 traversals = traversals2
+
+        traversals_set = []
+        if len(traversals) > 1 and delete_duplicates:
+            for i1 in range(len(traversals)):
+                unique = True
+                traversal1 = traversals[i1]
+                for i2 in range(i1 + 1, len(traversals)):
+                    traversal2 = traversals[i2]
+                    if traversal1[2] == traversal2[2]:
+                        unique = False
+                        break
+                if unique:
+                    traversals_set.append(traversal1)
+            return traversals_set
 
         return traversals
 
@@ -540,7 +559,7 @@ class CellMatrix:  # : Matrix of Cells
         # sample traversals
         for traversal in self.traversals:
             if traversal[0] != -1:
-                samples["traversals"].append(("traversal: " + str(traversal[0]), traversal[1], traversal[2]))
+                samples["traversals"].append(traversal)
 
         # include size in sample
         samples["size"] = (self.length_a, self.length_b)
@@ -613,7 +632,7 @@ class CellMatrix:  # : Matrix of Cells
                 ls = LineSegment(p1, p2)
                 traversal_ls.append(ls)
                 traversal_length += ls.l
-                traversal_offsets.append(traversal_offsets[i-1] + ls.l)
+                traversal_offsets.append(traversal_offsets[-1] + ls.l)
 
         step = traversal_length / n
         i_t = 0
