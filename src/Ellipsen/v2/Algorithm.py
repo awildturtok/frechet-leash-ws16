@@ -451,7 +451,7 @@ class CellMatrix:  # : Matrix of Cells
             i_b += 1
 
         l_start = self.cells[i_a][i_b].lp(start)
-        traversals0 = self.traverse(i_a, i_b, (0, [l_start], [start]))
+        traversals0 = self.traverse(i_a, i_b, (l_start, [l_start], [start]))
         traversals = traversals0
 
         # select best traversal(s):
@@ -540,7 +540,7 @@ class CellMatrix:  # : Matrix of Cells
                                                                traversal[2] + [cp[1]]))
             for cp in cell.cps_b:
                 if cp[1].y >= p.y and cp[0] <= self.lowest_l + 1e-13:
-                    traversals += self.traverse(i_a, i_b + 1, (max(traversal[0], cp[0]), traversal[1] + [cp[0]],
+                    traversals += self.traverse(i_a + 1, i_b, (max(traversal[0], cp[0]), traversal[1] + [cp[0]],
                                                                traversal[2] + [cp[1]]))
 
         return traversals

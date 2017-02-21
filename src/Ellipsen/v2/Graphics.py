@@ -177,21 +177,21 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
 
 # Aktueller Test
 
-'''# patha:
-a_xs = [0, 0, 10, 10]
-a_ys = [-8, -3, -3, 2]
+# patha:
+a_xs = [10, 0, 10, 0]
+a_ys = [-8, -8, 2, 2]
 
 # pathb:
-b_xs = [0, 10, 0, 10]
-b_ys = [-8, -8, 2, 2]'''
+b_xs = [10, 0]
+b_ys = [0, 0]
 
-# patha:
+'''# patha:
 a_xs = np.random.random_sample(10)
 a_ys = np.random.random_sample(10)
 
 # pathb:
 b_xs = np.random.random_sample(7)
-b_ys = np.random.random_sample(7)
+b_ys = np.random.random_sample(7)'''
 
 patha = xy_to_vectors(a_xs, a_ys)
 pathb = xy_to_vectors(b_xs, b_ys)
@@ -208,4 +208,4 @@ traversal = sample1["traversals"][0]
 sample_traversal = input1.sample_traversal(traversal, 5 * max(len(patha), len(pathb)))
 sample1["in-traversal"] = sample_traversal
 
-sample_to_matplotlib(sample1, plot_3d=True, show_legend=True, plot_borders=True)
+sample_to_matplotlib(sample1, plot_3d=True, show_legend=True, plot_borders=True, plot_l_lines=False)
