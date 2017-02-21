@@ -5,7 +5,8 @@
 #include "ui_mainwindow.h"
 #include <testdata.h>
 #include <datahandling.h>
-
+#include <QProcess>
+#include <QString>
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -46,7 +47,18 @@ void MainWindow::deleteSelectedGraph(){}
 
 
 //get information from line edit or from qml chart
-void MainWindow::startFrechetCalculation(){}
+void MainWindow::startFrechetCalculation(){
+
+    matplotlib.start("python", QStringList() << ".\\ellipses\\Input.py");
+    QString input1= ui->lineEdit_graph_blue->text();
+    QString input2= ui->lineEdit_graph_red->text();
+
+    matplotlib.write(input1.toStdString().c_str());
+    matplotlib.write("\r\n");
+    matplotlib.write(input2.toStdString().c_str());
+    matplotlib.write("\r\n");
+
+}
 
 void MainWindow::getPointsFromQML(QString pointInformation){
     qDebug()<< "Points from QML signal" << pointInformation;
