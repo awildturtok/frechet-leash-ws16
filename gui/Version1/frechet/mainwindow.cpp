@@ -21,16 +21,14 @@ MainWindow::MainWindow(QWidget *parent) :
 
     QQuickView *viewer = new QQuickView();
     QWidget *container = QWidget::createWindowContainer(viewer,this);
-    //QObject *item = viewer->rootObject();
-
-    //connect(viewer->engine(), &QQmlEngine::quit, viewer, &QApplication::quit);
+    viewer->setSource(QUrl("qrc:/main.qml"));
 
     //Testdata testData(viewer);
-    DataHandling pointData;
+    //ToTest: rootObject returns null pointer
     connect(viewer->rootObject(), SIGNAL(sendPoints(QString)), this, SLOT(getPointsFromQML(QString)));
 
     //viewer->rootContext()->setContextProperty("pointData", &pointData);
-    viewer->setSource(QUrl("qrc:/main.qml"));
+
     ui->verticalLayout_3->addWidget(container);
 
 }
