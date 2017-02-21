@@ -153,8 +153,6 @@
           </layout>
          </item>
         </layout>
-        <zorder>groupBox</zorder>
-        <zorder>horizontalLayoutWidget</zorder>
        </widget>
       </item>
      </layout>
@@ -167,7 +165,7 @@
      <x>0</x>
      <y>0</y>
      <width>918</width>
-     <height>21</height>
+     <height>26</height>
     </rect>
    </property>
   </widget>
