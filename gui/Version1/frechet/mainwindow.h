@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
+#include <QProcess>
+
 namespace Ui {
 class MainWindow;
 }
@@ -22,6 +24,7 @@ public slots:
 
 private:
     Ui::MainWindow *ui;
+    QProcess matplotlib;
 
 };
 
