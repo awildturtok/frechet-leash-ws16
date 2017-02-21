@@ -186,12 +186,12 @@ b_xs = [0, 10, 0, 10]
 b_ys = [-8, -8, 2, 2]'''
 
 # patha:
-a_xs = np.random.random_sample(5)
-a_ys = np.random.random_sample(5)
+a_xs = np.random.random_sample(10)
+a_ys = np.random.random_sample(10)
 
 # pathb:
-b_xs = np.random.random_sample(5)
-b_ys = np.random.random_sample(5)
+b_xs = np.random.random_sample(7)
+b_ys = np.random.random_sample(7)
 
 patha = xy_to_vectors(a_xs, a_ys)
 pathb = xy_to_vectors(b_xs, b_ys)

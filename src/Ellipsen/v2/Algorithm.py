@@ -41,6 +41,8 @@ class Cell:
         self.offset = offset
         self.end = Vector(bounds_xy[0], bounds_xy[1])  # point at top right of cell
         self.end_l = self.lp(self.end)  # l for top right of cell
+        self.cps_a = []  # critical points on a
+        self.cps_b = []  # critical points on b
 
         # steepest decent lines l=l_ver and l'=l_hor
         if not self.parallel:  # case 1: lines are not parallel
@@ -176,7 +178,7 @@ class Cell:
                 max_l = max(traversal[0], end_l)
             elif start.y < l1x.y < self.bounds_xy[1]:
                 end = l1x
-                end_l = self.lp(end)
+                end_l = self.lp(end)  # precalculate !
                 max_l = max(traversal[0], end_l)
 
         return max_l, traversal[1] + [end_l], traversal[2] + [end + self.offset]
@@ -354,10 +356,11 @@ class CellMatrix:  # : Matrix of Cells
 
         # critical points
         self.cps_a, self.cps_b = self.calculate_critical_points()
+        self.set_critical_points()
 
         # traverse
+        self.lowest_l = math.inf
         self.traversals = self.traverse_best(2)
-        self.lowest_l = self.traversals[0][0]
 
     def __str__(self):
         desc = "Input (" + str(self.count_a) + "x" + str(self.count_a) + ") (" + \
@@ -387,10 +390,13 @@ class CellMatrix:  # : Matrix of Cells
         return desc
 
     def calculate_critical_points(self) -> ([float], [float]):
-        cps_a = self.offsets_a
-        cps_a.pop(-1)
-        cps_b = self.offsets_b
-        cps_b.pop(-1)
+
+        cps_a = []
+        for i in range(self.count_a):
+            cps_a.append([self.offsets_a[i]])
+        cps_b = []
+        for i in range(self.count_b):
+            cps_b.append([self.offsets_b[i]])
 
         for i_a in range(self.count_a):
             for i_b in range(self.count_b):
@@ -407,15 +413,33 @@ class CellMatrix:  # : Matrix of Cells
 
                 d_a = 0.5 * (p_a.d(b.p1) + p_a.d(b.p2))
                 if a.contains_point(p_a) and d_a < a.p1.d(b.p1) and d_a < a.p2.d(b.p2):
-                    cps_a.append(self.offsets_a[i_a] + a.rl_point(p_a))
+                    cps_a[i_a].append(self.offsets_a[i_a] + a.rl_point(p_a))
                 d_b = 0.5 * (p_b.d(a.p1) + p_b.d(a.p2))
                 if b.contains_point(p_b) and d_b < a.p1.d(b.p1) and d_b < a.p2.d(b.p2):
-                    cps_b.append(self.offsets_b[i_b] + b.rl_point(p_b))
+                    cps_b[i_b].append(self.offsets_b[i_b] + b.rl_point(p_b))
 
-        cps_a = sorted(set(cps_a))
-        cps_b = sorted(set(cps_b))
+        for i in range(len(cps_a)):
+            cps_a[i] = sorted(cps_a[i])
+        for i in range(len(cps_b)):
+            cps_b[i] = sorted(cps_b[i])
+
+        print("cps_a = " + str(cps_a))
+        print("cps_b = " + str(cps_b))
 
         return cps_a, cps_b
+
+    def set_critical_points(self):
+        for i_a in range(self.count_a):
+            for i_b in range(self.count_b):
+                cell = self.cells[i_a][i_b]
+                for cp_a in self.cps_a[i_a]:
+                    cp = Vector(cp_a, self.offsets_b[i_b + 1])
+                    l_cp = cell.lp(cp - cell.offset)
+                    cell.cps_a.append((l_cp, cp))
+                for cp_b in self.cps_b[i_b]:
+                    cp = Vector(self.offsets_a[i_a + 1], cp_b)
+                    l_cp = cell.lp(cp - cell.offset)
+                    cell.cps_b.append((l_cp, cp))
 
     def traverse_best(self, criteria: int = 2, delete_duplicates: bool = True, start: Vector = Vector(0, 0))\
             -> [(float, [float], [Vector])]:
@@ -469,10 +493,19 @@ class CellMatrix:  # : Matrix of Cells
                     traversals_set.append(traversal1)
             return traversals_set
 
+        print("lowest_l = " + str(self.lowest_l))
+        print("lowest_l = " + str(self.lowest_l))
+        print("traversals0 = " + str(traversals0))
+        print("traversals1 = " + str(traversals0))
+        print("traversals2 = " + str(traversals0))
+
         return traversals
 
     def traverse(self, i_a: int, i_b: int, traversal: (float, [float], [Vector])) -> [(float, [float], [Vector])]:
         if i_a >= self.count_a and i_b >= self.count_b:
+            if traversal[0] < self.lowest_l:
+                self.lowest_l = traversal[0]
+                print("lowest_l = " + str(self.lowest_l))
             return [traversal]
 
         traversals = []
@@ -480,44 +513,35 @@ class CellMatrix:  # : Matrix of Cells
         if i_a >= self.count_a or i_b >= self.count_b:
             if i_a < self.count_a:
                 cell = self.cells[i_a][self.count_b - 1]
-                traversals += self.traverse(i_a + 1, i_b, (max(traversal[0], cell.end_l), traversal[1] + [cell.end_l],
-                                                           traversal[2] + [cell.end + cell.offset]))
+                if cell.end_l <= self.lowest_l + 1e-13:
+                    traversals += self.traverse(i_a + 1, i_b, (max(traversal[0], cell.end_l), traversal[1] +
+                                                               [cell.end_l], traversal[2] + [cell.end + cell.offset]))
             if i_b < self.count_b:
                 cell = self.cells[self.count_a - 1][i_b]
-                traversals += self.traverse(i_a, i_b + 1, (max(traversal[0], cell.end_l), traversal[1] + [cell.end_l],
-                                                           traversal[2] + [cell.end + cell.offset]))
+                if cell.end_l <= self.lowest_l + 1e-13:
+                    traversals += self.traverse(i_a, i_b + 1, (max(traversal[0], cell.end_l), traversal[1] +
+                                                               [cell.end_l], traversal[2] + [cell.end + cell.offset]))
         else:
             next_traversal = self.cells[i_a][i_b].traverse(traversal)
 
-            if next_traversal[0][0] != -1:
+            if self.lowest_l + 1e-13 >= next_traversal[0][0] != -1:
                 traversals += self.traverse(i_a + 1, i_b, next_traversal[0])
-            if next_traversal[1][0] != -1:
+            if self.lowest_l + 1e-13 >= next_traversal[1][0] != -1:
                 traversals += self.traverse(i_a + 1, i_b + 1, next_traversal[1])
-            if next_traversal[2][0] != -1:
+            if self.lowest_l + 1e-13 >= next_traversal[2][0] != -1:
                 traversals += self.traverse(i_a, i_b + 1, next_traversal[2])
 
             p = traversal[2][-1]
             cell = self.cells[i_a][i_b]
-            cps_a = self.cps_a.copy()
-            cps_b = self.cps_b.copy()
 
-            while len(cps_a) > 0 and cps_a[0] < p.x:
-                cps_a.pop(0)
-            while len(cps_a) > 0 and cps_a[0] <= self.offsets_a[i_a + 1]:
-                new_p = Vector(cps_a[0], self.offsets_b[i_b + 1])
-                new_l = cell.lp(new_p - cell.offset)
-                traversals += self.traverse(i_a, i_b + 1, (max(traversal[0], new_l), traversal[1] + [new_l],
-                                                           traversal[2] + [new_p]))
-                cps_a.pop(0)
-
-            while len(cps_b) > 0 and cps_b[0] < p.y:
-                cps_b.pop(0)
-            while len(cps_b) > 0 and cps_b[0] <= self.offsets_b[i_b + 1]:
-                new_p = Vector(self.offsets_a[i_a + 1], cps_b[0])
-                new_l = cell.lp(new_p - cell.offset)
-                traversals += self.traverse(i_a + 1, i_b, (max(traversal[0], new_l), traversal[1] + [new_l],
-                                                           traversal[2] + [new_p]))
-                cps_b.pop(0)
+            for cp in cell.cps_a:
+                if cp[1].x >= p.x and cp[0] <= self.lowest_l + 1e-13:
+                    traversals += self.traverse(i_a, i_b + 1, (max(traversal[0], cp[0]), traversal[1] + [cp[0]],
+                                                               traversal[2] + [cp[1]]))
+            for cp in cell.cps_b:
+                if cp[1].y >= p.y and cp[0] <= self.lowest_l + 1e-13:
+                    traversals += self.traverse(i_a, i_b + 1, (max(traversal[0], cp[0]), traversal[1] + [cp[0]],
+                                                               traversal[2] + [cp[1]]))
 
         return traversals
 
