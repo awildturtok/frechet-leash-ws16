@@ -14,7 +14,6 @@
 
 from Algorithm import *
 
-from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from numbers import Number
@@ -49,12 +48,31 @@ def xy_to_vectors(xs: [float], ys: [float]) -> [Vector]:
     return vectors
 
 
+
 def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool = True, plot_heatmap: bool = True,
                          plot_traversals: bool = True, plot_axis: bool = False, plot_l_lines: bool = False,
                          plot_3d: bool = True, show_legend: bool = False, show_colorbar: bool = True,
                          plot_input: bool = True):
 
     # plot sample with matplotlib
+    """
+    Display sampled data with matplotlib.
+    :param sample: Hashmap containing the input data:
+                    - Input: The pair of curves to produce the sample
+                    - in-traversal: Route/Alignment of the lexicographic frechet path
+                    - heatmap: The resulting heightmap from the resulting ellipses
+                    - cells: The grid cells of the heightmap
+    :param plot_borders:
+    :param plot_ellipsis:
+    :param plot_heatmap:
+    :param plot_traversals:
+    :param plot_axis:
+    :param plot_l_lines:
+    :param plot_3d:
+    :param show_legend:
+    :param show_colorbar:
+    :param plot_input:
+    """
     if plot_3d and plot_input:
         fig = plt.figure(figsize=plt.figaspect(0.5))
         fig_in = plt.figure(figsize=plt.figaspect(0.5))
@@ -174,38 +192,3 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
 
     plt.show()
 
-
-# Aktueller Test
-
-'''# patha:
-a_xs = [0, 0, 10, 10]
-a_ys = [-8, -3, -3, 2]
-
-# pathb:
-b_xs = [0, 10, 0, 10]
-b_ys = [-8, -8, 2, 2]'''
-
-# patha:
-a_xs = np.random.random_sample(5)
-a_ys = np.random.random_sample(5)
-
-# pathb:
-b_xs = np.random.random_sample(5)
-b_ys = np.random.random_sample(5)
-
-patha = xy_to_vectors(a_xs, a_ys)
-pathb = xy_to_vectors(b_xs, b_ys)
-
-input1 = CellMatrix(patha, pathb)
-print(input1)
-
-sample1 = input1.sample_l(9, 50)
-
-sample_heatmap1 = input1.sample_heatmap_a(100)
-sample1["heatmap"] = sample_heatmap1
-
-traversal = sample1["traversals"][0]
-sample_traversal = input1.sample_traversal(traversal, 5 * max(len(patha), len(pathb)))
-sample1["in-traversal"] = sample_traversal
-
-sample_to_matplotlib(sample1, plot_3d=True, show_legend=True, plot_borders=True)
