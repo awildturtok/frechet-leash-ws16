@@ -10,9 +10,10 @@ import QtQuick.Controls.Styles 1.0
 ChartView {
     id: chart
     objectName: "chart1"
-    title: "Line"
+    title: "Frechet Points"
     anchors.fill: parent
     antialiasing: true
+    legend.visible: false
 
     //define signals to communicate with cpp classes
     signal sendPoints(string pointInfo)
@@ -45,9 +46,8 @@ ChartView {
     LineSeries {
         //graph two
         id: seriesBLUE
-        name: "blue"
+        //name: "blue"
         color: "steelblue"
-
         axisX: valueAxisX
         axisY: valueAxisY
     }
@@ -55,9 +55,8 @@ ChartView {
     LineSeries {
         //graph two
         id: seriesRED
-        name: "red"
+        //name: "red"
         color: "firebrick"
-
         axisX: valueAxisX
         axisY: valueAxisY
     }
@@ -80,7 +79,7 @@ ChartView {
 
     AreaSeries {
         id:backgroundSeries
-        name: "test"
+        //name: "test"
         color: "#00FF11FF"
         borderColor: "#ff0039A5"
         borderWidth: 0
@@ -118,7 +117,7 @@ ChartView {
     ScatterSeries {
         id: scatterRED
         property int index;
-        name:"fancyScatter2"
+        //name:"fancyScatter2"
         axisX: valueAxisX
         axisY: valueAxisY
         color: "firebrick"
@@ -132,7 +131,7 @@ ChartView {
         objectName: "scatterblue"
         id: scatterBLUE
         property int index;
-        name:"fancyScatter"
+        //name:"fancyScatter"
         axisX: valueAxisX
         axisY: valueAxisY
         color: "steelblue"
