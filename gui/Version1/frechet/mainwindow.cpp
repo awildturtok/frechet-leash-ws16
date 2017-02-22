@@ -27,6 +27,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
     connect(ui->btn_change_graph, SIGNAL(clicked(bool)),viewer->rootObject(), SIGNAL(curveSignal()));
+    connect(ui->btn_deleteGraph, SIGNAL(clicked(bool)),viewer->rootObject(), SIGNAL(deleteSignal()));
 
 
     //Testdata testData(viewer);

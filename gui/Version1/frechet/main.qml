@@ -17,12 +17,28 @@ ChartView {
     //define signals to communicate with cpp classes
     signal sendPoints(string pointInfo)
     signal curveSignal()
+    signal deleteSignal()
 
     property int curve:1 //1:red 0:blue
 
     onCurveSignal: {
             console.log("test")
-            this.curve = 0
+        switch(curve) {
+            case 0: this.curve = 1; break;
+            case 1: this.curve = 0; break;
+            default:break;
+        }
+            return "some return value"
+    }
+    onDeleteSignal: {
+            console.log("test")
+        if(curve == 0){//blue
+            seriesBLUE.clear();
+            scatterBLUE.clear();
+        }else if(curve == 1){//red
+            seriesRED.clear();
+            scatterRED.clear();
+        }
             return "some return value"
     }
 
@@ -127,7 +143,7 @@ ChartView {
 
     //Buttons
 
-    //remove button
+ /*   //remove button
     Rectangle {
         id: rectangleRemove
         x: 745
@@ -144,9 +160,17 @@ ChartView {
         width: 108
         height: 26
         onDoubleClicked: {
-            testData.cleanDataFile();
-            testData.printPointSeries(chart.series(0));
-            testData.printPointSeries(chart.series(1));
+            //testData.cleanDataFile();
+            //testData.printPointSeries(chart.series(0));
+            //testData.printPointSeries(chart.series(1));
+            if(curve == 0){//blue
+                seriesBLUE.clear();
+                scatterBLUE.clear();
+            }else if(curve == 1){//red
+                seriesRED.clear();
+                scatterRED.clear();
+            }
+
 		}
     }
     //toggle button
@@ -200,5 +224,5 @@ ChartView {
         width: 28
         height: 26
         color: "red"
-    }
+    }*/
 }
