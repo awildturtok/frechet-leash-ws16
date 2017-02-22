@@ -15,14 +15,13 @@ ChartView {
     antialiasing: true
 
     //define signals to communicate with cpp classes
-    signal sendPoints(string pointInfo)
+    signal sendPoints(string graph, string xCoordinate, string yCoordinate)
     signal curveSignal()
     signal deleteSignal()
 
     property int curve:1 //1:red 0:blue
 
     onCurveSignal: {
-            console.log("test")
         switch(curve) {
             case 0: this.curve = 1; break;
             case 1: this.curve = 0; break;
@@ -31,7 +30,6 @@ ChartView {
             return "some return value"
     }
     onDeleteSignal: {
-            console.log("test")
         if(curve == 0){//blue
             seriesBLUE.clear();
             scatterBLUE.clear();
@@ -43,7 +41,7 @@ ChartView {
     }
 
     LineSeries {
-        //graph two
+        //graph one
         id: seriesBLUE
         name: "blue"
         color: "steelblue"
@@ -93,9 +91,8 @@ ChartView {
         onClicked: {
             console.log("onClicked: " + point.x + ", " + point.y)
             if(curve == 0){ //state of toggle button //blue
-                //send pointinformation over signal to cpp class
-                chart.sendPoints("blue")
-
+                //send pointinformation over signal to cpp class                
+                chart.sendPoints("blue",point.x.toString(),point.y.toString())
                 seriesBLUE.append(point.x,point.y)
                 //scatterBLUE.append(point.x, point.y)
                 scatterBLUE.insert(scatterBLUE.index,point.x,point.y)
@@ -103,10 +100,7 @@ ChartView {
                 console.log("scatterBLUE point: "+scatterBLUE.at(0));
 
             }else if (curve == 1){// state of toggle button // red
-                //scatterRED.append(point.x, point.y)
-                chart.sendPoints("red")
-
-                console.log("ick hab nen roten punkt")
+                chart.sendPoints("red",point.x.toString(),point.y.toString())
                 scatterRED.insert(scatterRED.index,point.x,point.y)
                 scatterRED.index++
                 console.log("scatterRED point: "+scatterRED.at(0));
@@ -118,7 +112,7 @@ ChartView {
     ScatterSeries {
         id: scatterRED
         property int index;
-        name:"fancyScatter2"
+        name:"points red"
         axisX: valueAxisX
         axisY: valueAxisY
         color: "firebrick"
@@ -132,7 +126,7 @@ ChartView {
         objectName: "scatterblue"
         id: scatterBLUE
         property int index;
-        name:"fancyScatter"
+        name:"points blue"
         axisX: valueAxisX
         axisY: valueAxisY
         color: "steelblue"
@@ -141,88 +135,4 @@ ChartView {
         }
     }
 
-    //Buttons
-
- /*   //remove button
-    Rectangle {
-        id: rectangleRemove
-        x: 745
-        y: 148
-        width: 108
-        height: 26
-        color: "#000000"
-    }
-
-    MouseArea {
-        id: mouseAreaRemove
-        x: 745
-        y: 148
-        width: 108
-        height: 26
-        onDoubleClicked: {
-            //testData.cleanDataFile();
-            //testData.printPointSeries(chart.series(0));
-            //testData.printPointSeries(chart.series(1));
-            if(curve == 0){//blue
-                seriesBLUE.clear();
-                scatterBLUE.clear();
-            }else if(curve == 1){//red
-                seriesRED.clear();
-                scatterRED.clear();
-            }
-
-		}
-    }
-    //toggle button
-    MouseArea {
-        id: mouseAreaToggle
-        x: 745
-        y: 116
-        width: 108
-        height: 26
-        onClicked: {
-            curve = 2;
-            console.log("onClicked:button " + curve );
-            console.log(rectangleToggleR.color);
-            rectangleRemove.color = "#000000"; // black
-            if(rectangleToggleR.color == "#0000ff"){ //blue
-                rectangleToggleR.color = "black";
-                rectangleToggleL.color = "red";
-                console.log("blue");
-                curve = 1;
-            }else if(rectangleToggleL.color == "#ff0000"){ //red
-                rectangleToggleL.color = "black";
-                rectangleToggleR.color = "blue";
-                console.log("red");
-                curve = 0;
-            }
-        }
-    }
-
-    Rectangle {
-        id: rectangleToggleBlack
-        x: 773
-        y: 116
-        width: 50
-        height: 26
-        color: "black"
-    }
-
-    Rectangle {
-        id: rectangleToggleR
-        x: 823
-        y: 116
-        width: 30
-        height: 26
-        color: "black"
-    }
-
-    Rectangle {
-        id: rectangleToggleL
-        x: 745
-        y: 116
-        width: 28
-        height: 26
-        color: "red"
-    }*/
 }

@@ -8,6 +8,7 @@
 #include <datahandling.h>
 #include <QProcess>
 #include <QString>
+#include <sstream>
 
   QQuickView *viewer;
 MainWindow::MainWindow(QWidget *parent) :
@@ -16,25 +17,17 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
 
-    //connect buttons here
-    //ToDo: define functions
-    connect(ui->btn_change_graph,SIGNAL(clicked(bool)),this,SLOT(changeSelectedGraph()));
-    connect(ui->btn_deleteGraph, SIGNAL(clicked(bool)), this, SLOT(deleteSelectedGraph()));
     connect(ui->btn_startCalc, SIGNAL(clicked(bool)), this, SLOT(startFrechetCalculation()));
     viewer = new QQuickView();
     QWidget *container = QWidget::createWindowContainer(viewer,this);
     viewer->setSource(QUrl("qrc:/main.qml"));
 
-
+    connect(viewer->rootObject(), SIGNAL(sendPoints(QString, QString, QString)), this, SLOT(getPointsFromQML(QString, QString, QString)));
     connect(ui->btn_change_graph, SIGNAL(clicked(bool)),viewer->rootObject(), SIGNAL(curveSignal()));
     connect(ui->btn_deleteGraph, SIGNAL(clicked(bool)),viewer->rootObject(), SIGNAL(deleteSignal()));
+    connect(ui->slider_ellipsies,SIGNAL(valueChanged(int)), ui->lb_ellipsiesValue, SLOT(setNum(int)));
+    connect(ui->slider_samples, SIGNAL(valueChanged(int)), ui->lb_sampleValue, SLOT(setNum(int)));
 
-
-    //Testdata testData(viewer);
-    //ToTest: rootObject returns null pointer
-    //connect(viewer->rootObject(), SIGNAL(sendPoints(QString)), this, SLOT(getPointsFromQML(QString)));
-
-    //viewer->rootContext()->setContextProperty("pointData", &pointData);
 
     ui->verticalLayout_3->addWidget(container);
 
@@ -45,22 +38,16 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-//change actual graph from blue to red or otherhand
-void MainWindow::changeSelectedGraph()
-{
-}
-
-//delete selected graph
-void MainWindow::deleteSelectedGraph(){}
-
-
 //get information from line edit or from qml chart
 void MainWindow::startFrechetCalculation(){
-    //n number of Höhenlinien optimal 7, range 3-20
-    //l list of special Höhenlinien
-    //s number of samples -> resolution , optimal 100, range 30-200
 
-    matplotlib.start("python", QStringList() << ".\\ellipses\\Input.py" << "-n" << "7" << "-s" << "100");
+    //n number of ellypsie contour (height lines) optimal 7, range 3-20
+    //l list of special ellypsie contours
+    //s number of samples -> resolution , optimal 100, range 30-200
+    int numSamples = ui->slider_samples->value();
+    int numEllipsies = ui->slider_ellipsies->value();
+
+    matplotlib.start("python", QStringList() << ".\\ellipses\\Input.py" << "-n" << QString::number(numEllipsies) << "-s" << QString::number(numSamples));
     QString input1= ui->lineEdit_graph_blue->text();
     QString input2= ui->lineEdit_graph_red->text();
 
@@ -71,12 +58,43 @@ void MainWindow::startFrechetCalculation(){
 
 }
 
-void MainWindow::getPointsFromQML(QString pointInformation){
-    qDebug()<< "Points from QML signal" << pointInformation;
+void MainWindow::getPointsFromQML(QString graphCol, QString xCoord, QString yCoord){
+
+    updateEditLines(graphCol, xCoord, yCoord);
 
     QAbstractSeries *chartView = viewer->rootObject()->findChild<QAbstractSeries*>("scatterblue");
     if(chartView != nullptr){
         QVariant var = chartView->property("curve");
         var.setValue(1);
+
+    }
+}
+
+void MainWindow::updateEditLines(QString color, QString x, QString y){
+
+    std::stringstream pointsOnRedLine;
+    std::stringstream pointsOnBlueLine;
+    if (color=="red")
+    {
+        if(ui->lineEdit_graph_red->text()==""){
+            pointsOnRedLine << x.toStdString() << ";" << y.toStdString();
+        }
+        else{
+            QString actualText = ui->lineEdit_graph_red->text();
+            pointsOnRedLine << actualText.toStdString() << "," << x.toStdString() << ";" << y.toStdString();
+        }
+        QString lineRed = QString::fromStdString(pointsOnRedLine.str());
+        ui->lineEdit_graph_red->setText(lineRed);
+    }else
+    {
+        if(ui->lineEdit_graph_blue->text()==""){
+            pointsOnBlueLine << x.toStdString() << ";" << y.toStdString();
+        }
+        else{
+            QString actualText = ui->lineEdit_graph_blue->text();
+            pointsOnBlueLine << actualText.toStdString() << "," << x.toStdString() << ";" << y.toStdString();
+        }
+        QString lineBlue = QString::fromStdString(pointsOnBlueLine.str());
+        ui->lineEdit_graph_blue->setText(lineBlue);
     }
 }

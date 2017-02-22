@@ -6,15 +6,13 @@ CONFIG += c++11
 
 SOURCES += main.cpp \
     testdata.cpp \
-    mainwindow.cpp \
-    datahandling.cpp
+    mainwindow.cpp
 
 RESOURCES += qml.qrc
 
 HEADERS += \
     testdata.h \
-    mainwindow.h \
-    datahandling.h
+    mainwindow.h
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
