@@ -5,13 +5,11 @@ QT += widgets qml quick charts
 CONFIG += c++11
 
 SOURCES += main.cpp \
-    testdata.cpp \
     mainwindow.cpp
 
 RESOURCES += qml.qrc
 
 HEADERS += \
-    testdata.h \
     mainwindow.h
 
 # Default rules for deployment.

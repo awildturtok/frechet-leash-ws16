@@ -27,7 +27,9 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->btn_deleteGraph, SIGNAL(clicked(bool)),viewer->rootObject(), SIGNAL(deleteSignal()));
     connect(ui->slider_ellipsies,SIGNAL(valueChanged(int)), ui->lb_ellipsiesValue, SLOT(setNum(int)));
     connect(ui->slider_samples, SIGNAL(valueChanged(int)), ui->lb_sampleValue, SLOT(setNum(int)));
-
+    connect(ui->btn_change_graph,SIGNAL(clicked(bool)), this, SLOT(changebuttonColor()));
+    ui->btn_change_graph->setStyleSheet("background-color: red");
+    this->color = "red";
 
     ui->verticalLayout_3->addWidget(container);
 
@@ -97,4 +99,18 @@ void MainWindow::updateEditLines(QString color, QString x, QString y){
         QString lineBlue = QString::fromStdString(pointsOnBlueLine.str());
         ui->lineEdit_graph_blue->setText(lineBlue);
     }
+}
+
+void MainWindow::changebuttonColor(){
+    if (this->color == "red"){
+
+        ui->btn_change_graph->setStyleSheet("background-color: blue");
+        this->color = "blue";
+    }
+    else
+    {
+        ui->btn_change_graph->setStyleSheet("background-color: red");
+        this->color= "red";
+    }
+
 }

@@ -20,11 +20,13 @@ public:
 public slots:
     void startFrechetCalculation();
     void getPointsFromQML(QString graph, QString xCoord, QString yCoord);
+    void changebuttonColor();
 
 private:
     Ui::MainWindow *ui;
     QProcess matplotlib;
     void updateEditLines(QString colour, QString xVal, QString yVal);
+    QString color;
 };
 
 #endif // MAINWINDOW_H
