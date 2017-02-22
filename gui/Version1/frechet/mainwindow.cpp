@@ -48,8 +48,11 @@ void MainWindow::deleteSelectedGraph(){}
 
 //get information from line edit or from qml chart
 void MainWindow::startFrechetCalculation(){
+    //n number of Höhenlinien optimal 7, range 3-20
+    //l list of special Höhenlinien
+    //s number of samples -> resolution , optimal 100, range 30-200
 
-    matplotlib.start("python", QStringList() << ".\\ellipses\\Input.py");
+    matplotlib.start("python", QStringList() << ".\\ellipses\\Input.py" << "-n" << "7" << "-s" << "100");
     QString input1= ui->lineEdit_graph_blue->text();
     QString input2= ui->lineEdit_graph_red->text();
 

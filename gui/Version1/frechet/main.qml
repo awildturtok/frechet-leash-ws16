@@ -16,7 +16,6 @@ ChartView {
     //define signals to communicate with cpp classes
     signal sendPoints(string pointInfo)
 
-
     property int curve:1
 
     LineSeries {
@@ -34,7 +33,6 @@ ChartView {
         id: seriesRED
         name: "red"
         color: "firebrick"
-
         axisX: valueAxisX
         axisY: valueAxisY
     }
