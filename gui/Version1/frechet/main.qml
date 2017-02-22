@@ -9,15 +9,22 @@ import QtQuick.Controls.Styles 1.0
 
 ChartView {
     id: chart
+    objectName: "chart1"
     title: "Line"
     anchors.fill: parent
     antialiasing: true
 
     //define signals to communicate with cpp classes
     signal sendPoints(string pointInfo)
+    signal curveSignal()
 
+    property int curve:1 //1:red 0:blue
 
-    property int curve:1
+    onCurveSignal: {
+            console.log("test")
+            this.curve = 0
+            return "some return value"
+    }
 
     LineSeries {
         //graph two
@@ -105,6 +112,8 @@ ChartView {
         }
 
     ScatterSeries {
+        property int curve:1
+        objectName: "scatterblue"
         id: scatterBLUE
         property int index;
         name:"fancyScatter"
@@ -134,15 +143,6 @@ ChartView {
         y: 148
         width: 108
         height: 26
-//        onClicked: {console.log("onClicked:button " + curve );
-//            console.log(rectangleRemove.color);
-//            if(rectangleToggleR.color == "#0000ff"){//blue
-//                seriesBLUE.clear();
-//            }else if(rectangleToggleL.color == "#ff0000"){//red
-//                seriesRED.clear();
-//            }
-//        }
-		//test for using cpp methods
         onDoubleClicked: {
             testData.cleanDataFile();
             testData.printPointSeries(chart.series(0));
@@ -156,7 +156,9 @@ ChartView {
         y: 116
         width: 108
         height: 26
-        onClicked: {curve = 2; console.log("onClicked:button " + curve );
+        onClicked: {
+            curve = 2;
+            console.log("onClicked:button " + curve );
             console.log(rectangleToggleR.color);
             rectangleRemove.color = "#000000"; // black
             if(rectangleToggleR.color == "#0000ff"){ //blue

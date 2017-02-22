@@ -191,4 +191,3 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
         ax_3d.legend()
 
     plt.show()
-
