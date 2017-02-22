@@ -1,6 +1,7 @@
 #include <QQuickView>
 #include <QtQml/QQmlContext>
 #include <QtQml/QQmlEngine>
+#include <QtCharts>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <testdata.h>
@@ -8,6 +9,7 @@
 #include <QProcess>
 #include <QString>
 
+  QQuickView *viewer;
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
@@ -19,14 +21,18 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->btn_change_graph,SIGNAL(clicked(bool)),this,SLOT(changeSelectedGraph()));
     connect(ui->btn_deleteGraph, SIGNAL(clicked(bool)), this, SLOT(deleteSelectedGraph()));
     connect(ui->btn_startCalc, SIGNAL(clicked(bool)), this, SLOT(startFrechetCalculation()));
-
-    QQuickView *viewer = new QQuickView();
+    viewer = new QQuickView();
     QWidget *container = QWidget::createWindowContainer(viewer,this);
     viewer->setSource(QUrl("qrc:/main.qml"));
 
+
+    connect(ui->btn_change_graph, SIGNAL(clicked(bool)),viewer->rootObject(), SIGNAL(curveSignal()));
+    connect(ui->btn_deleteGraph, SIGNAL(clicked(bool)),viewer->rootObject(), SIGNAL(deleteSignal()));
+
+
     //Testdata testData(viewer);
     //ToTest: rootObject returns null pointer
-    connect(viewer->rootObject(), SIGNAL(sendPoints(QString)), this, SLOT(getPointsFromQML(QString)));
+    //connect(viewer->rootObject(), SIGNAL(sendPoints(QString)), this, SLOT(getPointsFromQML(QString)));
 
     //viewer->rootContext()->setContextProperty("pointData", &pointData);
 
@@ -40,7 +46,9 @@ MainWindow::~MainWindow()
 }
 
 //change actual graph from blue to red or otherhand
-void MainWindow::changeSelectedGraph(){}
+void MainWindow::changeSelectedGraph()
+{
+}
 
 //delete selected graph
 void MainWindow::deleteSelectedGraph(){}
@@ -65,4 +73,10 @@ void MainWindow::startFrechetCalculation(){
 
 void MainWindow::getPointsFromQML(QString pointInformation){
     qDebug()<< "Points from QML signal" << pointInformation;
+
+    QAbstractSeries *chartView = viewer->rootObject()->findChild<QAbstractSeries*>("scatterblue");
+    if(chartView != nullptr){
+        QVariant var = chartView->property("curve");
+        var.setValue(1);
+    }
 }

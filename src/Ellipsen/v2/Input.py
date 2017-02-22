@@ -6,6 +6,12 @@ import sys
 import csv
 import getopt
 
+"""
+    -n Contours of ellipses
+    -l Specific ellipses
+    -s samples of drawing
+"""
+
 options, __ = getopt.getopt(sys.argv[1:], "n:l:s:")
 
 n_heights = 7
@@ -24,11 +30,6 @@ for name, value in options:
 
 
 reader = csv.reader(iter(sys.stdin.readline, ''))
-
-# firstln = next(reader)
-
-# heights = int(firstln[0])
-# samples = int(firstln[1])
 
 paths = []
 
@@ -54,8 +55,6 @@ else:
     sample1 = input1.sample_l(n_heights, n_samples)
 
 
-#print(sample1)
-sample_heatmap1 = input1.sample_heatmap_a(n_samples)
-sample1["heatmap"] = sample_heatmap1
-#print(sample_heatmap1)
-sample_to_matplotlib(sample1, plot_3d=True, show_legend=True)
+sample1["in-traversal"] = input1.sample_traversal(sample1["traversals"][0], 5 * max(len(patha), len(pathb)))
+sample1["heatmap"] = input1.sample_heatmap_a(n_samples)
+sample_to_matplotlib(sample1, plot_3d=True, show_legend=False)

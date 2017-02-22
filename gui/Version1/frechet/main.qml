@@ -9,14 +9,38 @@ import QtQuick.Controls.Styles 1.0
 
 ChartView {
     id: chart
+    objectName: "chart1"
     title: "Line"
     anchors.fill: parent
     antialiasing: true
 
     //define signals to communicate with cpp classes
     signal sendPoints(string pointInfo)
+    signal curveSignal()
+    signal deleteSignal()
 
-    property int curve:1
+    property int curve:1 //1:red 0:blue
+
+    onCurveSignal: {
+            console.log("test")
+        switch(curve) {
+            case 0: this.curve = 1; break;
+            case 1: this.curve = 0; break;
+            default:break;
+        }
+            return "some return value"
+    }
+    onDeleteSignal: {
+            console.log("test")
+        if(curve == 0){//blue
+            seriesBLUE.clear();
+            scatterBLUE.clear();
+        }else if(curve == 1){//red
+            seriesRED.clear();
+            scatterRED.clear();
+        }
+            return "some return value"
+    }
 
     LineSeries {
         //graph two
@@ -33,6 +57,7 @@ ChartView {
         id: seriesRED
         name: "red"
         color: "firebrick"
+
         axisX: valueAxisX
         axisY: valueAxisY
     }
@@ -103,6 +128,8 @@ ChartView {
         }
 
     ScatterSeries {
+        property int curve:1
+        objectName: "scatterblue"
         id: scatterBLUE
         property int index;
         name:"fancyScatter"
@@ -116,7 +143,7 @@ ChartView {
 
     //Buttons
 
-    //remove button
+ /*   //remove button
     Rectangle {
         id: rectangleRemove
         x: 745
@@ -132,19 +159,18 @@ ChartView {
         y: 148
         width: 108
         height: 26
-//        onClicked: {console.log("onClicked:button " + curve );
-//            console.log(rectangleRemove.color);
-//            if(rectangleToggleR.color == "#0000ff"){//blue
-//                seriesBLUE.clear();
-//            }else if(rectangleToggleL.color == "#ff0000"){//red
-//                seriesRED.clear();
-//            }
-//        }
-		//test for using cpp methods
         onDoubleClicked: {
-            testData.cleanDataFile();
-            testData.printPointSeries(chart.series(0));
-            testData.printPointSeries(chart.series(1));
+            //testData.cleanDataFile();
+            //testData.printPointSeries(chart.series(0));
+            //testData.printPointSeries(chart.series(1));
+            if(curve == 0){//blue
+                seriesBLUE.clear();
+                scatterBLUE.clear();
+            }else if(curve == 1){//red
+                seriesRED.clear();
+                scatterRED.clear();
+            }
+
 		}
     }
     //toggle button
@@ -154,7 +180,9 @@ ChartView {
         y: 116
         width: 108
         height: 26
-        onClicked: {curve = 2; console.log("onClicked:button " + curve );
+        onClicked: {
+            curve = 2;
+            console.log("onClicked:button " + curve );
             console.log(rectangleToggleR.color);
             rectangleRemove.color = "#000000"; // black
             if(rectangleToggleR.color == "#0000ff"){ //blue
@@ -196,5 +224,5 @@ ChartView {
         width: 28
         height: 26
         color: "red"
-    }
+    }*/
 }
