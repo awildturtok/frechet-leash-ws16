@@ -10,7 +10,7 @@ import QtQuick.Controls.Styles 1.0
 ChartView {
     id: chart
     objectName: "chart1"
-    title: "Line"
+    title: "Frechét Chart"
     anchors.fill: parent
     antialiasing: true
 
@@ -78,7 +78,7 @@ ChartView {
 
     AreaSeries {
         id:backgroundSeries
-        name: "test"
+        //name: "test"
         color: "#00FF11FF"
         borderColor: "#ff0039A5"
         borderWidth: 0
@@ -115,7 +115,7 @@ ChartView {
         name:"points red"
         axisX: valueAxisX
         axisY: valueAxisY
-        color: "firebrick"
+        color: "lightgreen"
         onHovered: {
             //console.log("onClicked: " + point.x + ", " + point.y+" and test is : "+m.testfunction())
             }
@@ -129,7 +129,7 @@ ChartView {
         name:"points blue"
         axisX: valueAxisX
         axisY: valueAxisY
-        color: "steelblue"
+        color: "purple"
         onHovered: {
             //console.log("onClicked: " + point.x + ", " + point.y+" and test is : "+m.testfunction())
         }
