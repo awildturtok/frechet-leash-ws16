@@ -4,11 +4,11 @@
 #include <QtCharts>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include <testdata.h>
-#include <datahandling.h>
 #include <QProcess>
 #include <QString>
 #include <sstream>
+#include<QWidget>
+#include <QQuickItem>
 
   QQuickView *viewer;
 MainWindow::MainWindow(QWidget *parent) :
