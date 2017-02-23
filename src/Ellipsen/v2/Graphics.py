@@ -213,8 +213,7 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
                     ax_2d.plot([p.x], [p.y], "ro")
             x, y = vectors_to_xy(tra[3])
             ax_2d.plot(x, y, "r--", label="traversal: l=" + str(tra[0]), linewidth=1.5)
-            if plot_3d:
-                ax_3d.plot(x, y, tra[0], "r", label="traversal: l=" + str(tra[0]), linewidth=0.5)
+
 
     if plot_3d:
         x, y, z = sample["traversal"]["traversal-3d"]
