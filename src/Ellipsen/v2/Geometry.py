@@ -38,6 +38,9 @@ class Vector:
     def __hash__(self):
         return hash((self.x, self.y))
 
+    def __lt__(self, other: 'Vector') -> int:
+        return self.x <= other.x and self.y <= other.y
+
     # Vector Arithmetic
 
     def __add__(self, other: 'Vector') -> 'Vector':
@@ -62,7 +65,7 @@ class Vector:
         return self.l
 
     def __eq__(self, other) -> bool:
-        return math.isclose(self.x, other.x, abs_tol=1e-10) and math.isclose(self.y, other.y, abs_tol=1e-10)
+        return math.isclose(self.x, other.x, abs_tol=1e-13) and math.isclose(self.y, other.y, abs_tol=1e-13)
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
@@ -74,13 +77,19 @@ class Vector:
     def norm(self) -> 'Vector':  # normalized vector (lenght = 1)
         return self * (1 / self.l)
 
-    def cross_product(self, other) -> float:
+    def dot_product(self, other: 'Vector') -> float:
+        return self.x * other.x + self.y * other.y
+
+    def cross_product(self, other: 'Vector') -> float:
         return self.x * other.y - self.y * other.x
+
+    def acute(self, other) -> bool:  # returns true if angle between vectors is < 90°
+        return self.dot_product(other) > 0
 
     def angle(self) -> float:
         return math.atan2(self.y, self.x)
 
-    def rotate(self, a: float):
+    def rotate(self, a: float):  # rotate vector by angle a counterclockwise
         x = self.x * math.cos(a) - self.y * math.sin(a)
         y = self.x * math.sin(a) + self.y * math.cos(a)
         return Vector(x, y)
@@ -106,12 +115,12 @@ class LineSegment:
 
         assert p1 != p2, "Error: Start- and Endpoint are equal. p1: " + str(p1) + " p2: " + str(p2)
 
-        self.p1 = p1  # Startpoint P1
-        self.p2 = p2  # Endpoint P2
-        self.d = p2 - p1  # Difference Vector
-        self.l = self.d.l  # Länge der Strecke
+        self.p1 = p1  # start point
+        self.p2 = p2  # end point
+        self.d = p2 - p1  # difference vector
+        self.l = self.d.l  # length
 
-        # calculate slope m and y(or x)-intercept n
+        # calculate slope m and y(or x)-intercept n of line defined by the line segment
         if (p2.x - p1.x) != 0:
             self.m = (p2.y - p1.y) / (p2.x - p1.x)
             self.n = p1.y - self.m * p1.x
@@ -201,9 +210,32 @@ class LineSegment:
         return p.x > self.fy(p.y)
 
     def point_on(self, p: Vector) -> bool:  # is given point on line
-        return math.isclose(p.y, self.fx(p.x), abs_tol=1e-13)
+        return math.isclose(p.y, self.fx(p.x), abs_tol=1e-13) or math.isclose(p.x, self.fy(p.y), abs_tol=1e-13)
 
-    def cuts_bounds(self, bounds: ((float, float), (float, float))) -> [Vector]:
+    def intersection(self, b: 'LineSegment'):  # calculates the intersection point of two line segments
+        if math.isinf(self.m) and not math.isinf(b.m):
+            return Vector(self.n, b.fx(self.n))
+        elif math.isinf(b.m) and not math.isinf(self.m):
+            return Vector(b.n, self.fx(b.n))
+        elif (self.m - b.m) != 0:
+            x = (b.n - self.n) / (self.m - b.m)
+        else:
+            x = float("nan")
+        return Vector(x, self.fx(x))
+
+    def p_for_equal_dist_to_points(self, p1: Vector, p2: Vector) -> Vector:
+        # point on line that has equal distance to p1 and p2
+        m = (p1 + p2) * 0.5
+        v = (p2 - p1).rotate_90_l()
+        ls = LineSegment(m, m + v)
+        if not math.isclose(self.m, ls.m, abs_tol=1e-13):
+            return self.intersection(ls)
+        elif self.point_on(m):
+            return m
+        else:
+            return Vector(math.nan, math.nan)
+
+    def cuts_bounds(self, bounds: ((float, float), (float, float))) -> [Vector]: # points where line cuts given bounds
         x1 = bounds[0][0]
         x2 = bounds[0][1]
         y1 = bounds[1][0]
@@ -237,7 +269,7 @@ class Ellipse:
     def __str__(self):
         return "Ellipsis: M" + str(self.m) + " a:" + str(self.a) + " b:" + str(self.b)
 
-    def __mul__(self, l: float):
+    def __mul__(self, l: float):  # scale ellipsis to l
         a = self.a * l
         b = self.b * l
         return Ellipse(self.m, a, b)
@@ -267,6 +299,7 @@ class Ellipse:
             return [math.pi, 2*(math.pi-math.atan2(a, b))]
 
     def cuts_bounds_t(self, bounds: ((float, float), (float, float))) -> [float]:
+        # parameters t where ellipsis cuts given bounds
         tx1 = self.tx(bounds[0][0])
         tx2 = self.tx(bounds[0][1])
         ty1 = self.ty(bounds[1][0])
@@ -305,6 +338,7 @@ class Ellipse:
         return ret_ts
 
     def cuts_bounds_p(self, bounds: ((float, float), (float, float))) -> [Vector]:
+        # points where ellipsis cuts given bounds
         points = []
         ts = self.cuts_bounds_t(bounds)
 
@@ -314,26 +348,27 @@ class Ellipse:
         return points
 
 
-class EllipseInfinite:
+class EllipseInfinite:  # Ellipsis shadow where one axis is infinite (for parallel inputs)
     def __init__(self, m: Vector, a: Vector, l1: float, l2: float = 0):
-        self.m = m  # anchor
-        self.m1 = m
-        self.m2 = m
-        if l2 > l1:
+        self.m = m  # anchor for the middle
+        self.m1 = m  # left line anchor
+        self.m2 = m  # right line anchor
+        if l2 > l1:  # move left and right anchors for given l
             dm = Vector(math.sqrt(l2 ** 2 - l1 ** 2), 0)
             self.m1 -= dm
             self.m2 += dm
         self.l1 = l1
         self.l2 = l2
-        self.a = a
+        self.a = a  # axis vector
 
     def __str__(self):
         return "EllipseInfinite: M" + str(self.m) + " a:" + str(self.a) + " l1:" + str(self.l1)
 
-    def __mul__(self, l: float):
+    def __mul__(self, l: float):  # scale to l
         return EllipseInfinite(self.m, self.a, self.l1, l)
 
     def cuts_bounds_p(self, bounds: ((float, float), (float, float))) -> [Vector]:
+        # points where the lines cut given bounds
         points = []
 
         if self.l2 > self.l1:

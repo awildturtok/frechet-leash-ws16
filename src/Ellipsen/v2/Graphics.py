@@ -21,7 +21,7 @@ from numbers import Number
 import numpy as np
 
 
-def vectors_to_xy(vectors: [Vector]) -> ([float], [float]):
+def vectors_to_xy(vectors: [Vector]) -> ([float], [float]):  # converts array of vectors to x- & y-coordinate arrays
     x = []
     y = []
 
@@ -35,7 +35,7 @@ def vectors_to_xy(vectors: [Vector]) -> ([float], [float]):
     return x, y
 
 
-def xy_to_vectors(xs: [float], ys: [float]) -> [Vector]:
+def xy_to_vectors(xs: [float], ys: [float]) -> [Vector]:  # converts x- & y-coordinate arrays to arrays of vectors
     vectors = []
 
     for i in range(min(len(xs), len(ys))):
@@ -44,7 +44,7 @@ def xy_to_vectors(xs: [float], ys: [float]) -> [Vector]:
         if isinstance(x, Number) and isinstance(y, Number):
             vectors.append(Vector(x, y))
         else:
-            print("Error: either isn not a valid float: x:" + str(x) + " y:" + str(y))
+            print("Error: either is not a valid float: x:" + str(x) + " y:" + str(y))
 
     return vectors
 
@@ -52,10 +52,10 @@ def xy_to_vectors(xs: [float], ys: [float]) -> [Vector]:
 
 def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool = True, plot_heatmap: bool = True,
                          plot_traversals: bool = True, plot_axis: bool = False, plot_l_lines: bool = False,
-                         plot_3d: bool = True, show_legend: bool = False, show_colorbar: bool = True,
-                         plot_input: bool = True):
-
+                         plot_3d: bool = True, show_legend: bool = True, show_colorbar: bool = True,
+                         plot_input: bool = True, show_labels: bool = True, plot_critical_traversals: bool = False):
     # plot sample with matplotlib
+<<<<<<< Updated upstream
     """
     Display sampled data with matplotlib.
     :param sample: Hashmap containing the input data:
@@ -74,6 +74,10 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     :param show_colorbar:
     :param plot_input:
     """
+=======
+    padding = 0.04
+
+>>>>>>> Stashed changes
     if plot_3d and plot_input:
         fig = plt.figure(figsize=plt.figaspect(0.5))
         fig_in = plt.figure(figsize=plt.figaspect(0.5))
@@ -93,6 +97,20 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
         fig = plt.figure(figsize=plt.figaspect(0.5))
         ax_2d = fig.add_subplot(1, 1, 1)
 
+    # show axis labels
+    if show_labels:
+        ax_2d.set_xlabel("Path A")
+        ax_2d.set_ylabel("Path B")
+
+        if plot_3d:
+            ax_3d.set_xlabel("Path A")
+            ax_3d.set_ylabel("Path B")
+            ax_3d.set_zlabel("Length l")
+
+        if plot_input:
+            ax_in.set_xlabel("X")
+            ax_in.set_ylabel("Y")
+
     # plot input
     if plot_input:
         paths = sample["input"]
@@ -104,13 +122,41 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
 
         ax_in.plot([], [], "b", label="Path A")
         ax_in.plot([], [], "c", label="Path B")
+
+        xlim = [min(xa.min(), xb.min()), max(xa.max(), xb.max())]
+        xd = xlim[1] - xlim[0]
+        xpad = xd * padding
+        ylim = [min(ya.min(), yb.min()), max(ya.max(), yb.max())]
+        yd = ylim[1] - ylim[0]
+        ypad = yd * padding
+        ax_in.axis([xlim[0] - xpad, xlim[1] + xpad, ylim[0] - ypad, ylim[1] + ypad])
+
         ax_in.legend()
 
         if plot_traversals:
-            in_traversal = sample["in-traversal"]
+            in_traversal = sample["traversal"]["in-traversal"]
+            in_traversal_l = sample["traversal"]["in-traversal-l"]
             for ps in in_traversal:
                 x, y = vectors_to_xy(ps)
                 ax_in.plot(x, y, "k", linewidth=0.5)
+            for ps in in_traversal_l:
+                x, y = vectors_to_xy(ps)
+                ax_in.plot(x, y, "r", linewidth=1.5)
+
+    # set padding
+    # 2d
+    l_a, l_b = sample["size"]
+    pad_x = padding * l_a
+    pad_y = padding * l_b
+    axis_2d = [-pad_x, l_a + pad_x, -pad_y, l_b + pad_y]
+    ax_2d.axis(axis_2d)
+    bounds_l = sample["bounds-l"]
+    # 3d
+    if plot_3d:
+        dl = bounds_l[1] - bounds_l[0]
+        pad_l = padding * dl
+        ax_3d.axis(axis_2d)
+        ax_3d.set_zlim([bounds_l[0] - pad_l, bounds_l[1] + pad_l])
 
     # plot 3d
     if plot_3d:
@@ -141,7 +187,7 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
                     x, y = vectors_to_xy(ellipsis[1])
                     num = len(x)
                     if num == 1:
-                        ax_2d.plot(x, y, "k.", linewidth=0.8)
+                        ax_2d.plot(x, y, "k.")
                     else:
                         ax_2d.plot(x, y, "k", linewidth=0.8)
         # plot axis
@@ -167,28 +213,48 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     if (plot_heatmap or plot_3d) and show_colorbar:
         fig.colorbar(surf, shrink=0.95, aspect=5)
 
-    # set padding
-    l_a, l_b = sample["size"]
-    pad = 0.04
-    pad_x = pad * l_a
-    pad_y = pad * l_b
-    ax_2d.axis([-pad_x, l_a + pad_x, -pad_y, l_b + pad_y])
+    # plot critical traversals
+    if plot_critical_traversals:
+        for tra in sample["critical-traversals"]:
+            p1 = tra[3][0]
+            p2 = tra[3][-1]
+            ax_2d.plot([p1.x], [p1.y], "y.")
+            ax_2d.plot([p2.x], [p2.y], "y.")
+            x, y = vectors_to_xy(tra[3])
+            ax_2d.plot(x, y, "y--", linewidth=1.0)
 
     # plot traversals
     if plot_traversals:
+
         for tra in sample["traversals"]:
             for i in range(len(tra[2])):
-                if tra[0] <= tra[1][i] + 1e-13:
-                    p = tra[2][i]
-                    ax_2d.plot([p.x], [p.y], "r.")
-            x, y = vectors_to_xy(tra[2])
+                if tra[0] <= tra[2][i] + 1e-13:
+                    p = tra[3][i]
+                    ax_2d.plot([p.x], [p.y], "ro")
+            x, y = vectors_to_xy(tra[3])
             ax_2d.plot(x, y, "r--", label="traversal: l=" + str(tra[0]), linewidth=1.5)
+<<<<<<< Updated upstream
             if plot_3d:
                 ax_3d.plot(x, y, tra[1], "r", label="traversal: l=" + str(tra[0]), linewidth=0.5)
 
     # show legend
     if show_legend:
         #ax_2d.legend()
+=======
+
+
+        if plot_3d:
+            x, y, z = sample["traversal"]["traversal-3d"]
+            x_l, y_l, z_l = sample["traversal"]["traversal-3d-l"]
+
+            ax_3d.plot(x, y, z, "r", label="traversal: l=" + str(tra[0]), linewidth=0.5)
+
+            for i in range(len(x_l)):
+                ax_3d.plot([x_l[i]] * 2, [y_l[i]] * 2, bounds_l, "k", linewidth=0.5)
+
+    # show legend for traversal l
+    if show_legend:
+>>>>>>> Stashed changes
         ax_3d.legend()
 
     plt.show()
