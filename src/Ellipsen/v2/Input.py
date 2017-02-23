@@ -55,10 +55,4 @@ else:
     sample1 = input1.sample_l(n_heights, n_samples, heatmap=n_samples)
 
 
-<<<<<<< Updated upstream
-sample1["in-traversal"] = input1.sample_traversal(sample1["traversals"][0], 5 * max(len(patha), len(pathb)))
-sample1["heatmap"] = input1.sample_heatmap_a(n_samples)
-sample_to_matplotlib(sample1, plot_3d=True, show_legend=False)
-=======
 sample_to_matplotlib(sample1)
->>>>>>> Stashed changes

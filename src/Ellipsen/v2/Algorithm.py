@@ -370,8 +370,8 @@ class CellMatrix:
             self.lengths_b[i] = b.l
 
         # generate and save TwoLineSegments/Cells
-        self.twoLSs: [TwoLineSegments] = []
-        self.cells: [Cell] = []
+        self.twoLSs = []
+        self.cells = []
         for i_a in range(self.count_a):
             self.twoLSs.append([])
             self.cells.append([])

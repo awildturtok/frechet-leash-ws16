@@ -55,29 +55,9 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
                          plot_3d: bool = True, show_legend: bool = True, show_colorbar: bool = True,
                          plot_input: bool = True, show_labels: bool = True, plot_critical_traversals: bool = False):
     # plot sample with matplotlib
-<<<<<<< Updated upstream
-    """
-    Display sampled data with matplotlib.
-    :param sample: Hashmap containing the input data:
-                    - Input: The pair of curves to produce the sample
-                    - in-traversal: Route/Alignment of the lexicographic frechet path
-                    - heatmap: The resulting heightmap from the resulting ellipses
-                    - cells: The grid cells of the heightmap
-    :param plot_borders:
-    :param plot_ellipsis:
-    :param plot_heatmap:
-    :param plot_traversals:
-    :param plot_axis:
-    :param plot_l_lines:
-    :param plot_3d:
-    :param show_legend:
-    :param show_colorbar:
-    :param plot_input:
-    """
-=======
+
     padding = 0.04
 
->>>>>>> Stashed changes
     if plot_3d and plot_input:
         fig = plt.figure(figsize=plt.figaspect(0.5))
         fig_in = plt.figure(figsize=plt.figaspect(0.5))
@@ -233,28 +213,21 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
                     ax_2d.plot([p.x], [p.y], "ro")
             x, y = vectors_to_xy(tra[3])
             ax_2d.plot(x, y, "r--", label="traversal: l=" + str(tra[0]), linewidth=1.5)
-<<<<<<< Updated upstream
             if plot_3d:
-                ax_3d.plot(x, y, tra[1], "r", label="traversal: l=" + str(tra[0]), linewidth=0.5)
+                ax_3d.plot(x, y, tra[0], "r", label="traversal: l=" + str(tra[0]), linewidth=0.5)
+
+    if plot_3d:
+        x, y, z = sample["traversal"]["traversal-3d"]
+        x_l, y_l, z_l = sample["traversal"]["traversal-3d-l"]
+
+        ax_3d.plot(x, y, z, "r", label="traversal: l=" + str(tra[0]), linewidth=0.5)
+
+        for i in range(len(x_l)):
+            ax_3d.plot([x_l[i]] * 2, [y_l[i]] * 2, bounds_l, "k", linewidth=0.5)
 
     # show legend
     if show_legend:
-        #ax_2d.legend()
-=======
-
-
-        if plot_3d:
-            x, y, z = sample["traversal"]["traversal-3d"]
-            x_l, y_l, z_l = sample["traversal"]["traversal-3d-l"]
-
-            ax_3d.plot(x, y, z, "r", label="traversal: l=" + str(tra[0]), linewidth=0.5)
-
-            for i in range(len(x_l)):
-                ax_3d.plot([x_l[i]] * 2, [y_l[i]] * 2, bounds_l, "k", linewidth=0.5)
-
-    # show legend for traversal l
-    if show_legend:
->>>>>>> Stashed changes
         ax_3d.legend()
+
 
     plt.show()
