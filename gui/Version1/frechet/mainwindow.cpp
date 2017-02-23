@@ -24,6 +24,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(viewer->rootObject(), SIGNAL(sendPoints(QString, QString, QString)), this, SLOT(getPointsFromQML(QString, QString, QString)));
     connect(ui->btn_change_graph, SIGNAL(clicked(bool)),viewer->rootObject(), SIGNAL(curveSignal()));
+    connect(ui->btn_deleteGraph, SIGNAL(clicked(bool)), ui->lineEdit_graph_blue, SLOT(clear()));
+    connect(ui->btn_deleteGraph, SIGNAL(clicked(bool)), ui->lineEdit_graph_red, SLOT(clear()));
     connect(ui->btn_deleteGraph, SIGNAL(clicked(bool)),viewer->rootObject(), SIGNAL(deleteSignal()));
     connect(ui->slider_ellipsies,SIGNAL(valueChanged(int)), ui->lb_ellipsiesValue, SLOT(setNum(int)));
     connect(ui->slider_samples, SIGNAL(valueChanged(int)), ui->lb_sampleValue, SLOT(setNum(int)));
