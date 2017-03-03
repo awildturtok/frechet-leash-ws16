@@ -110,6 +110,21 @@ class Vector:
         return bounds[0] - 1e-13 <= self.y <= bounds[1] + 1e-13
 
 
+class Circle:
+    def __init__(self, m: Vector, r: float):
+        self.m = m
+        self.r = r
+
+    def __str__(self):
+        return "Circle: M" + str(self.m) + " r:" + str(self.r)
+
+    def p_no_offset(self, t: float) -> Vector:  # point on ellipse for set parameter t without regard for offset
+        return Vector(math.cos(t) * self.r, math.sin(t) * self.r)
+
+    def p(self, t: float) -> Vector:  # point on ellipse for set parameter t
+        return self.p_no_offset(t) + self.m
+
+
 class LineSegment:
     def __init__(self, p1: Vector, p2: Vector):
 
@@ -225,6 +240,8 @@ class LineSegment:
 
     def p_for_equal_dist_to_points(self, p1: Vector, p2: Vector) -> Vector:
         # point on line that has equal distance to p1 and p2
+        if p1 == p2:
+            return Vector(math.nan, math.nan)
         m = (p1 + p2) * 0.5
         v = (p2 - p1).rotate_90_l()
         ls = LineSegment(m, m + v)
@@ -258,6 +275,11 @@ class LineSegment:
             points.append(Vector(x2, yx2))
 
         return points
+
+    def cuts_circle(self, circle: Circle) -> [float]:
+        cuts = []
+        #Todo
+        return cuts
 
 
 class Ellipse:

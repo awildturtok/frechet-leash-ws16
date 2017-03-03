@@ -49,7 +49,6 @@ def xy_to_vectors(xs: [float], ys: [float]) -> [Vector]:  # converts x- & y-coor
     return vectors
 
 
-
 def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool = True, plot_heatmap: bool = True,
                          plot_traversals: bool = True, plot_axis: bool = False, plot_l_lines: bool = False,
                          plot_3d: bool = True, show_legend: bool = True, show_colorbar: bool = True,
@@ -76,6 +75,13 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     else:
         fig = plt.figure(figsize=plt.figaspect(0.5))
         ax_2d = fig.add_subplot(1, 1, 1)
+
+    # set aspect ratio
+    ax_2d.set_aspect('equal')
+    #if plot_3d:  # Todo
+        #ax_3d.set_aspect('equal')
+    if plot_input:
+        ax_in.set_aspect('equal')
 
     # show axis labels
     if show_labels:
@@ -198,10 +204,10 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
         for tra in sample["critical-traversals"]:
             p1 = tra[3][0]
             p2 = tra[3][-1]
-            ax_2d.plot([p1.x], [p1.y], "y.")
-            ax_2d.plot([p2.x], [p2.y], "y.")
+            ax_2d.plot([p1.x], [p1.y], "b.")
+            ax_2d.plot([p2.x], [p2.y], "b.")
             x, y = vectors_to_xy(tra[3])
-            ax_2d.plot(x, y, "y--", linewidth=1.0)
+            ax_2d.plot(x, y, "b--", linewidth=1.0)
 
     # plot traversals
     if plot_traversals:
@@ -214,8 +220,7 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
             x, y = vectors_to_xy(tra[3])
             ax_2d.plot(x, y, "r--", label="traversal: l=" + str(tra[0]), linewidth=1.5)
 
-
-    if plot_3d:
+    if plot_3d and plot_traversals:
         x, y, z = sample["traversal"]["traversal-3d"]
         x_l, y_l, z_l = sample["traversal"]["traversal-3d-l"]
 
@@ -225,8 +230,7 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
             ax_3d.plot([x_l[i]] * 2, [y_l[i]] * 2, bounds_l, "k", linewidth=0.5)
 
     # show legend
-    if show_legend:
+    if show_legend and plot_3d:
         ax_3d.legend()
-
 
     plt.show()

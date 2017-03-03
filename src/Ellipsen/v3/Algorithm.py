@@ -14,8 +14,8 @@
 
 from Geometry import *
 
-
 TraversalType = (float, Vector, [float], [Vector], (float, float))
+
 
 class Cell:
     def __init__(self, parallel: bool, a: LineSegment, b: LineSegment, norm_ellipsis: Ellipse,
@@ -31,9 +31,12 @@ class Cell:
         self.offset = offset  # offset in cell-matrix
 
         # variables for traversal
-        self.end = Vector(bounds_xy[0], bounds_xy[1])  # point at top right of cell local
-        self.end_global = self.end + self.offset  # point at top right of cell in cell-matrix
-        self.end_l = self.lp(self.end)  # l for top right of cell
+        self.top_right = Vector(bounds_xy[0], bounds_xy[1])  # point at top right of cell local
+        self.top_right_global = self.top_right + self.offset  # point at top right of cell in cell-matrix
+        self.top_right_l = self.lp(self.top_right)  # l for top right of cell
+        self.bottom_left = Vector(0, 0)  # point at bottom left of cell local
+        self.bottom_left_global = self.offset  # point at bottom left of cell in cell-matrix
+        self.bottom_left_l = self.lp(self.bottom_left_global)  # l for bottom left of cell
 
         # steepest decent lines l=l_ver and l'=l_hor
         if not self.parallel:  # case 1: lines are not parallel
@@ -49,26 +52,38 @@ class Cell:
             m = norm_ellipsis.m
             self.l_ver = LineSegment(m, m + c)
             self.l_hor = LineSegment(m, m + c)
-        # intersection points of l and l' with top-right cell sides local
-        self.l_ver_cut = Vector(bounds_xy[0], self.l_ver.fx(bounds_xy[0]))
-        self.l_hor_cut = Vector(self.l_hor.fy(bounds_xy[1]), bounds_xy[1])
+        # intersection points of l and l' with cell borders local
+        self.l_ver_cut_right = Vector(bounds_xy[0], self.l_ver.fx(bounds_xy[0]))
+        self.l_hor_cut_top = Vector(self.l_hor.fy(bounds_xy[1]), bounds_xy[1])
+        self.l_ver_cut_left = Vector(0, self.l_ver.fx(0))
+        self.l_hor_cut_bottom = Vector(self.l_hor.fy(0), 0)
         # ls for these intersection points
-        self.l_ver_cut_l = self.lp(self.l_ver_cut)
-        self.l_hor_cut_l = self.lp(self.l_hor_cut)
+        self.l_ver_cut_right_l = self.lp(self.l_ver_cut_right)
+        self.l_hor_cut_top_l = self.lp(self.l_hor_cut_top)
+        self.l_ver_cut_left_l = self.lp(self.l_ver_cut_left)
+        self.l_hor_cut_bottom_l = self.lp(self.l_hor_cut_bottom)
         # intersection points in cell-matrix
-        self.l_ver_cut_global = self.l_ver_cut + self.offset
-        self.l_hor_cut_global = self.l_hor_cut + self.offset
+        self.l_ver_cut_right_global = self.l_ver_cut_right + self.offset
+        self.l_hor_cut_top_global = self.l_hor_cut_top + self.offset
+        self.l_ver_cut_left_global = self.l_ver_cut_left + self.offset
+        self.l_hor_cut_bottom_global = self.l_hor_cut_bottom + self.offset
 
         # which steepest decent traversals are possible
-        self.traverses_right = not math.isclose(self.l_ver_cut.y, self.bounds_xy[1], abs_tol=1e-13)
-        self.traverses_top = not math.isclose(self.l_hor_cut.x, self.bounds_xy[0], abs_tol=1e-13)
-        self.traverses_top_right = self.l_ver_cut.y > self.bounds_xy[1] or self.l_hor_cut.x > self.bounds_xy[0] \
+        self.traverses_right = not math.isclose(self.l_ver_cut_right.y, self.bounds_xy[1], abs_tol=1e-13)
+        self.traverses_top = not math.isclose(self.l_hor_cut_top.x, self.bounds_xy[0], abs_tol=1e-13)
+        self.traverses_top_right = self.l_ver_cut_right.y > self.bounds_xy[1] \
+                                   or self.l_hor_cut_top.x > self.bounds_xy[0] \
                                    or not self.traverses_right or not self.traverses_top
+        self.traverses_left = not math.isclose(self.l_ver_cut_left.y, 0, abs_tol=1e-13)
+        self.traverses_bottom = not math.isclose(self.l_hor_cut_bottom.x, 0, abs_tol=1e-13)
+        self.traverses_bottom_left = self.l_ver_cut_left.y < 0 \
+                                     or self.l_hor_cut_bottom.x < 0 \
+                                     or not self.traverses_left or not self.traverses_bottom
 
     def __str__(self):
         return "    Norm-" + str(self.norm_ellipsis) + '\n' + \
                "    Offset: " + str(self.offset) + '\n' + \
-               "    End: " + str(self.end) + " l: " + str(self.end_l) + '\n' + \
+               "    End: " + str(self.top_right) + " l: " + str(self.top_right_l) + '\n' + \
                "    Steepest Decent Lines:\n" + \
                "      l: " + str(self.l_ver.d) + '\n' + \
                "      l': " + str(self.l_hor.d) + '\n' + \
@@ -100,7 +115,6 @@ class Cell:
 
         # Sample Ellipses
         for l in ls:
-
             if l < self.bounds_l[0] or l > self.bounds_l[1]:
                 continue  # skip if l is not in bounds
 
@@ -169,16 +183,16 @@ class Cell:
     def traverse_right(self, traversal: TraversalType) -> \
             TraversalType:  # steepest decent traversal to right
         max_l = math.inf
-        end = self.l_ver_cut_global
-        end_l = self.l_ver_cut_l
+        end = self.l_ver_cut_right_global
+        end_l = self.l_ver_cut_right_l
 
         if self.traverses_right:
             start = traversal[1]
-            if self.l_ver_cut_global.y <= start.y:
-                end = Vector(self.end_global.x, start.y)
+            if self.l_ver_cut_right_global.y <= start.y:
+                end = Vector(self.top_right_global.x, start.y)
                 end_l = self.lp(end - self.offset)
                 max_l = max(traversal[0], end_l)
-            elif start.y < self.l_ver_cut_global.y < self.end_global.y:
+            elif start.y < self.l_ver_cut_right_global.y < self.top_right_global.y:
 
                 max_l = max(traversal[0], end_l)
 
@@ -187,16 +201,16 @@ class Cell:
     def traverse_top(self, traversal: TraversalType) -> \
             TraversalType:  # steepest decent traversal to top
         max_l = math.inf
-        end = self.l_hor_cut_global
-        end_l = self.l_hor_cut_l
+        end = self.l_hor_cut_top_global
+        end_l = self.l_hor_cut_top_l
 
         if self.traverses_top:
             start = traversal[1]
-            if self.l_hor_cut_global.x <= start.x:
-                end = Vector(start.x, self.end_global.y)
+            if self.l_hor_cut_top_global.x <= start.x:
+                end = Vector(start.x, self.top_right_global.y)
                 end_l = self.lp(end - self.offset)
                 max_l = max(traversal[0], end_l)
-            elif start.x < self.l_hor_cut_global.x < self.end_global.x:
+            elif start.x < self.l_hor_cut_top_global.x < self.top_right_global.x:
                 max_l = max(traversal[0], end_l)
 
         return max_l, end, traversal[2] + [end_l], traversal[3] + [end], (traversal[4][0], traversal[4][1] + 1)
@@ -204,8 +218,8 @@ class Cell:
     def traverse_top_right(self, traversal: TraversalType) -> \
             TraversalType:  # steepest decent traversal to top-right
         max_l = math.inf
-        end = self.end_global
-        end_l = self.end_l
+        end = self.top_right_global
+        end_l = self.top_right_l
 
         if self.traverses_top_right:
             max_l = max(traversal[0], end_l)
@@ -214,8 +228,8 @@ class Cell:
 
     def traverse_top_right_force(self, traversal: TraversalType) -> \
             TraversalType:  # force traversal to top-right
-        end = self.end_global
-        end_l = self.end_l
+        end = self.top_right_global
+        end_l = self.top_right_l
         max_l = max(traversal[0], end_l)
 
         return max_l, end, traversal[2] + [end_l], traversal[3] + [end], traversal[4]
@@ -333,7 +347,7 @@ def traverse_b(t: TraversalType) -> \
 
 
 class CellMatrix:
-    def __init__(self, points_a: [Vector], points_b: [Vector], traverse: int = 2, fast: bool = False):
+    def __init__(self, points_a: [Vector], points_b: [Vector], traverse: int = 0, fast: bool = False):
         # points of path
         self.points_a = points_a
         self.points_b = points_b
@@ -362,7 +376,6 @@ class CellMatrix:
             self.length_a += a.l
             self.offsets_a[i + 1] = self.offsets_a[i] + a.l
             self.lengths_a[i] = a.l
-
         for i in range(self.count_b):
             b = self.path_b[i]
             self.length_b += b.l
@@ -391,6 +404,10 @@ class CellMatrix:
         # critical traversals
         self.critical_traversals_horizontal, self.critical_traversals_vertical = self.calculate_critical_traversals()
 
+        # traverse
+        self.traverse = traverse
+
+        # Old Traversal Call:
         # traverse
         self.traverse = traverse
         if self.traverse > 0:
@@ -490,8 +507,9 @@ class CellMatrix:
 
         return critical_traversals_horizontal, critical_traversals_vertical
 
+    # Old Traversal (v2):
     def traverse_best(self, criteria: int = 2, delete_duplicates: bool = True, start: Vector = Vector(0, 0)) \
-            -> [(float, [float], [Vector])]:  # traverses cell-matrix and chooses best traversal depending on criteria
+            -> [TraversalType]:  # traverses cell-matrix and chooses best traversal depending on criteria
         i_a = 0
         i_b = 0
         while start.x > self.offsets_a[i_a + 1]:
@@ -506,7 +524,7 @@ class CellMatrix:
         traversals = traversals0
 
         # select best traversal(s):
-        if criteria > 0:
+        if criteria > 1:
             # 1. lowest l
             lowest_l = math.inf
             for traversal in traversals0:
@@ -517,7 +535,7 @@ class CellMatrix:
                     traversals1.append(traversal)
             traversals = traversals1
 
-            if criteria > 1:
+            if criteria > 2:
                 # 2. lowest average of ls
                 lowest_avg_ls = math.inf
                 for traversal in traversals1:
@@ -546,6 +564,7 @@ class CellMatrix:
 
         return traversals
 
+    # Old Traversal rec
     def traverse_rec(self, traversal: TraversalType) -> \
             [TraversalType]:  # traverse cells recursive
         # indicate which cell to traverse next
@@ -572,12 +591,12 @@ class CellMatrix:
         if i_a >= self.count_a or i_b >= self.count_b:
             if i_a < self.count_a:
                 cell = self.cells[i_a][self.count_b - 1]
-                if cell.end_l <= self.lowest_l + 1e-13:
+                if cell.top_right_l <= self.lowest_l + 1e-13:
                     next_traversal = traverse_a(cell.traverse_top_right_force(traversal))
                     traversals += self.traverse_rec(next_traversal)
             if i_b < self.count_b:
                 cell = self.cells[self.count_a - 1][i_b]
-                if cell.end_l <= self.lowest_l + 1e-13:
+                if cell.top_right_l <= self.lowest_l + 1e-13:
                     next_traversal = traverse_b(cell.traverse_top_right_force(traversal))
                     traversals += self.traverse_rec(next_traversal)
 
@@ -602,7 +621,7 @@ class CellMatrix:
                 for critical_traversal_horizontal in self.critical_traversals_horizontal[i_a + 1][i_b]:
                     max_l = critical_traversal_horizontal[0]
                     start = critical_traversal_horizontal[1]
-                    if p < start and self.lowest_l + 1e-13 >= max_l and\
+                    if p < start and self.lowest_l + 1e-13 >= max_l and \
                             (not self.fast or max_l >= self.min_global_l - 1e-13):
                         next_traversal = traverse_a(traverse_do(traversal, critical_traversal_horizontal))
                         traversals += self.traverse_rec(next_traversal)
@@ -611,7 +630,7 @@ class CellMatrix:
                 for critical_traversal_vertical in self.critical_traversals_vertical[i_a][i_b + 1]:
                     max_l = critical_traversal_vertical[0]
                     start = critical_traversal_vertical[1]
-                    if p < start and self.lowest_l + 1e-13 >= max_l and\
+                    if p < start and self.lowest_l + 1e-13 >= max_l and \
                             (not self.fast or max_l >= self.min_global_l - 1e-13):
                         next_traversal = traverse_b(traverse_do(traversal, critical_traversal_vertical))
                         traversals += self.traverse_rec(next_traversal)
@@ -667,6 +686,7 @@ class CellMatrix:
                                          [item for sublist in [item for sublist in self.critical_traversals_vertical
                                                                for item in sublist] for item in sublist]
 
+        # Old Traversal Sample:
         # sample traversals
         if self.traverse > 0:
             for traversal in self.traversals:
@@ -733,6 +753,7 @@ class CellMatrix:
 
         return [xs, ys, zs]
 
+    # Old Traversal Sampling
     def points_for_traversal_point(self, traversal_p: Vector, c_a: int = 0, c_b: int = 0) -> [Vector, Vector]:
 
         r_a = traversal_p.x
@@ -757,6 +778,7 @@ class CellMatrix:
 
         return [pa, pb]
 
+    # Old Traversal Sampling
     def sample_traversal(self, traversal: TraversalType, n: int) -> {}:
         # sample a specific traversal for lines between paths and 3d-plot with n points
 
@@ -793,7 +815,6 @@ class CellMatrix:
                 c_b += 1
 
             if ls[c_t] >= max_l:
-
                 line = self.points_for_traversal_point(p1, c_a=c_a, c_b=c_b)
                 sample["in-traversal-l"].append(line)
 
@@ -808,7 +829,6 @@ class CellMatrix:
                 i_t += 1
 
             while i_t < n_t:
-
                 t = i_t / n_t
                 t_p = t_ls.fr(t)
 
