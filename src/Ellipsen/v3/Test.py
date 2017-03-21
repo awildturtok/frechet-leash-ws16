@@ -14,8 +14,6 @@
 
 from Graphics import *
 
-import numpy as np
-
 
 n_l = 7  # number of height lines
 n_p = 50  # points per ellipsis
@@ -42,8 +40,8 @@ a_xs = [0, 1.5, 1, 2]
 a_ys = [0, 0, 1+math.sqrt(0.5), 1+math.sqrt(0.5)]
 
 # path_b:
-b_xs = [0, 2]
-b_ys = [math.sqrt(0.5), math.sqrt(0.5)]
+b_xs = [0, 2, 1]
+b_ys = [math.sqrt(0.5), math.sqrt(0.5), 0]
 
 '''# new type of event ex. 2
 # path_a:

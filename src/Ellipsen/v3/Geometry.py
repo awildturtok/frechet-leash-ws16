@@ -14,6 +14,14 @@
 
 import math
 from typing import Tuple
+import numpy as np
+
+
+tol = 1e-13  # global absolute tolerance
+
+
+def about_equal(f1: float, f2: float) -> bool:
+    return math.isclose(f1, f2, abs_tol=tol)
 
 
 class Vector:
@@ -65,7 +73,7 @@ class Vector:
         return self.l
 
     def __eq__(self, other) -> bool:
-        return math.isclose(self.x, other.x, abs_tol=1e-13) and math.isclose(self.y, other.y, abs_tol=1e-13)
+        return about_equal(self.x, other.x) and about_equal(self.y, other.y)
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
@@ -104,10 +112,10 @@ class Vector:
         return self.in_bounds_x(bounds[0]) and self.in_bounds_y(bounds[1])
 
     def in_bounds_x(self, bounds: (float, float)) -> bool:
-        return bounds[0] - 1e-13 <= self.x <= bounds[1] + 1e-13
+        return bounds[0] - tol <= self.x <= bounds[1] + tol
 
     def in_bounds_y(self, bounds: (float, float)) -> bool:
-        return bounds[0] - 1e-13 <= self.y <= bounds[1] + 1e-13
+        return bounds[0] - tol <= self.y <= bounds[1] + tol
 
 
 class Circle:
@@ -154,13 +162,13 @@ class LineSegment:
     def frl(self, r: float) -> Vector:  # point for set parameter r = [0,l]
         return self.p1 + self.d * (r/self.l)
 
-    def fx(self, x: float) -> float:  # y-Value for set x-Value
+    def fx(self, x: float) -> float:  # y-value for set x-value
         if not math.isinf(self.m):
             return self.m * x + self.n
         else:
             return float("nan")
 
-    def fy(self, y: float) -> float:  # x-Value for set y-Value
+    def fy(self, y: float) -> float:  # x-value for set y-value
         if math.isinf(self.m):
             return self.n
         elif self.m != 0:
@@ -168,21 +176,21 @@ class LineSegment:
         else:
             return float("nan")
 
-    def rx(self, x: float) -> float:  # parameter r for set y-Value
+    def rx(self, x: float) -> float:  # parameter r for set y-value
         if not math.isinf(self.m):
             return (x - self.p1.x) / (self.p2.x - self.p1.x)
         else:
             return float("nan")
 
-    def ry(self, y: float) -> float:  # parameter r for set x-Value
+    def ry(self, y: float) -> float:  # parameter r for set x-value
         if self.m != 0:
             return (y - self.p1.y) / (self.p2.y - self.p1.y)
         else:
             return float("nan")
 
     def contains_point(self, p: Vector) -> bool:  # does point p lie on the line segment
-        return (self.m == float("inf") or 0 - 1e-13 <= self.rx(p.x) <= 1 + 1e-13) and\
-               (self.m == 0 or 0 - 1e-13 <= self.ry(p.y) <= 1 + 1e-13)
+        return (self.m == float("inf") or 0 - tol <= self.rx(p.x) <= 1 + tol) and\
+               (self.m == 0 or 0 - tol <= self.ry(p.y) <= 1 + tol)
 
     def r_point(self, p: Vector) -> float:  # parameter r: [0,1] for set point
         # result only relevant for case p lies on line
@@ -210,6 +218,10 @@ class LineSegment:
         else:
             return pr
 
+    def project_p_rl(self, p: Vector) -> float:  # projects point onto line and returns parameter r
+        projection = self.project_p(p)
+        return self.rl_point(projection)
+
     def d_ls_point(self, p: Vector) -> float:  # closest distance of p to line segment
         d_l = self.d_l_point(p)  # closest distance of p to line
         projection_p = self.project_p(p)
@@ -225,7 +237,7 @@ class LineSegment:
         return p.x > self.fy(p.y)
 
     def point_on(self, p: Vector) -> bool:  # is given point on line
-        return math.isclose(p.y, self.fx(p.x), abs_tol=1e-13) or math.isclose(p.x, self.fy(p.y), abs_tol=1e-13)
+        return about_equal(p.y, self.fx(p.x)) or about_equal(p.x, self.fy(p.y))
 
     def intersection(self, b: 'LineSegment'):  # calculates the intersection point of two line segments
         if math.isinf(self.m) and not math.isinf(b.m):
@@ -245,7 +257,7 @@ class LineSegment:
         m = (p1 + p2) * 0.5
         v = (p2 - p1).rotate_90_l()
         ls = LineSegment(m, m + v)
-        if not math.isclose(self.m, ls.m, abs_tol=1e-13):
+        if not about_equal(self.m, ls.m):
             return self.intersection(ls)
         elif self.point_on(m):
             return m
@@ -276,10 +288,97 @@ class LineSegment:
 
         return points
 
-    def cuts_circle(self, circle: Circle) -> [float]:
+    def parabola_with_point(self, point: Vector) -> 'Parabola':
+        p1 = Vector(0, self.p1.d(point))
+        p2 = Vector(0.5 * self.l, self.fr(0.5).d(point))
+        p3 = Vector(self.l, self.p2.d(point))
+        return Parabola(p1, p2, p3)
+
+    def parabola_with_line(self, line: 'LineSegment') -> 'Parabola':
+        l = math.sqrt(math.pow(self.l, 2) + math.pow(line.l, 2))
+        p1 = Vector(0, self.p1.d(line.p1))
+        p2 = Vector(0.5 * l, self.fr(0.5).d(line.fr(0.5)))
+        p3 = Vector(l, self.p2.d(line.p2))
+        return Parabola(p1, p2, p3)
+
+
+class Parabola:
+    def __init__(self, p1: Vector, p2: Vector, p3: Vector):
+        self.ps = [p1, p2, p3]  # points defining the parabola
+        xs = np.array([[math.pow(p.x, 2), p.x, 1] for p in self.ps])
+        ys = np.array([p.y for p in self.ps])
+        [a, b, c] = np.linalg.solve(xs, ys)
+        self.s = Vector(-0.5 * (b / a), c - 0.25 * (math.pow(b, 2) / a))
+        self.a = a
+
+    def __str__(self):
+        return "Parabola: S" + str(self.s) + " func:" + str(self.func_str())
+
+    def func_str(self) -> str:
+        return str(self.a) + "(x - " + str(self.s.x) + ")^2 + " + str(self.s.y)
+
+    def fx(self, x: float) -> float:  # y-value for set x-value
+        return self.a * math.pow(x - self.s.x, 2) + self.s.y
+
+    def fy(self, y: float) -> float:  # x-value(s) for set y-value
+        if about_equal(y, self.s.y):
+            return [self.s.x]
+        elif (self.a > 0 and y > self.s.y) or (self.a < 0 and y < self.s.y):
+            w = math.sqrt((y - self.s.y) / self.a)
+            x1 = w + self.s.x
+            x2 = -w + self.s.x
+            return [x1, x2]
+        return []
+
+    def px(self, x: float) -> Vector:  # point for set x-value
+        return Vector(x, self.fx(x))
+
+    def py(self, y: float) -> float:  # points(s) for set y-value
+        xs = self.fy(y)
+        ps = []
+        for x in xs:
+            ps.append(self.px(x))
+        return ps
+
+    def move_x(self, d_x: float):  # moves parabola on x-axis
+        d_p = Vector(d_x, 0)
+        self.move_p(d_p)
+
+    def move_y(self, d_y: float):  # moves parabola on y-axis
+        d_p = Vector(0, d_y)
+        self.move_p(d_p)
+
+    def move_p(self, d_p: Vector):  # moves parabola on y-axis
+        self.s += d_p
+
+    def cuts_line(self, line: LineSegment) -> [Vector]:
         cuts = []
-        #Todo
+        # Todo
         return cuts
+
+    def cuts_linesegment(self, linesegment: LineSegment):
+        cuts_line = self.cuts_line(linesegment)
+        cuts_linesegment = []
+        for cut in cuts_line:
+            if linesegment.contains_point(cut):
+                cuts_linesegment.append(cut)
+        return cuts_linesegment
+    
+    def cuts_parabola(self, other: 'Parabola'):
+        cuts = []
+        # Todo: solve self.func - other.func = 0
+        return cuts
+
+    def cuts_bounds_vert(self, bounds: (float, float)) -> [Vector]:
+        return [self.px(bounds[0]), self.px(bounds[1])]
+
+    def sample(self, bounds: (float, float), n: int) -> [Vector]:  # samples parabola in bounds with n edges
+        sample_points = []
+        width = bounds[1] - bounds[0]
+        for i in range(n + 1):
+            x = width * (i / n) + bounds[0]
+            sample_points.append(self.px(x))
+        return sample_points
 
 
 class Ellipse:
@@ -310,7 +409,7 @@ class Ellipse:
 
     @staticmethod
     def txy(a: float, b: float, m: float, xy: float) -> [float]:  # helper function for tx and ty
-        if a != 0 and not math.isclose(m, xy + a, abs_tol=1e-13):
+        if a != 0 and not about_equal(m, xy + a):
             w = a**2 + b**2 - m**2 + 2*m*xy - xy**2
             if w < 0:
                 return []
@@ -354,7 +453,7 @@ class Ellipse:
 
         ret_ts = [ts[0]]
         for i in range(len(ts) - 1):
-            if not math.isclose(ts[i], ts[i+1], abs_tol=1e-13):
+            if not about_equal(ts[i], ts[i+1]):
                 ret_ts.append(ts[i+1])
 
         return ret_ts
