@@ -425,6 +425,8 @@ class CellMatrix:
             desc += "  " + str(i) + ": " + str(self.path_b[i]) + '\n'
         desc += "==>\n"
         desc += " Bounds_l: " + str(self.bounds_l) + '\n'
+        desc += " Critical Paths Horizontal: " + str(self.critical_traversals_horizontal) + '\n'
+        desc += " Critical Paths Vertical: " + str(self.critical_traversals_horizontal) + '\n'
         if self.traverse > 0:
             desc += " Lowest_l: " + str(self.lowest_l) + '\n'
             desc += " Traversals:\n"
