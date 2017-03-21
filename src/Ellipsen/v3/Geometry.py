@@ -132,6 +132,15 @@ class Circle:
     def p(self, t: float) -> Vector:  # point on ellipse for set parameter t
         return self.p_no_offset(t) + self.m
 
+    def contains_point(self, p: Vector) -> bool:
+        return self.m.d(p) <= self.r + tol
+
+    def contains_points(self, ps: [Vector]) -> bool:
+        for p in ps:
+            if not self.contains_point(p):
+                return False
+        return True
+
 
 class LineSegment:
     def __init__(self, p1: Vector, p2: Vector):
@@ -254,13 +263,13 @@ class LineSegment:
         # point on line that has equal distance to p1 and p2
         if p1 == p2:
             return Vector(math.nan, math.nan)
-        m = (p1 + p2) * 0.5
+        p = (p1 + p2) * 0.5
         v = (p2 - p1).rotate_90_l()
-        ls = LineSegment(m, m + v)
+        ls = LineSegment(p, p + v)
         if not about_equal(self.m, ls.m):
             return self.intersection(ls)
-        elif self.point_on(m):
-            return m
+        elif self.point_on(p):
+            return p
         else:
             return Vector(math.nan, math.nan)
 

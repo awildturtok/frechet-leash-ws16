@@ -201,11 +201,11 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
     # plot critical traversals
     if plot_critical_traversals:
         for tra in sample["critical-traversals"]:
-            p1 = tra[3][0]
-            p2 = tra[3][-1]
+            p1 = tra.a
+            p2 = tra.b
             ax_2d.plot([p1.x], [p1.y], "b.")
             ax_2d.plot([p2.x], [p2.y], "b.")
-            x, y = vectors_to_xy(tra[3])
+            x, y = vectors_to_xy(tra.path)
             ax_2d.plot(x, y, "b--", linewidth=1.0)
 
     # plot traversals

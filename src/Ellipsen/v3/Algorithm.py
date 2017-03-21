@@ -363,8 +363,28 @@ def traverse_b(t: TraversalType) -> \
     return t[0], t[1], t[2], t[3], (t[4][0], t[4][1] + 1)
 
 
+class Traversal:
+    def __init__(self, cell_matrix: 'CellMatrix', a: Vector, b: Vector, path: [Vector], epsilon: float, epsilons: [float],
+                 cell_a: (float, float), cell_b: (float, float)):
+        self.cell_matrix = cell_matrix
+        self.a = a
+        self.b = b
+        self.path = path
+        self.epsilon = epsilon
+        self.epsilons = epsilons
+        self.cell_a = cell_a
+        self.cell_b = cell_b
+
+    def __str__(self):
+        return " Traversal:" \
+               "   A: " + str(self.a) + " -> B: " + str(self.b) + '\n' + \
+               "   Cell_A: " + str(self.cell_a) + " -> Cell_B: " + str(self.cell_b) + '\n' + \
+               "   Path: " + str(self.path) + '\n' + \
+               "   Epsilon: " + str(self.epsilon) + '\n' + \
+               "   Epsilons: " + str(self.epsilons)
+
+
 class CellMatrix:
-    
     def __init__(self, points_p: [Vector], points_q: [Vector], traverse: int = 0, fast: bool = False):
         # points of path
         self.points_p = points_p
@@ -400,27 +420,8 @@ class CellMatrix:
             self.offsets_q[i_q + 1] = self.offsets_q[i_q] + q_i.l
             self.lengths_q[i_q] = q_i.l
 
-        # calculate border l-functions
-        self.border_hor = []
-        self.border_ver = []
-        # horizontal
-        for i_p in range(self.count_p):
-            self.border_hor.append([])
-            line = self.path_p[i_p]
-            for i_q in range(self.count_q + 1):
-                point = self.points_q[i_q]
-                parabola = line.parabola_with_point(point)
-                parabola.move_x(self.offsets_p[i_p])
-                self.border_hor[i_p].append(parabola)
-        # vertical
-        for i_p in range(self.count_p + 1):
-            self.border_ver.append([])
-            point = self.points_p[i_p]
-            for i_q in range(self.count_q):
-                line = self.path_q[i_q]
-                parabola = line.parabola_with_point(point)
-                parabola.move_x(self.offsets_q[i_q])
-                self.border_ver[i_p].append(parabola)
+        # border parabolas
+        self.border_hor, self.border_ver = self.calculate_border_parabolas()
 
         # generate and save TwoLineSegments & Cells
         self.twoLSs = []
@@ -477,7 +478,7 @@ class CellMatrix:
         self.min_global_l = max(self.points_p[0].d(self.points_q[0]), self.points_p[-1].d(self.points_q[-1]))
 
         # critical traversals
-        self.critical_traversals_horizontal, self.critical_traversals_vertical = self.calculate_critical_traversals()
+        self.critical_traversals_horizontal, self.critical_traversals_vertical = self.calculate_critical_events()
 
         # traverse
         self.traverse = traverse
@@ -500,104 +501,146 @@ class CellMatrix:
             desc += "  " + str(i) + ": " + str(self.path_q[i]) + '\n'
         desc += "==>\n"
         desc += " Bounds_l: " + str(self.bounds_l) + '\n'
-        desc += " Critical Paths Horizontal: " + str(self.critical_traversals_horizontal) + '\n'
-        desc += " Critical Paths Vertical: " + str(self.critical_traversals_horizontal) + '\n'
+        desc += " Critical Paths Horizontal: " + str(list(self.critical_traversals_horizontal.values())) + '\n'
+        desc += " Critical Paths Vertical: " + str(list(self.critical_traversals_horizontal.values())) + '\n'
         if self.traverse > 0:
             desc += " Lowest_l: " + str(self.lowest_l) + '\n'
             desc += " Traversals:\n"
             for traversal in self.traversals:
                 desc += "   " + str(traversal) + '\n'
         desc += " Two Line Segments & Cells:\n"
-        for i_a in range(self.count_p):
-            for i_b in range(self.count_q):
-                desc += " Cell " + str(i_a) + "x" + str(i_b) + '\n'
-                desc += str(self.twoLSs[i_a][i_b]) + '\n'
-                desc += str(self.cells[i_a][i_b]) + '\n'
+        for i_p in range(self.count_p):
+            for i_q in range(self.count_q):
+                desc += " Cell " + str(i_p) + "x" + str(i_q) + '\n'
+                desc += str(self.twoLSs[i_p][i_q]) + '\n'
+                desc += str(self.cells[i_p][i_q]) + '\n'
 
         return desc
 
-    def calculate_critical_traversals(self) -> ([], []):  # calculates critical traversal paths
+    def calculate_border_parabolas(self) -> ([], []):
+        border_hor = []
+        border_ver = []
 
         # horizontal
-        critical_traversals_horizontal = [[[] for b in range(self.count_q)] for a in range(self.count_p)]
-        for i_b in range(self.count_q):
-            b = self.path_q[i_b]
-            for i1_a in range(self.count_p):
-                for i2_a in range(self.count_p, i1_a, - 1):
-                    p1_a = self.points_p[i1_a]
-                    p2_a = self.points_p[i2_a]
-                    if b.d.acute(p2_a - p1_a):
-                        continue
-                    b_p = b.p_for_equal_dist_to_points(p1_a, p2_a)
-                    if math.isnan(b_p.x):
-                        continue
-                    b_d = p1_a.d(b_p)
-                    b_rl = b.rl_point(b_p)
-                    bb_rl = self.offsets_q[i_b] + b_rl
-                    if 0 - tol <= b_rl <= b.l + tol:
-                        max_l = b_d
-                        start_p = Vector(self.offsets_p[i1_a], bb_rl)
-                        traversal_ls = [b_d]
-                        traversal_ps = [start_p]
-                        for i3_a in range(i1_a + 1, i2_a + 1):
-                            p_a = self.points_p[i3_a]
-                            p_l = p_a.d(b_p)
-                            max_l = max(max_l, p_l)
-                            next_p = Vector(self.offsets_p[i3_a], bb_rl)
-                            traversal_ls.append(p_l)
-                            traversal_ps.append(next_p)
-                        if b_d + tol >= max_l and (not self.fast or max_l >= self.min_global_l):
-                            critical_traversals_horizontal[i1_a][i_b].append(
-                                (max_l, start_p, traversal_ls, traversal_ps, (i2_a - i1_a, 0)))
+        for i_p in range(self.count_p):
+            border_hor.append([])
+            line = self.path_p[i_p]
+            for i_q in range(self.count_q + 1):
+                point = self.points_q[i_q]
+                parabola = line.parabola_with_point(point)
+                parabola.move_x(self.offsets_p[i_p])
+                border_hor[i_p].append(parabola)
 
         # vertical
-        critical_traversals_vertical = [[[] for b in range(self.count_q)] for a in range(self.count_p)]
-        for i_a in range(self.count_p):
-            a = self.path_p[i_a]
-            for i1_b in range(self.count_q):
-                for i2_b in range(self.count_q, i1_b, - 1):
-                    p1_b = self.points_q[i1_b]
-                    p2_b = self.points_q[i2_b]
-                    if a.d.acute(p2_b - p1_b):
+        for i_p in range(self.count_p + 1):
+            border_ver.append([])
+            point = self.points_p[i_p]
+            for i_q in range(self.count_q):
+                line = self.path_q[i_q]
+                parabola = line.parabola_with_point(point)
+                parabola.move_x(self.offsets_q[i_q])
+                border_ver[i_p].append(parabola)
+
+        return border_hor, border_ver
+
+    def calculate_critical_events(self) -> ({}, {}):
+        critical_traversals_horizontal = {}
+        critical_traversals_vertical = {}
+
+        # horizontal
+        offsets = self.offsets_p
+        for i_segment in range(self.count_q):
+            segment = self.path_q[i_segment]
+            offset_r = self.offsets_q[i_segment]
+
+            for start_i in range(self.count_p):
+                for end_i in range(self.count_p, start_i, - 1):
+
+                    points = self.points_p[:end_i + 1][start_i:]
+
+                    '''if segment.d.acute(points[-1] - points[0]):
+                        continue'''  # Question
+
+                    critical_point = segment.p_for_equal_dist_to_points(points[0], points[-1])
+                    if math.isnan(critical_point.x):
                         continue
-                    a_p = a.p_for_equal_dist_to_points(p1_b, p2_b)
-                    if math.isnan(a_p.x):
+
+                    r_local = segment.rl_point(critical_point)
+                    if not 0 - tol <= r_local <= segment.l + tol:
                         continue
-                    a_d = p1_b.d(a_p)
-                    a_rl = a.rl_point(a_p)
-                    aa_rl = self.offsets_p[i_a] + a_rl
-                    if 0 - tol <= a_rl <= a.l + tol:
-                        max_l = a_d
-                        start_p = Vector(aa_rl, self.offsets_q[i1_b])
-                        traversal_ls = [a_d]
-                        traversal_ps = [start_p]
-                        for i3_b in range(i1_b + 1, i2_b + 1):
-                            p_b = self.points_q[i3_b]
-                            p_l = p_b.d(a_p)
-                            max_l = max(max_l, p_l)
-                            next_p = Vector(aa_rl, self.offsets_q[i3_b])
-                            traversal_ls.append(p_l)
-                            traversal_ps.append(next_p)
-                        if a_d + tol >= max_l and (not self.fast or max_l >= self.min_global_l):
-                            critical_traversals_vertical[i_a][i1_b].append(
-                                (max_l, start_p, traversal_ls, traversal_ps, (0, i2_b - i1_b)))
+
+                    epsilon = points[0].d(critical_point)
+                    epsilon_circle = Circle(critical_point, epsilon)
+                    if not epsilon_circle.contains_points(points):
+                        continue
+
+                    r = offset_r + r_local
+                    traversal_epsilons, traversal_points = [], []
+                    for point in points:
+                        traversal_epsilons.append(point.d(critical_point))
+
+                    for i_point in range(start_i, end_i + 1):
+                        traversal_points.append(Vector(offsets[i_point], r))
+
+                    traversal = Traversal(self, traversal_points[0], traversal_points[-1], traversal_points, epsilon,
+                                          traversal_epsilons, (start_i, i_segment), (end_i, i_segment))
+                    critical_traversals_horizontal[epsilon] = traversal
+
+        # vertical
+        offsets = self.offsets_q
+        for i_segment in range(self.count_p):
+            segment = self.path_p[i_segment]
+            offset_r = self.offsets_p[i_segment]
+
+            for start_i in range(self.count_q):
+                for end_i in range(self.count_q, start_i, - 1):
+
+                    points = self.points_q[:end_i + 1][start_i:]
+
+                    '''if segment.d.acute(points[-1] - points[0]):
+                        continue'''  # Question
+
+                    critical_point = segment.p_for_equal_dist_to_points(points[0], points[-1])
+                    if math.isnan(critical_point.x):
+                        continue
+
+                    r_local = segment.rl_point(critical_point)
+                    if not 0 - tol <= r_local <= segment.l + tol:
+                        continue
+
+                    epsilon = points[0].d(critical_point)
+                    epsilon_circle = Circle(critical_point, epsilon)
+                    if not epsilon_circle.contains_points(points):
+                        continue
+
+                    r = offset_r + r_local
+                    traversal_epsilons, traversal_points = [], []
+                    for point in points:
+                        traversal_epsilons.append(point.d(critical_point))
+
+                    for i_point in range(start_i, end_i + 1):
+                        traversal_points.append(Vector(r, offsets[i_point]))
+
+                    traversal = Traversal(self, traversal_points[0], traversal_points[-1], traversal_points, epsilon,
+                                          traversal_epsilons, (start_i, i_segment), (end_i, i_segment))
+                    critical_traversals_horizontal[epsilon] = traversal
 
         return critical_traversals_horizontal, critical_traversals_vertical
 
     # Old Traversal (v2):
     def traverse_best(self, criteria: int = 2, delete_duplicates: bool = True, start: Vector = Vector(0, 0)) \
             -> [TraversalType]:  # traverses cell-matrix and chooses best traversal depending on criteria
-        i_a = 0
-        i_b = 0
-        while start.x > self.offsets_p[i_a + 1]:
-            i_a += 1
-        while start.y > self.offsets_q[i_b + 1]:
-            i_b += 1
+        i_p = 0
+        i_q = 0
+        while start.x > self.offsets_p[i_p + 1]:
+            i_p += 1
+        while start.y > self.offsets_q[i_q + 1]:
+            i_q += 1
 
         print("Lower Limit for minimum global l: " + str(self.min_global_l))
 
-        l_start = self.cells[i_a][i_b].lp(start)
-        traversals0 = self.traverse_rec((l_start, start, [l_start], [start], (i_a, i_b)))
+        l_start = self.cells[i_p][i_q].lp(start)
+        traversals0 = self.traverse_rec((l_start, start, [l_start], [start], (i_p, i_q)))
         traversals = traversals0
 
         # select best traversal(s):
@@ -645,14 +688,14 @@ class CellMatrix:
     def traverse_rec(self, traversal: TraversalType) -> \
             [TraversalType]:  # traverse cells recursive
         # indicate which cell to traverse next
-        i_a = traversal[4][0]
-        i_b = traversal[4][1]
+        i_p = traversal[4][0]
+        i_q = traversal[4][1]
 
         if self.global_minimum_reached and self.fast:
             return []
 
         # complete recursive call on reach of cell-matrix top right
-        if i_a >= self.count_p and i_b >= self.count_q:
+        if i_p >= self.count_p and i_q >= self.count_q:
             if traversal[0] < self.lowest_l:
                 self.lowest_l = traversal[0]
                 print("momentary lowest_l = " + str(self.lowest_l))
@@ -665,14 +708,14 @@ class CellMatrix:
         traversals = []
 
         # if traversal hits top- or right-side of cell-matrix move to top-right
-        if i_a >= self.count_p or i_b >= self.count_q:
-            if i_a < self.count_p:
-                cell = self.cells[i_a][self.count_q - 1]
+        if i_p >= self.count_p or i_q >= self.count_q:
+            if i_p < self.count_p:
+                cell = self.cells[i_p][self.count_q - 1]
                 if cell.top_right_l <= self.lowest_l + tol:
                     next_traversal = traverse_a(cell.traverse_top_right_force(traversal))
                     traversals += self.traverse_rec(next_traversal)
-            if i_b < self.count_q:
-                cell = self.cells[self.count_p - 1][i_b]
+            if i_q < self.count_q:
+                cell = self.cells[self.count_p - 1][i_q]
                 if cell.top_right_l <= self.lowest_l + tol:
                     next_traversal = traverse_b(cell.traverse_top_right_force(traversal))
                     traversals += self.traverse_rec(next_traversal)
@@ -680,7 +723,7 @@ class CellMatrix:
         else:  # if traversal is not at the top- or right-side yet
 
             # traverse cell by steepest decent
-            sd_traversal = self.cells[i_a][i_b].traverse(traversal)
+            sd_traversal = self.cells[i_p][i_q].traverse(traversal)
             # traverse to right side?
             if self.lowest_l + tol >= sd_traversal[0][0] and not math.isinf(sd_traversal[0][0]):
                 traversals += self.traverse_rec(sd_traversal[0])
@@ -694,8 +737,8 @@ class CellMatrix:
             # traverse by critical traversal paths
             p = traversal[1]  # last point of traversal
             # horizontal
-            if i_a < self.count_p - 1:
-                for critical_traversal_horizontal in self.critical_traversals_horizontal[i_a + 1][i_b]:
+            if i_p < self.count_p - 1:
+                for critical_traversal_horizontal in self.critical_traversals_horizontal[i_p + 1][i_q]:
                     max_l = critical_traversal_horizontal[0]
                     start = critical_traversal_horizontal[1]
                     if p < start and self.lowest_l + tol >= max_l and \
@@ -703,8 +746,8 @@ class CellMatrix:
                         next_traversal = traverse_a(traverse_do(traversal, critical_traversal_horizontal))
                         traversals += self.traverse_rec(next_traversal)
             # vertical
-            if i_b < self.count_q - 1:
-                for critical_traversal_vertical in self.critical_traversals_vertical[i_a][i_b + 1]:
+            if i_q < self.count_q - 1:
+                for critical_traversal_vertical in self.critical_traversals_vertical[i_p][i_q + 1]:
                     max_l = critical_traversal_vertical[0]
                     start = critical_traversal_vertical[1]
                     if p < start and self.lowest_l + tol >= max_l and \
@@ -741,10 +784,10 @@ class CellMatrix:
         samples["input"] = [self.points_p, self.points_q]
 
         # sample cells
-        for i_a in range(self.count_p):
-            for i_b in range(self.count_q):
-                cell = self.cells[i_a][i_b]
-                samples["cells"].append((str(i_a) + "x" + str(i_b), cell.sample(ls, np)))
+        for i_p in range(self.count_p):
+            for i_q in range(self.count_q):
+                cell = self.cells[i_p][i_q]
+                samples["cells"].append((str(i_p) + "x" + str(i_q), cell.sample(ls, np)))
 
         # sample cell borders
         for i in range(1, self.count_p):  # vertical
@@ -758,10 +801,8 @@ class CellMatrix:
         samples["size"] = (self.length_p, self.length_q)
 
         # sample critical traversals
-        samples["critical-traversals"] = [item for sublist in [item for sublist in self.critical_traversals_horizontal
-                                                               for item in sublist] for item in sublist] + \
-                                         [item for sublist in [item for sublist in self.critical_traversals_vertical
-                                                               for item in sublist] for item in sublist]
+        samples["critical-traversals"] = list(self.critical_traversals_horizontal.values()) + \
+                                         list(self.critical_traversals_vertical.values())
 
         # Old Traversal Sample:
         # sample traversals

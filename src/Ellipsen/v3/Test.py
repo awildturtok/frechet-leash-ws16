@@ -34,14 +34,23 @@ a_ys = [-2, -2, 2, 10, 5]
 b_xs = [-10, 10, -10]
 b_ys = [0, 0, 4]'''
 
-# new type of events ex. 1
+'''# new type of events ex. 1
 # path_a:
 a_xs = [0, 1.5, 1, 2]
 a_ys = [0, 0, 1+math.sqrt(0.5), 1+math.sqrt(0.5)]
 
 # path_b:
 b_xs = [0, 2, 1]
-b_ys = [math.sqrt(0.5), math.sqrt(0.5), 0]
+b_ys = [math.sqrt(0.5), math.sqrt(0.5), 0]'''
+
+# old type of event acute:
+# path_a:
+a_xs = [0, 10]
+a_ys = [0, 0]
+
+# path_b:
+b_xs = [0, 3, 6, 9]
+b_ys = [-3, 3, -3, 3]
 
 '''# new type of event ex. 2
 # path_a:
@@ -67,7 +76,7 @@ path_b = xy_to_vectors(b_xs, b_ys)
 input1 = CellMatrix(path_a, path_b, traverse=0)
 print(input1)
 
-#sample1 = input1.sample_l(n_l, n_p)
-sample1 = input1.sample([1], n_p)
+sample1 = input1.sample_l(n_l, n_p)
+#sample1 = input1.sample([1], n_p)
 
-sample_to_matplotlib(sample1, plot_3d=True, plot_traversals=False, plot_critical_traversals=False, plot_l_lines=False)
+sample_to_matplotlib(sample1, plot_3d=True, plot_traversals=False, plot_critical_traversals=True, plot_l_lines=False)
