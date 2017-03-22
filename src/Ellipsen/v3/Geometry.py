@@ -249,7 +249,7 @@ class LineSegment:
         return about_equal(p.y, self.fx(p.x)) or about_equal(p.x, self.fy(p.y))
 
     def intersection_r(self, ls: 'LineSegment'):  # calculates the parameter r of the intersection point
-        if self.m != ls.m:
+        if not about_equal(self.m, ls.m):
             a = np.array([[-self.d.x, ls.d.x], [-self.d.y, ls.d.y]])
             b = np.array([self.p1.x - ls.p1.x, self.p1.y - ls.p1.y])
             [self_r, ls_r] = np.linalg.solve(a, b)
@@ -265,8 +265,8 @@ class LineSegment:
         r = self.intersection_r(ls)
         return r * self.l
 
-    def p_for_equal_dist_to_points(self, p1: Vector, p2: Vector) -> Vector:
-        # point on line that has equal distance to p1 and p2
+    def r_for_equal_dist_to_points(self, p1: Vector, p2: Vector) -> Vector:
+        # parameter r for point on line that has equal distance to p1 and p2
         if p1 == p2:
             p = p1
             v = self.d.rotate_90_r()
@@ -274,12 +274,14 @@ class LineSegment:
             p = (p1 + p2) * 0.5
             v = (p2 - p1).rotate_90_l()
         ls = LineSegment(p, p + v)
-        if not about_equal(self.m, ls.m):
-            return self.intersection_p(ls)
-        elif self.point_on(p):
-            return p
-        else:
-            return Vector(math.nan, math.nan)
+
+        return self.intersection_r(ls)
+
+    def rl_for_equal_dist_to_points(self, p1: Vector, p2: Vector) -> Vector:
+        return self.r_for_equal_dist_to_points(p1, p2) * self.l
+
+    def p_for_equal_dist_to_points(self, p1: Vector, p2: Vector) -> Vector:
+        return self.fr(self.r_for_equal_dist_to_points(p1, p2))
 
     def cuts_bounds(self, bounds: ((float, float), (float, float))) -> [Vector]: # points where line cuts given bounds
         x1 = bounds[0][0]
@@ -305,105 +307,57 @@ class LineSegment:
 
         return points
 
-    def parabola_with_point(self, point: Vector) -> 'Parabola':
+    def hyperbola_with_point(self, point: Vector) -> 'hyperbola':
         projection_rl = self.project_p_rl(point)
         projection_d = self.d_l_point(point)
         s = Vector(projection_rl, projection_d)
-        if abs(projection_rl - 0) >= abs(projection_rl - self.l):
-            p = Vector(0, self.p1.d(point))
-        else:
-            p = Vector(self.l, self.p2.d(point))
-        return Parabola(s, p)
+        return Hyperbola(s)
 
-    def parabola_with_line(self, line: 'LineSegment') -> 'Parabola':  #Todo: rewrite (see parabola_with_point)
+    def hyperbola_with_line(self, line: 'LineSegment') -> 'hyperbola':  #Todo: rewrite (see hyperbola_with_point)
         l = math.sqrt(math.pow(self.l, 2) + math.pow(line.l, 2))
         p1 = Vector(0, self.p1.d(line.p1))
         p2 = Vector(0.5 * l, self.fr(0.5).d(line.fr(0.5)))
         p3 = Vector(l, self.p2.d(line.p2))
-        return Parabola(p1, p2, p3)
+        return Hyperbola(p1, p2, p3)
 
 
-class Parabola:
-    def __init__(self, s: Vector, p: Vector):
+class Hyperbola:
+    def __init__(self, s: Vector):
         self.s = s
-        if s.x != p.x:
-            self.a = (p.y - s.y) / math.pow(p.x - s.x, 2)
-        else:
-            print("Error: Parabola cannot be interpolated: s == p")
-            self.a = tol * 2
 
     def __str__(self):
-        return "Parabola: S" + str(self.s) + " func: " + str(self.func_str())
+        return "hyperbola: S" + str(self.s) + " func: " + str(self.func_str())
 
     def func_str(self) -> str:
-        return str(self.a) + "*( x - " + str(self.s.x) + " )^2 + " + str(self.s.y)
+        return "sqrt( " + str(self.s.y) + "^2 + ( x - " + str(self.s.x) +  " )^2 )"
 
     def fx(self, x: float) -> float:  # y-value for set x-value
-        return self.a * math.pow(x - self.s.x, 2) + self.s.y
-
-    def fy(self, y: float) -> float:  # x-value(s) for set y-value
-        if about_equal(y, self.s.y):
-            return [self.s.x]
-        elif (self.a > 0 and y > self.s.y) or (self.a < 0 and y < self.s.y):
-            w = math.sqrt((y - self.s.y) / self.a)
-            x1 = w + self.s.x
-            x2 = -w + self.s.x
-            return [x1, x2]
-        return []
+        return math.sqrt(math.pow(self.s.y, 2) + math.pow(x - self.s.x, 2))
 
     def px(self, x: float) -> Vector:  # point for set x-value
         return Vector(x, self.fx(x))
 
-    def py(self, y: float) -> float:  # points(s) for set y-value
-        xs = self.fy(y)
-        ps = []
-        for x in xs:
-            ps.append(self.px(x))
-        return ps
-
-    def move_x(self, d_x: float):  # moves parabola on x-axis
+    def move_x(self, d_x: float):  # moves hyperbola on x-axis
         d_p = Vector(d_x, 0)
         self.move_p(d_p)
 
-    def move_y(self, d_y: float):  # moves parabola on y-axis
+    def move_y(self, d_y: float):  # moves hyperbola on y-axis
         d_p = Vector(0, d_y)
         self.move_p(d_p)
 
-    def move_p(self, d_p: Vector):  # moves parabola on y-axis
+    def move_p(self, d_p: Vector):  # moves hyperbola on y-axis
         self.s += d_p
-
-    def cuts_line(self, line: LineSegment) -> [Vector]:
-        cuts = []
-        # Todo
-        return cuts
-
-    def cuts_linesegment(self, linesegment: LineSegment):
-        cuts_line = self.cuts_line(linesegment)
-        cuts_linesegment = []
-        for cut in cuts_line:
-            if linesegment.contains_point(cut):
-                cuts_linesegment.append(cut)
-        return cuts_linesegment
-    
-    def cuts_parabola(self, other: 'Parabola'):
-        cuts = []
-        # Todo: solve self.func - other.func = 0
-        return cuts
 
     def cuts_bounds_ver(self, bounds: (float, float)) -> [Vector]:
         return [self.px(bounds[0]), self.px(bounds[1])]
 
-    def sample(self, bounds: (float, float), n: int) -> [Vector]:  # samples parabola in bounds with n edges
+    def sample(self, bounds: (float, float), n: int) -> [Vector]:  # samples hyperbola in bounds with n edges
         sample_points = []
         width = bounds[1] - bounds[0]
         for i in range(n + 1):
             x = width * (i / n) + bounds[0]
             sample_points.append(self.px(x))
         return sample_points
-
-    def sample_with_vertex(self, bounds: (float, float), n: int) -> (Vector, [Vector]):
-        # samples parabola in bounds with n edges and include vertex
-        return (self.s, self.sample(bounds, n))
 
 
 class Ellipse:

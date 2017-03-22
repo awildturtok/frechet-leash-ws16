@@ -364,7 +364,8 @@ def traverse_b(t: TraversalType) -> \
 
 
 class Traversal:
-    def __init__(self, cell_matrix: 'CellMatrix', a: Vector, b: Vector, path: [Vector], epsilon: float, epsilons: [float],
+    def __init__(self, cell_matrix: 'CellMatrix', a: Vector, b: Vector, path: [Vector], epsilon: float,
+                 epsilons: [float],
                  cell_a: (float, float), cell_b: (float, float)):
         self.cell_matrix = cell_matrix
         self.a = a
@@ -450,9 +451,8 @@ class CellMatrix:
                 points = []
                 bounds = (self.offsets_p[i_p], self.offsets_p[i_p + 1])
                 n_points = math.ceil(100 * (self.lengths_p[i_p] / self.length_p))
-                points += self.border_hor[i_p][i_q].sample_with_vertex(bounds, n_points)
-                x, y = vectors_to_xy(points[1])
-                ax.plot(points[0].x, points[0].y, ".")  # DEBUG
+                points += self.border_hor[i_p][i_q].sample(bounds, n_points)
+                x, y = vectors_to_xy(points)
                 ax.plot(x, y)
             ax.set_ylim(*self.bounds_l)
             ax.set_xlabel("p")
@@ -465,9 +465,8 @@ class CellMatrix:
                 points = []
                 bounds = (self.offsets_q[i_q], self.offsets_q[i_q + 1])
                 n_points = math.ceil(100 * (self.lengths_q[i_q] / self.length_q))
-                points += self.border_ver[i_p][i_q].sample_with_vertex(bounds, n_points)
-                x, y = vectors_to_xy(points[1])
-                ax.plot(points[0].y, points[0].x, ".")  # DEBUG
+                points += self.border_ver[i_p][i_q].sample(bounds, n_points)
+                x, y = vectors_to_xy(points)
                 ax.plot(y, x)
             ax.set_xlim(*self.bounds_l)
             ax.set_xlabel("ε")
@@ -513,8 +512,8 @@ class CellMatrix:
             for i_q in range(self.count_q):
                 desc += "   " + str(i_p) + "x" + str(i_q) + ": " + str(self.border_ver[i_p][i_q]) + '\n'
         desc += " Critical Events: " + '\n'
-        desc += "  Horizontal: " + str(list(self.critical_traversals_horizontal.values())) + '\n'
-        desc += "  Vertical: " + str(list(self.critical_traversals_horizontal.values())) + '\n'
+        desc += "  Horizontal: " + str(self.critical_traversals_horizontal) + '\n'
+        desc += "  Vertical: " + str(self.critical_traversals_horizontal) + '\n'
         if self.traverse > 0:
             desc += " Lowest_l: " + str(self.lowest_l) + '\n'
             desc += " Traversals:\n"
@@ -539,7 +538,7 @@ class CellMatrix:
             line = self.path_p[i_p]
             for i_q in range(self.count_q + 1):
                 point = self.points_q[i_q]
-                parabola = line.parabola_with_point(point)
+                parabola = line.hyperbola_with_point(point)
                 parabola.move_x(self.offsets_p[i_p])
                 border_hor[i_p].append(parabola)
 
@@ -549,7 +548,7 @@ class CellMatrix:
             point = self.points_p[i_p]
             for i_q in range(self.count_q):
                 line = self.path_q[i_q]
-                parabola = line.parabola_with_point(point)
+                parabola = line.hyperbola_with_point(point)
                 parabola.move_x(self.offsets_q[i_q])
                 border_ver[i_p].append(parabola)
 
@@ -565,28 +564,27 @@ class CellMatrix:
             segment = self.path_q[i_segment]
             offset_r = self.offsets_q[i_segment]
 
-            for start_i in range(self.count_p):
-                for end_i in range(self.count_p, start_i, -1):
-
+            for start_i in range(self.count_p + 1):
+                for end_i in range(self.count_p, start_i - 1, -1):
                     points = self.points_p[:end_i + 1][start_i:]
 
                     if segment.d.acute(points[-1] - points[0]):
-                        continue  # Question
+                        continue  # Question 1
 
-                    critical_point = segment.p_for_equal_dist_to_points(points[0], points[-1])
-                    if math.isnan(critical_point.x):
+                    critical_rl = segment.rl_for_equal_dist_to_points(points[0], points[-1])
+                    if math.isnan(critical_rl):
                         continue
 
-                    r_local = segment.rl_point(critical_point)
-                    if not 0 - tol <= r_local <= segment.l + tol:
+                    if not 0 - tol <= critical_rl <= segment.l + tol:
                         continue
 
+                    critical_point = segment.frl(critical_rl)
                     epsilon = points[0].d(critical_point)
                     epsilon_circle = Circle(critical_point, epsilon)
                     if not epsilon_circle.contains_points(points):
                         continue
 
-                    r = offset_r + r_local
+                    r = offset_r + critical_rl
                     traversal_epsilons, traversal_points = [], []
                     for point in points:
                         traversal_epsilons.append(point.d(critical_point))
@@ -596,7 +594,9 @@ class CellMatrix:
 
                     traversal = Traversal(self, traversal_points[0], traversal_points[-1], traversal_points, epsilon,
                                           traversal_epsilons, (start_i, i_segment), (end_i, i_segment))
-                    critical_traversals_horizontal[epsilon] = traversal
+                    if epsilon not in critical_traversals_horizontal:
+                        critical_traversals_horizontal[epsilon] = []
+                    critical_traversals_horizontal[epsilon].append(traversal)
 
         # vertical
         offsets = self.offsets_q
@@ -604,28 +604,28 @@ class CellMatrix:
             segment = self.path_p[i_segment]
             offset_r = self.offsets_p[i_segment]
 
-            for start_i in range(self.count_q):
-                for end_i in range(self.count_q, start_i, -1):
+            for start_i in range(self.count_q + 1):
+                for end_i in range(self.count_q, start_i - 1, -1):
 
                     points = self.points_q[:end_i + 1][start_i:]
 
                     if segment.d.acute(points[-1] - points[0]):
-                        continue  # Question
+                        continue  # Question 1
 
-                    critical_point = segment.p_for_equal_dist_to_points(points[0], points[-1])
-                    if math.isnan(critical_point.x):
+                    critical_rl = segment.rl_for_equal_dist_to_points(points[0], points[-1])
+                    if math.isnan(critical_rl):
                         continue
 
-                    r_local = segment.rl_point(critical_point)
-                    if not 0 - tol <= r_local <= segment.l + tol:
+                    if not 0 - tol <= critical_rl <= segment.l + tol:
                         continue
 
+                    critical_point = segment.frl(critical_rl)
                     epsilon = points[0].d(critical_point)
                     epsilon_circle = Circle(critical_point, epsilon)
                     if not epsilon_circle.contains_points(points):
                         continue
 
-                    r = offset_r + r_local
+                    r = offset_r + critical_rl
                     traversal_epsilons, traversal_points = [], []
                     for point in points:
                         traversal_epsilons.append(point.d(critical_point))
@@ -635,7 +635,9 @@ class CellMatrix:
 
                     traversal = Traversal(self, traversal_points[0], traversal_points[-1], traversal_points, epsilon,
                                           traversal_epsilons, (start_i, i_segment), (end_i, i_segment))
-                    critical_traversals_horizontal[epsilon] = traversal
+                    if epsilon not in critical_traversals_vertical:
+                        critical_traversals_vertical[epsilon] = []
+                    critical_traversals_vertical[epsilon].append(traversal)
 
         return critical_traversals_horizontal, critical_traversals_vertical
 
