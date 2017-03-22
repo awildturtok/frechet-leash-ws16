@@ -26,13 +26,13 @@ a_ys = [0, 1]
 b_xs = [1, 0]
 b_ys = [0, 0]'''
 
-'''# path_a:
+# path_a:
 a_xs = [-8, 12, 12, 0, -10]
 a_ys = [-2, -2, 2, 10, 5]
 
 # path_b:
 b_xs = [-10, 10, -10]
-b_ys = [0, 0, 4]'''
+b_ys = [0, 0, 4]
 
 '''# new type of events ex. 1
 # path_a:
@@ -43,14 +43,14 @@ a_ys = [0, 0, 1+math.sqrt(0.5), 1+math.sqrt(0.5)]
 b_xs = [0, 2, 1]
 b_ys = [math.sqrt(0.5), math.sqrt(0.5), 0]'''
 
-# old type of event acute:
+'''# old type of event acute:
 # path_a:
 a_xs = [0, 10]
 a_ys = [0, 0]
 
 # path_b:
-b_xs = [0, 3, 6, 9]
-b_ys = [-3, 3, -3, 3]
+b_xs = [1, 4, 7, 10]
+b_ys = [0, 3, -3, 0]'''
 
 '''# new type of event ex. 2
 # path_a:
@@ -62,12 +62,12 @@ b_xs = [4, 0]
 b_ys = [1, 1]'''
 
 '''# path_a:
-a_xs = np.random.random_sample(10)
-a_ys = np.random.random_sample(10)
+a_xs = np.random.random_sample(5)
+a_ys = np.random.random_sample(5)
 
 # path_b:
-b_xs = np.random.random_sample(10)
-b_ys = np.random.random_sample(10)'''
+b_xs = np.random.random_sample(5)
+b_ys = np.random.random_sample(5)'''
 
 
 path_a = xy_to_vectors(a_xs, a_ys)

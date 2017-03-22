@@ -284,7 +284,7 @@ class TwoLineSegments:  # calculates and saves parameters of two line segments
 
         self.parallel = about_equal(a.m, b.m)
         if not self.parallel:  # case 1: lines are not parallel
-            self.s = a.intersection(b)  # intersection point S
+            self.s = a.intersection_p(b)  # intersection point S
 
             self.a = OneLineSegment(a, self.s)  # line segment a
             self.b = OneLineSegment(b, self.s)  # line segment b
@@ -446,13 +446,14 @@ class CellMatrix:
         fig_hor = plt.figure(figsize=plt.figaspect(0.5))
         for i_q in range(self.count_q + 1):
             ax = fig_hor.add_subplot(self.count_q + 1, 1, self.count_q - i_q + 1, aspect=1)
-            points = []
             for i_p in range(self.count_p):
+                points = []
                 bounds = (self.offsets_p[i_p], self.offsets_p[i_p + 1])
                 n_points = math.ceil(100 * (self.lengths_p[i_p] / self.length_p))
-                points += self.border_hor[i_p][i_q].sample(bounds, n_points)
-            x, y = vectors_to_xy(points)
-            ax.plot(x, y)
+                points += self.border_hor[i_p][i_q].sample_with_vertex(bounds, n_points)
+                x, y = vectors_to_xy(points[1])
+                ax.plot(points[0].x, points[0].y, ".")  # DEBUG
+                ax.plot(x, y)
             ax.set_ylim(*self.bounds_l)
             ax.set_xlabel("p")
             ax.set_ylabel("ε")
@@ -460,13 +461,14 @@ class CellMatrix:
         fig_ver = plt.figure(figsize=plt.figaspect(0.5))
         for i_p in range(self.count_p + 1):
             ax = fig_ver.add_subplot(1, self.count_p + 1, i_p + 1, aspect=1)
-            points = []
             for i_q in range(self.count_q):
+                points = []
                 bounds = (self.offsets_q[i_q], self.offsets_q[i_q + 1])
-                n_points =  math.ceil(100 * (self.lengths_q[i_q] / self.length_q))
-                points += self.border_ver[i_p][i_q].sample(bounds, n_points)
-            x, y = vectors_to_xy(points)
-            ax.plot(y, x)
+                n_points = math.ceil(100 * (self.lengths_q[i_q] / self.length_q))
+                points += self.border_ver[i_p][i_q].sample_with_vertex(bounds, n_points)
+                x, y = vectors_to_xy(points[1])
+                ax.plot(points[0].y, points[0].x, ".")  # DEBUG
+                ax.plot(y, x)
             ax.set_xlim(*self.bounds_l)
             ax.set_xlabel("ε")
             ax.set_ylabel("q")
@@ -501,8 +503,18 @@ class CellMatrix:
             desc += "  " + str(i) + ": " + str(self.path_q[i]) + '\n'
         desc += "==>\n"
         desc += " Bounds_l: " + str(self.bounds_l) + '\n'
-        desc += " Critical Paths Horizontal: " + str(list(self.critical_traversals_horizontal.values())) + '\n'
-        desc += " Critical Paths Vertical: " + str(list(self.critical_traversals_horizontal.values())) + '\n'
+        desc += " Border Parabolas: " + '\n'
+        desc += "  Horizontal: " + '\n'
+        for i_p in range(self.count_p):
+            for i_q in range(self.count_q + 1):
+                desc += "   " + str(i_p) + "x" + str(i_q) + ": " + str(self.border_hor[i_p][i_q]) + '\n'
+        desc += "  Vertical: " + '\n'
+        for i_p in range(self.count_p + 1):
+            for i_q in range(self.count_q):
+                desc += "   " + str(i_p) + "x" + str(i_q) + ": " + str(self.border_ver[i_p][i_q]) + '\n'
+        desc += " Critical Events: " + '\n'
+        desc += "  Horizontal: " + str(list(self.critical_traversals_horizontal.values())) + '\n'
+        desc += "  Vertical: " + str(list(self.critical_traversals_horizontal.values())) + '\n'
         if self.traverse > 0:
             desc += " Lowest_l: " + str(self.lowest_l) + '\n'
             desc += " Traversals:\n"
@@ -554,12 +566,12 @@ class CellMatrix:
             offset_r = self.offsets_q[i_segment]
 
             for start_i in range(self.count_p):
-                for end_i in range(self.count_p, start_i, - 1):
+                for end_i in range(self.count_p, start_i, -1):
 
                     points = self.points_p[:end_i + 1][start_i:]
 
-                    '''if segment.d.acute(points[-1] - points[0]):
-                        continue'''  # Question
+                    if segment.d.acute(points[-1] - points[0]):
+                        continue  # Question
 
                     critical_point = segment.p_for_equal_dist_to_points(points[0], points[-1])
                     if math.isnan(critical_point.x):
@@ -593,12 +605,12 @@ class CellMatrix:
             offset_r = self.offsets_p[i_segment]
 
             for start_i in range(self.count_q):
-                for end_i in range(self.count_q, start_i, - 1):
+                for end_i in range(self.count_q, start_i, -1):
 
                     points = self.points_q[:end_i + 1][start_i:]
 
-                    '''if segment.d.acute(points[-1] - points[0]):
-                        continue'''  # Question
+                    if segment.d.acute(points[-1] - points[0]):
+                        continue  # Question
 
                     critical_point = segment.p_for_equal_dist_to_points(points[0], points[-1])
                     if math.isnan(critical_point.x):

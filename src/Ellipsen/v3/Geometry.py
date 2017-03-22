@@ -85,6 +85,9 @@ class Vector:
     def norm(self) -> 'Vector':  # normalized vector (lenght = 1)
         return self * (1 / self.l)
 
+    def scalar(self, other: 'Vector') -> bool:
+        return about_equal(self.x / other.x, self.y / other.y)
+
     def dot_product(self, other: 'Vector') -> float:
         return self.x * other.x + self.y * other.y
 
@@ -168,8 +171,8 @@ class LineSegment:
     def fr(self, r: float) -> Vector:  # point for set parameter r = [0,1]
         return self.p1 + self.d * r
 
-    def frl(self, r: float) -> Vector:  # point for set parameter r = [0,l]
-        return self.p1 + self.d * (r/self.l)
+    def frl(self, rl: float) -> Vector:  # point for set parameter r = [0,l]
+        return self.p1 + self.d * (rl/self.l)
 
     def fx(self, x: float) -> float:  # y-value for set x-value
         if not math.isinf(self.m):
@@ -219,17 +222,14 @@ class LineSegment:
         return abs(self.d.cross_product(p - self.p1)) / self.d.l
 
     def project_p(self, p: Vector) -> Vector:  # projects point onto line
-        d_l = self.d_l_point(p)
-        pl = p + self.d.rotate_90_l().norm() * d_l
-        pr = p + self.d.rotate_90_r().norm() * d_l
-        if self.point_on(pl):
-            return pl
-        else:
-            return pr
+        v = self.d.rotate_90_l()
+        ls = LineSegment(p, p + v)
+        return self.intersection_p(ls)
 
-    def project_p_rl(self, p: Vector) -> float:  # projects point onto line and returns parameter r
-        projection = self.project_p(p)
-        return self.rl_point(projection)
+    def project_p_rl(self, p: Vector) -> float:  # projects point onto line and returns parameter rl
+        v = self.d.rotate_90_l()
+        ls = LineSegment(p, p + v)
+        return self.intersection_rl(ls)
 
     def d_ls_point(self, p: Vector) -> float:  # closest distance of p to line segment
         d_l = self.d_l_point(p)  # closest distance of p to line
@@ -248,26 +248,34 @@ class LineSegment:
     def point_on(self, p: Vector) -> bool:  # is given point on line
         return about_equal(p.y, self.fx(p.x)) or about_equal(p.x, self.fy(p.y))
 
-    def intersection(self, b: 'LineSegment'):  # calculates the intersection point of two line segments
-        if math.isinf(self.m) and not math.isinf(b.m):
-            return Vector(self.n, b.fx(self.n))
-        elif math.isinf(b.m) and not math.isinf(self.m):
-            return Vector(b.n, self.fx(b.n))
-        elif (self.m - b.m) != 0:
-            x = (b.n - self.n) / (self.m - b.m)
+    def intersection_r(self, ls: 'LineSegment'):  # calculates the parameter r of the intersection point
+        if self.m != ls.m:
+            a = np.array([[-self.d.x, ls.d.x], [-self.d.y, ls.d.y]])
+            b = np.array([self.p1.x - ls.p1.x, self.p1.y - ls.p1.y])
+            [self_r, ls_r] = np.linalg.solve(a, b)
+            return self_r
         else:
-            x = float("nan")
-        return Vector(x, self.fx(x))
+            return float('nan')
+
+    def intersection_p(self, ls: 'LineSegment'):  # calculates the intersection point of two line segments
+        r = self.intersection_r(ls)
+        return self.fr(r)
+
+    def intersection_rl(self, ls: 'LineSegment'):  # calculates the parameter r of the intersection point
+        r = self.intersection_r(ls)
+        return r * self.l
 
     def p_for_equal_dist_to_points(self, p1: Vector, p2: Vector) -> Vector:
         # point on line that has equal distance to p1 and p2
         if p1 == p2:
-            return Vector(math.nan, math.nan)
-        p = (p1 + p2) * 0.5
-        v = (p2 - p1).rotate_90_l()
+            p = p1
+            v = self.d.rotate_90_r()
+        else:
+            p = (p1 + p2) * 0.5
+            v = (p2 - p1).rotate_90_l()
         ls = LineSegment(p, p + v)
         if not about_equal(self.m, ls.m):
-            return self.intersection(ls)
+            return self.intersection_p(ls)
         elif self.point_on(p):
             return p
         else:
@@ -298,12 +306,16 @@ class LineSegment:
         return points
 
     def parabola_with_point(self, point: Vector) -> 'Parabola':
-        p1 = Vector(0, self.p1.d(point))
-        p2 = Vector(0.5 * self.l, self.fr(0.5).d(point))
-        p3 = Vector(self.l, self.p2.d(point))
-        return Parabola(p1, p2, p3)
+        projection_rl = self.project_p_rl(point)
+        projection_d = self.d_l_point(point)
+        s = Vector(projection_rl, projection_d)
+        if abs(projection_rl - 0) >= abs(projection_rl - self.l):
+            p = Vector(0, self.p1.d(point))
+        else:
+            p = Vector(self.l, self.p2.d(point))
+        return Parabola(s, p)
 
-    def parabola_with_line(self, line: 'LineSegment') -> 'Parabola':
+    def parabola_with_line(self, line: 'LineSegment') -> 'Parabola':  #Todo: rewrite (see parabola_with_point)
         l = math.sqrt(math.pow(self.l, 2) + math.pow(line.l, 2))
         p1 = Vector(0, self.p1.d(line.p1))
         p2 = Vector(0.5 * l, self.fr(0.5).d(line.fr(0.5)))
@@ -312,19 +324,19 @@ class LineSegment:
 
 
 class Parabola:
-    def __init__(self, p1: Vector, p2: Vector, p3: Vector):
-        self.ps = [p1, p2, p3]  # points defining the parabola
-        xs = np.array([[math.pow(p.x, 2), p.x, 1] for p in self.ps])
-        ys = np.array([p.y for p in self.ps])
-        [a, b, c] = np.linalg.solve(xs, ys)
-        self.s = Vector(-0.5 * (b / a), c - 0.25 * (math.pow(b, 2) / a))
-        self.a = a
+    def __init__(self, s: Vector, p: Vector):
+        self.s = s
+        if s.x != p.x:
+            self.a = (p.y - s.y) / math.pow(p.x - s.x, 2)
+        else:
+            print("Error: Parabola cannot be interpolated: s == p")
+            self.a = tol * 2
 
     def __str__(self):
-        return "Parabola: S" + str(self.s) + " func:" + str(self.func_str())
+        return "Parabola: S" + str(self.s) + " func: " + str(self.func_str())
 
     def func_str(self) -> str:
-        return str(self.a) + "(x - " + str(self.s.x) + ")^2 + " + str(self.s.y)
+        return str(self.a) + "*( x - " + str(self.s.x) + " )^2 + " + str(self.s.y)
 
     def fx(self, x: float) -> float:  # y-value for set x-value
         return self.a * math.pow(x - self.s.x, 2) + self.s.y
@@ -378,7 +390,7 @@ class Parabola:
         # Todo: solve self.func - other.func = 0
         return cuts
 
-    def cuts_bounds_vert(self, bounds: (float, float)) -> [Vector]:
+    def cuts_bounds_ver(self, bounds: (float, float)) -> [Vector]:
         return [self.px(bounds[0]), self.px(bounds[1])]
 
     def sample(self, bounds: (float, float), n: int) -> [Vector]:  # samples parabola in bounds with n edges
@@ -388,6 +400,10 @@ class Parabola:
             x = width * (i / n) + bounds[0]
             sample_points.append(self.px(x))
         return sample_points
+
+    def sample_with_vertex(self, bounds: (float, float), n: int) -> (Vector, [Vector]):
+        # samples parabola in bounds with n edges and include vertex
+        return (self.s, self.sample(bounds, n))
 
 
 class Ellipse:
