@@ -79,14 +79,22 @@ a_ys = [10, 10, 0, 0, 5, 0]
 b_xs = [-10, -5, -5, -15, -15, -5]
 b_ys = [10, 10, 5, 5, 0, 0]
 
-'''# critical events test 1a
+# critical events test 2
 # path_a:
-a_xs = [5, 10.1, 10, 0.1]
-a_ys = [5, 5, 0, 0]
+a_xs = [0, 20]
+a_ys = [0, 0]
 
 # path_b:
-b_xs = [-10, -5, -5, -15]
-b_ys = [10, 10, 5, 5]'''
+b_xs = [10, 15, 20]
+b_ys = [0, 10, 0]
+
+# critical events test 3
+a_xs = [0, 10, 3, 0, 10]
+a_ys = [0, 0, 8, 10, 10]
+
+# path_b:
+b_xs = [0, 10]
+b_ys = [3, 3]
 
 '''# path_a:
 a_xs = np.random.random_sample(10)
@@ -104,6 +112,6 @@ input1 = CellMatrix(path_a, path_b, traverse=0)
 print(input1)
 
 #sample1 = input1.sample_l(n_l, n_p)
-sample1 = input1.sample([15.81138831], n_p)
+sample1 = input1.sample([15.0], n_p)
 
-sample_to_matplotlib(sample1, plot_3d=True, plot_traversals=False, plot_critical_traversals=True, plot_l_lines=True)
+sample_to_matplotlib(sample1, plot_3d=False, plot_traversals=False, plot_critical_traversals=True, plot_l_lines=True)

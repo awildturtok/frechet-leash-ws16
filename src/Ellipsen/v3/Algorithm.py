@@ -443,34 +443,42 @@ class CellMatrix:
                 self.cells[i_p].append(cell)
 
         # DEBUG: sample parabolas:
+        fig_both = plt.figure(figsize=plt.figaspect(0.5))
+        ax_hor = fig_both.add_subplot(2, 1, 1, aspect=1, ylim=self.bounds_l, xlabel="p", ylabel="ε")
+        ax_ver = fig_both.add_subplot(2, 1, 2, aspect=1, ylim=self.bounds_l, xlabel="p", ylabel="ε")
         # horizontal
         fig_hor = plt.figure(figsize=plt.figaspect(0.5))
         for i_q in range(self.count_q + 1):
-            ax = fig_hor.add_subplot(self.count_q + 1, 1, self.count_q - i_q + 1, aspect=1)
+            ax = fig_hor.add_subplot(self.count_q + 1, 1, self.count_q - i_q + 1, aspect=1, ylim=self.bounds_l,
+                                     xlabel="p", ylabel="ε")
+            all_points = []
             for i_p in range(self.count_p):
                 points = []
                 bounds = (self.offsets_p[i_p], self.offsets_p[i_p + 1])
                 n_points = math.ceil(100 * (self.lengths_p[i_p] / self.length_p))
-                points += self.border_hor[i_p][i_q].sample(bounds, n_points)
+                sample = self.border_hor[i_p][i_q].sample(bounds, n_points)
+                points += sample
+                all_points += sample
                 x, y = vectors_to_xy(points)
                 ax.plot(x, y)
-            ax.set_ylim(*self.bounds_l)
-            ax.set_xlabel("p")
-            ax.set_ylabel("ε")
+            ax_hor.plot(*vectors_to_xy(all_points), label="q = " + str(i_q))
         # vertical
         fig_ver = plt.figure(figsize=plt.figaspect(0.5))
         for i_p in range(self.count_p + 1):
-            ax = fig_ver.add_subplot(1, self.count_p + 1, i_p + 1, aspect=1)
+            ax = fig_ver.add_subplot(1, self.count_p + 1, i_p + 1, aspect=1, xlim=self.bounds_l, xlabel="ε", ylabel="p")
+            all_points = []
             for i_q in range(self.count_q):
                 points = []
                 bounds = (self.offsets_q[i_q], self.offsets_q[i_q + 1])
                 n_points = math.ceil(100 * (self.lengths_q[i_q] / self.length_q))
-                points += self.border_ver[i_p][i_q].sample(bounds, n_points)
+                sample = self.border_ver[i_p][i_q].sample(bounds, n_points)
+                points += sample
+                all_points += sample
                 x, y = vectors_to_xy(points)
                 ax.plot(y, x)
-            ax.set_xlim(*self.bounds_l)
-            ax.set_xlabel("ε")
-            ax.set_ylabel("q")
+            ax_ver.plot(*vectors_to_xy(all_points), label="p = " + str(i_p))
+        ax_hor.legend()
+        ax_ver.legend()
 
         # set fast=True to quit when global minimum is reached, local minimum is disregarded
         self.fast = fast
