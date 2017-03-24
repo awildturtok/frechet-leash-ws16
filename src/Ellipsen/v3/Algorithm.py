@@ -15,7 +15,10 @@
 import matplotlib.pyplot as plt  # DEBUG
 from Geometry import *
 
-TraversalType = (float, Vector, [float], [Vector], (float, float))
+Bounds_1D = (float, float)
+Bounds_2D = (Bounds_1D, Bounds_1D)
+CellCoord = (int, int)
+TraversalType = (float, Vector, [float], [Vector], CellCoord) # old
 
 
 # DEBUG:
@@ -36,7 +39,7 @@ def vectors_to_xy(vectors: [Vector]) -> ([float], [float]):  # converts array of
 
 class Cell:
     def __init__(self, parallel: bool, a: LineSegment, b: LineSegment, norm_ellipsis: Ellipse,
-                 bounds_xy: (float, float), bounds_l: (float, float), offset: Vector = Vector(0, 0)):
+                 bounds_xy: Bounds_1D, bounds_l: Bounds_1D, offset: Vector = Vector(0, 0)):
         self.parallel = parallel
         # line segments
         self.a = a
@@ -111,7 +114,7 @@ class Cell:
                "      top_right: " + str(self.traverses_top_right) + '\n' + \
                "      top: " + str(self.traverses_top) + '\n'
 
-    def sample_l(self, nl: int, np: int, rel_bounds: ((float, float), (float, float)) = ((0, 1), (0, 1))) -> {}:
+    def sample_l(self, nl: int, np: int, rel_bounds: Bounds_2D = ((0, 1), (0, 1))) -> {}:
         # sample cell for nl: # of ls, np: # of points per ellipsis, rel_bounds: relative xy bounds
         ls = []
         for i in range(nl):
@@ -120,7 +123,7 @@ class Cell:
 
         return self.sample(ls, np, rel_bounds)
 
-    def sample(self, ls: [float], n: int, rel_bounds: ((float, float), (float, float)) = ((0, 1), (0, 1))) \
+    def sample(self, ls: [float], n: int, rel_bounds: Bounds_2D = ((0, 1), (0, 1))) \
             -> {}:
         # sample cell with ls: array of ls to sample, n: # of points per ellipsis, rel_bounds: relative xy bounds
 
@@ -365,8 +368,7 @@ def traverse_b(t: TraversalType) -> \
 
 class Traversal:
     def __init__(self, cell_matrix: 'CellMatrix', a: Vector, b: Vector, path: [Vector], epsilon: float,
-                 epsilons: [float],
-                 cell_a: (float, float), cell_b: (float, float)):
+                 epsilons: [float], cell_a: CellCoord, cell_b: CellCoord):
         self.cell_matrix = cell_matrix
         self.a = a
         self.b = b
@@ -377,86 +379,168 @@ class Traversal:
         self.cell_b = cell_b
 
     def __str__(self):
-        return " Traversal:" \
-               "   A: " + str(self.a) + " -> B: " + str(self.b) + '\n' + \
-               "   Cell_A: " + str(self.cell_a) + " -> Cell_B: " + str(self.cell_b) + '\n' + \
-               "   Path: " + str(self.path) + '\n' + \
-               "   Epsilon: " + str(self.epsilon) + '\n' + \
-               "   Epsilons: " + str(self.epsilons)
+        return "    " + str(self.epsilon) + "-Traversal:" + '\n' + \
+               "      A: " + str(self.a) + " -> B: " + str(self.b) + '\n' + \
+               "      Cell_A: " + str(self.cell_a) + " -> Cell_B: " + str(self.cell_b) + '\n' + \
+               "      Path: " + str([str(point) for point in self.path]) + '\n' + \
+               "      Epsilon: " + str(self.epsilon) + '\n' + \
+               "      Epsilons: " + str(self.epsilons)
+
+
+class CriticalEvents:
+    def __init__(self):
+        self.dict = {}
+
+    def __str__(self):
+        desc = ""
+        for traversal in self.list():
+            desc += '\n' + str(traversal)
+        return desc
+
+    def __getitem__(self, item) -> Traversal:
+        if item not in self.dict:
+            return []
+        return self.dict[item]
+
+    def append(self, traversal: Traversal):
+        epsilon = traversal.epsilon
+        if epsilon not in self.dict:
+            self.dict[epsilon] = []
+        self.dict[epsilon].append(traversal)
+    
+    def list(self) -> []:
+        sorted_events = []
+        for key in sorted(self.dict.keys()):
+            sorted_events += self.dict[key]
+        return sorted_events
+
+
+class CrossSection:
+    def __init__(self, path: Path, point: Vector):
+        self.path = path
+        self.point = point
+
+        self.hyperbolas = []
+        for i_segment in range(len(path.segments)):
+            segment = path.segments[i_segment]
+            hyperbola = segment.hyperbola_with_point(point).move_x(path.offsets[i_segment])
+            self.hyperbolas.append(hyperbola)
+
+        self.hyperbolas_overload = [self.hyperbolas[0].reflect_x(self.path.offsets[0])] + self.hyperbolas + \
+                                   [self.hyperbolas[-1].reflect_x(self.path.offsets[-1])]
+        self._minima = []
+        self._minima_no_borders = []
+        self._minima_borders = []
+        self._maxima = []
+
+    def __str__(self):
+        desc = ""
+        for i in range(self.path.count):
+            bounds = (self.path.offsets[i], self.path.offsets[i + 1])
+            desc += "     " + str(i) + ": " + str(bounds) + ": " + str(self.hyperbolas[i]) + '\n'
+        return desc
+
+    def __getitem__(self, item) -> Hyperbola:
+        assert 0 <= int(item) <= self.path.count, "Error: No Hyperbola with index: " + str(item) + '\n' + \
+                                                 "Hyperbolas: \n" + str(self)
+        return self.hyperbolas[item]
+
+    def minima(self) -> [float]:  # returns all local minima
+        if len(self._minima) == 0:
+            self._minima = self.minima_no_borders() + self.minima_borders()
+        return self._minima
+
+    def minima_no_borders(self) -> [float]:  # returns local minima that don't lie on borders
+        if len(self._minima_no_borders) == 0:
+            for i in range(self.path.count):
+                hyperbola = self.hyperbolas[i]
+                bounds = (self.path.offsets[i], self.path.offsets[i + 1])
+                x = hyperbola.s.x
+                if bounds[0] < x < bounds[1]:
+                    self._minima_no_borders.append(x)
+        return self._minima_no_borders
+
+    def minima_borders(self) -> [float]:  # returns local minima that lie on borders
+        if len(self._minima_borders) == 0:
+            for i in range(self.path.count + 1):
+                x = self.path.offsets[i]
+                left_hyperbola = self.hyperbolas_overload[i]
+                right_hyperbola = self.hyperbolas_overload[i + 1]
+                if left_hyperbola.orientation(x) <= 0 <= right_hyperbola.orientation(x):
+                    self._minima_borders.append(x)
+        return self._minima_borders
+
+    def is_minima(self, x: float) -> bool:  # checks if local minima at set x
+        if len(self._minima) == 0:
+            self._minima = self.minima()
+        return x in self._minima
+
+    def maxima(self) -> [float]:  # returns all local maxima (always on borders)
+        if len(self._maxima) == 0:
+            for i in range(self.path.count + 1):
+                x = self.path.offsets[i]
+                left_hyperbola = self.hyperbolas_overload[i]
+                right_hyperbola = self.hyperbolas_overload[i + 1]
+                if left_hyperbola.orientation(x) > 0 > right_hyperbola.orientation(x):
+                    self._maxima.append(x)
+        return self._maxima
+
+    def is_maxima(self, x: float) -> bool:  # checks if a point is a local maxima
+        if len(self._maxima) == 0:
+            self._maxima = self.maxima()
+        return x in self._maxima
 
 
 class CellMatrix:
     def __init__(self, points_p: [Vector], points_q: [Vector], traverse: int = 0, fast: bool = False):
-        # points of path
-        self.points_p = points_p
-        self.points_q = points_q
-        # line segments of path
-        self.path_p = [LineSegment(points_p[i], points_p[i + 1]) for i in range(len(points_p) - 1)]
-        self.path_q = [LineSegment(points_q[i], points_q[i + 1]) for i in range(len(points_q) - 1)]
-        # count of line segments
-        self.count_p = len(self.path_p)
-        self.count_q = len(self.path_q)
+        # paths
+        self.p = Path(points_p)
+        self.q = Path(points_q)
 
         # real bounds of length l over the whole cell matrix
         self.bounds_l = (math.inf, 0)
-        # full length of path
-        self.length_p = 0
-        self.length_q = 0
-        # length of line segment i
-        self.lengths_p = [0] * self.count_p
-        self.lengths_q = [0] * self.count_q
-        # summed up length of line segments up to i
-        self.offsets_p = [0] * (self.count_p + 1)
-        self.offsets_q = [0] * (self.count_q + 1)
 
-        # calculate offsets & lengths
-        for i_p in range(self.count_p):
-            p_i = self.path_p[i_p]
-            self.length_p += p_i.l
-            self.offsets_p[i_p + 1] = self.offsets_p[i_p] + p_i.l
-            self.lengths_p[i_p] = p_i.l
-        for i_q in range(self.count_q):
-            q_i = self.path_q[i_q]
-            self.length_q += q_i.l
-            self.offsets_q[i_q + 1] = self.offsets_q[i_q] + q_i.l
-            self.lengths_q[i_q] = q_i.l
-
-        # border parabolas
-        self.border_hor, self.border_ver = self.calculate_border_parabolas()
+        # border hyperbolas
+        self.cross_sections_hor = self.calculate_cross_sections(self.p, self.q.points)
+        self.cross_sections_ver = self.calculate_cross_sections(self.q, self.p.points)
 
         # generate and save TwoLineSegments & Cells
         self.twoLSs = []
         self.cells = []
-        for i_p in range(self.count_p):
+        for i_p in range(self.p.count):
             self.twoLSs.append([])
             self.cells.append([])
-            for i_q in range(self.count_q):
-                two_line_segments = TwoLineSegments(self.path_p[i_p], self.path_q[i_q])
+            for i_q in range(self.q.count):
+                two_line_segments = TwoLineSegments(self.p.segments[i_p], self.q.segments[i_q])
                 self.bounds_l = (min(self.bounds_l[0], two_line_segments.bounds_l[0]),
                                  max(self.bounds_l[1], two_line_segments.bounds_l[1]))
                 self.twoLSs[i_p].append(two_line_segments)
-                cell = two_line_segments.cell(offset=Vector(self.offsets_p[i_p], self.offsets_q[i_q]))
-                cell.border_left = self.border_ver[i_p][i_q]
-                cell.border_bottom = self.border_hor[i_p][i_q]
-                cell.border_right = self.border_ver[i_p + 1][i_q]
-                cell.border_top = self.border_hor[i_p][i_q + 1]
+                cell = two_line_segments.cell(offset=Vector(self.p.offsets[i_p], self.q.offsets[i_q]))
+                cell.border_left = self.cross_sections_ver[i_p][i_q]
+                cell.border_bottom = self.cross_sections_hor[i_q][i_p]
+                cell.border_right = self.cross_sections_ver[i_p + 1][i_q]
+                cell.border_top = self.cross_sections_hor[i_q + 1][i_p]
                 self.cells[i_p].append(cell)
 
-        # DEBUG: sample parabolas:
+        # critical events
+        self.critical_events_hor = self.calculate_critical_events(horizontal=True)
+        self.critical_events_ver = self.calculate_critical_events(horizontal=False)
+
+        # DEBUG: sample hyperbolas:
         fig_both = plt.figure(figsize=plt.figaspect(0.5))
         ax_hor = fig_both.add_subplot(2, 1, 1, aspect=1, ylim=self.bounds_l, xlabel="p", ylabel="ε")
         ax_ver = fig_both.add_subplot(2, 1, 2, aspect=1, ylim=self.bounds_l, xlabel="p", ylabel="ε")
         # horizontal
         fig_hor = plt.figure(figsize=plt.figaspect(0.5))
-        for i_q in range(self.count_q + 1):
-            ax = fig_hor.add_subplot(self.count_q + 1, 1, self.count_q - i_q + 1, aspect=1, ylim=self.bounds_l,
+        for i_q in range(self.q.count + 1):
+            ax = fig_hor.add_subplot(self.q.count + 1, 1, self.q.count - i_q + 1, aspect=1, ylim=self.bounds_l,
                                      xlabel="p", ylabel="ε")
             all_points = []
-            for i_p in range(self.count_p):
+            for i_p in range(self.p.count):
                 points = []
-                bounds = (self.offsets_p[i_p], self.offsets_p[i_p + 1])
-                n_points = math.ceil(100 * (self.lengths_p[i_p] / self.length_p))
-                sample = self.border_hor[i_p][i_q].sample(bounds, n_points)
+                bounds = (self.p.offsets[i_p], self.p.offsets[i_p + 1])
+                n_points = math.ceil(100 * (self.p.lengths[i_p] / self.p.length))
+                sample = self.cross_sections_hor[i_q][i_p].sample(bounds, n_points)
                 points += sample
                 all_points += sample
                 x, y = vectors_to_xy(points)
@@ -464,14 +548,14 @@ class CellMatrix:
             ax_hor.plot(*vectors_to_xy(all_points), label="q = " + str(i_q))
         # vertical
         fig_ver = plt.figure(figsize=plt.figaspect(0.5))
-        for i_p in range(self.count_p + 1):
-            ax = fig_ver.add_subplot(1, self.count_p + 1, i_p + 1, aspect=1, xlim=self.bounds_l, xlabel="ε", ylabel="p")
+        for i_p in range(self.p.count + 1):
+            ax = fig_ver.add_subplot(1, self.p.count + 1, i_p + 1, aspect=1, xlim=self.bounds_l, xlabel="ε", ylabel="p")
             all_points = []
-            for i_q in range(self.count_q):
+            for i_q in range(self.q.count):
                 points = []
-                bounds = (self.offsets_q[i_q], self.offsets_q[i_q + 1])
-                n_points = math.ceil(100 * (self.lengths_q[i_q] / self.length_q))
-                sample = self.border_ver[i_p][i_q].sample(bounds, n_points)
+                bounds = (self.q.offsets[i_q], self.q.offsets[i_q + 1])
+                n_points = math.ceil(100 * (self.q.lengths[i_q] / self.q.length))
+                sample = self.cross_sections_ver[i_p][i_q].sample(bounds, n_points)
                 points += sample
                 all_points += sample
                 x, y = vectors_to_xy(points)
@@ -484,10 +568,7 @@ class CellMatrix:
         self.fast = fast
         self.global_minimum_reached = False
         # lower limit for smallest globally reachable l
-        self.min_global_l = max(self.points_p[0].d(self.points_q[0]), self.points_p[-1].d(self.points_q[-1]))
-
-        # critical traversals
-        self.critical_traversals_horizontal, self.critical_traversals_vertical = self.calculate_critical_events()
+        self.min_global_l = max(self.p.points[0].d(self.q.points[0]), self.p.points[-1].d(self.q.points[-1]))
 
         # traverse
         self.traverse = traverse
@@ -500,163 +581,131 @@ class CellMatrix:
             self.traversals = self.traverse_best(self.traverse, delete_duplicates=True)
 
     def __str__(self):
-        desc = "Input (" + str(self.count_p) + "x" + str(self.count_p) + ") (" + \
-               str(self.length_p) + "x" + str(self.length_q) + "):\n"
-        desc += " Path A (l=" + str(self.length_p) + "):\n"
-        for i in range(self.count_p):
-            desc += "  " + str(i) + ": " + str(self.path_p[i]) + '\n'
-        desc += " Path B (l=" + str(self.length_q) + "):\n"
-        for i in range(self.count_q):
-            desc += "  " + str(i) + ": " + str(self.path_q[i]) + '\n'
+        desc = "Input (" + str(self.p.count) + "x" + str(self.q.count) + ") (" + \
+               str(self.p.length) + "x" + str(self.q.length) + "):\n"
+        desc += " Path P " + str(self.p)
+        desc += " Path Q " + str(self.q)
+        desc += '\n'
         desc += "==>\n"
+        desc += " Two Line Segments & Cells:\n"
+        for i_p in range(self.p.count):
+            for i_q in range(self.q.count):
+                desc += " Cell " + str(i_p) + "x" + str(i_q) + '\n'
+                desc += str(self.twoLSs[i_p][i_q]) + '\n'
+                desc += str(self.cells[i_p][i_q]) + '\n'
+        desc += '\n'
         desc += " Bounds_l: " + str(self.bounds_l) + '\n'
-        desc += " Border Parabolas: " + '\n'
+        desc += '\n'
+        desc += " Border Hyperbolas: " + '\n'
         desc += "  Horizontal: " + '\n'
-        for i_p in range(self.count_p):
-            for i_q in range(self.count_q + 1):
-                desc += "   " + str(i_p) + "x" + str(i_q) + ": " + str(self.border_hor[i_p][i_q]) + '\n'
+        for i_q in range(self.q.count + 1):
+            desc += "   " + str(i_q) + ".\n" + str(self.cross_sections_hor[i_q]) + '\n'
         desc += "  Vertical: " + '\n'
-        for i_p in range(self.count_p + 1):
-            for i_q in range(self.count_q):
-                desc += "   " + str(i_p) + "x" + str(i_q) + ": " + str(self.border_ver[i_p][i_q]) + '\n'
+        for i_p in range(self.p.count + 1):
+            desc += "   " + str(i_p) + ".\n" + str(self.cross_sections_ver[i_p]) + '\n'
+        desc += '\n'
         desc += " Critical Events: " + '\n'
-        desc += "  Horizontal: " + str(self.critical_traversals_horizontal) + '\n'
-        desc += "  Vertical: " + str(self.critical_traversals_horizontal) + '\n'
+        desc += "  Horizontal: " + str(self.critical_events_hor) + '\n'
+        desc += "  Vertical: " + str(self.critical_events_ver) + '\n'
+        desc += '\n'
         if self.traverse > 0:
             desc += " Lowest_l: " + str(self.lowest_l) + '\n'
             desc += " Traversals:\n"
             for traversal in self.traversals:
                 desc += "   " + str(traversal) + '\n'
-        desc += " Two Line Segments & Cells:\n"
-        for i_p in range(self.count_p):
-            for i_q in range(self.count_q):
-                desc += " Cell " + str(i_p) + "x" + str(i_q) + '\n'
-                desc += str(self.twoLSs[i_p][i_q]) + '\n'
-                desc += str(self.cells[i_p][i_q]) + '\n'
 
         return desc
 
-    def calculate_border_parabolas(self) -> ([], []):
-        border_hor = []
-        border_ver = []
+    @staticmethod
+    def calculate_cross_sections(path, points) -> CrossSection:
+        cross_sections = []
 
-        # horizontal
-        for i_p in range(self.count_p):
-            border_hor.append([])
-            line = self.path_p[i_p]
-            for i_q in range(self.count_q + 1):
-                point = self.points_q[i_q]
-                parabola = line.hyperbola_with_point(point)
-                parabola.move_x(self.offsets_p[i_p])
-                border_hor[i_p].append(parabola)
+        for point in points:
+            cross_section = CrossSection(path, point)
+            cross_sections.append(cross_section)
 
-        # vertical
-        for i_p in range(self.count_p + 1):
-            border_ver.append([])
-            point = self.points_p[i_p]
-            for i_q in range(self.count_q):
-                line = self.path_q[i_q]
-                parabola = line.hyperbola_with_point(point)
-                parabola.move_x(self.offsets_q[i_q])
-                border_ver[i_p].append(parabola)
+        return cross_sections
 
-        return border_hor, border_ver
+    @staticmethod
+    def calculate_critical_points_no_borders(cross_sections: [CrossSection], other_path: Path) -> [[Vector]]:
+        critical_points = []
 
-    def calculate_critical_events(self) -> ({}, {}):
-        critical_traversals_horizontal = {}
-        critical_traversals_vertical = {}
+        # events of type a
+        for i_cross_section in range(len(cross_sections)):
+            cross_section = cross_sections[i_cross_section]
+            minima_no_borders = cross_section.minima_no_borders()
+            for minima in minima_no_borders:
+                other_cross_section = CrossSection(other_path, cross_section.path.p_rl(minima))
+                if other_cross_section.is_maxima(other_path.offsets[i_cross_section]):
+                    critical_points.append([Vector(minima, other_path.offsets[i_cross_section])])
 
-        # horizontal
-        offsets = self.offsets_p
-        for i_segment in range(self.count_q):
-            segment = self.path_q[i_segment]
-            offset_r = self.offsets_q[i_segment]
+        # events of type b
+        #Todo: events of type b here !
 
-            for start_i in range(self.count_p + 1):
-                for end_i in range(self.count_p, start_i - 1, -1):
-                    points = self.points_p[:end_i + 1][start_i:]
+        return critical_points
 
-                    if segment.d.acute(points[-1] - points[0]):
-                        continue  # Question 1
+    @staticmethod
+    def calculate_critical_points_borders(cross_sections: [CrossSection], other_cross_sections: [CrossSection]) \
+            -> [[Vector]]:
+        critical_points = []
 
-                    critical_rl = segment.rl_for_equal_dist_to_points(points[0], points[-1])
-                    if math.isnan(critical_rl):
-                        continue
+        # event of type a
+        for i_cross_section in range(len(cross_sections)):
+            cross_section = cross_sections[i_cross_section]
+            minima_borders = cross_section.minima_borders()
+            for minima in minima_borders:
+                other_cross_section = other_cross_sections[cross_section.path.i_rl(minima)]
+                if other_cross_section.is_maxima(other_cross_section.path.offsets[i_cross_section]):
+                    critical_points.append([Vector(minima, other_cross_section.path.offsets[i_cross_section])])
 
-                    if not 0 - tol <= critical_rl <= segment.l + tol:
-                        continue
+        # events of type b
+        #Todo: events of type b here !
 
-                    critical_point = segment.frl(critical_rl)
-                    epsilon = points[0].d(critical_point)
-                    epsilon_circle = Circle(critical_point, epsilon)
-                    if not epsilon_circle.contains_points(points):
-                        continue
+        return critical_points
 
-                    r = offset_r + critical_rl
-                    traversal_epsilons, traversal_points = [], []
-                    for point in points:
-                        traversal_epsilons.append(point.d(critical_point))
+    def calculate_critical_events(self, horizontal: bool) -> CriticalEvents:
+        critical_events = CriticalEvents()
+        critical_points = []
 
-                    for i_point in range(start_i, end_i + 1):
-                        traversal_points.append(Vector(offsets[i_point], r))
+        if horizontal:
+            critical_points += self.calculate_critical_points_no_borders(self.cross_sections_ver, self.p)
+            critical_points += self.calculate_critical_points_borders(self.cross_sections_ver, self.cross_sections_hor)
+        else:
+            critical_points += self.calculate_critical_points_no_borders(self.cross_sections_hor, self.q)
+            critical_points += self.calculate_critical_points_borders(self.cross_sections_hor, self.cross_sections_ver)
 
-                    traversal = Traversal(self, traversal_points[0], traversal_points[-1], traversal_points, epsilon,
-                                          traversal_epsilons, (start_i, i_segment), (end_i, i_segment))
-                    if epsilon not in critical_traversals_horizontal:
-                        critical_traversals_horizontal[epsilon] = []
-                    critical_traversals_horizontal[epsilon].append(traversal)
+        for points in critical_points:
+            if horizontal:
+                points = [point.x_to_y() for point in points]
 
-        # vertical
-        offsets = self.offsets_q
-        for i_segment in range(self.count_p):
-            segment = self.path_p[i_segment]
-            offset_r = self.offsets_p[i_segment]
+            traversal = self.traversal_from_points(points)
+            critical_events.append(traversal)
 
-            for start_i in range(self.count_q + 1):
-                for end_i in range(self.count_q, start_i - 1, -1):
+        return critical_events
 
-                    points = self.points_q[:end_i + 1][start_i:]
+    def traversal_from_points(self, points) -> Traversal:
+        start = points[0]
+        end = points[-1]
 
-                    if segment.d.acute(points[-1] - points[0]):
-                        continue  # Question 1
+        cell_a = (self.p.i_rl(start.x), self.q.i_rl(start.y))
+        cell_b = (self.p.i_rl(end.x), self.q.i_rl(end.y))
 
-                    critical_rl = segment.rl_for_equal_dist_to_points(points[0], points[-1])
-                    if math.isnan(critical_rl):
-                        continue
+        epsilons = []
+        for point in points:
+            tmp_epsilon = self.p.p_rl(point.x).d(self.q.p_rl(point.y))
+            epsilons.append(tmp_epsilon)
+        epsilon = max(epsilons)
 
-                    if not 0 - tol <= critical_rl <= segment.l + tol:
-                        continue
-
-                    critical_point = segment.frl(critical_rl)
-                    epsilon = points[0].d(critical_point)
-                    epsilon_circle = Circle(critical_point, epsilon)
-                    if not epsilon_circle.contains_points(points):
-                        continue
-
-                    r = offset_r + critical_rl
-                    traversal_epsilons, traversal_points = [], []
-                    for point in points:
-                        traversal_epsilons.append(point.d(critical_point))
-
-                    for i_point in range(start_i, end_i + 1):
-                        traversal_points.append(Vector(r, offsets[i_point]))
-
-                    traversal = Traversal(self, traversal_points[0], traversal_points[-1], traversal_points, epsilon,
-                                          traversal_epsilons, (start_i, i_segment), (end_i, i_segment))
-                    if epsilon not in critical_traversals_vertical:
-                        critical_traversals_vertical[epsilon] = []
-                    critical_traversals_vertical[epsilon].append(traversal)
-
-        return critical_traversals_horizontal, critical_traversals_vertical
+        return Traversal(self, start, end, points, epsilon, epsilons, cell_a, cell_b)
 
     # Old Traversal (v2):
     def traverse_best(self, criteria: int = 2, delete_duplicates: bool = True, start: Vector = Vector(0, 0)) \
             -> [TraversalType]:  # traverses cell-matrix and chooses best traversal depending on criteria
         i_p = 0
         i_q = 0
-        while start.x > self.offsets_p[i_p + 1]:
+        while start.x > self.p.offsets[i_p + 1]:
             i_p += 1
-        while start.y > self.offsets_q[i_q + 1]:
+        while start.y > self.q.offsets[i_q + 1]:
             i_q += 1
 
         print("Lower Limit for minimum global l: " + str(self.min_global_l))
@@ -717,7 +766,7 @@ class CellMatrix:
             return []
 
         # complete recursive call on reach of cell-matrix top right
-        if i_p >= self.count_p and i_q >= self.count_q:
+        if i_p >= self.p.count and i_q >= self.q.count:
             if traversal[0] < self.lowest_l:
                 self.lowest_l = traversal[0]
                 print("momentary lowest_l = " + str(self.lowest_l))
@@ -730,14 +779,14 @@ class CellMatrix:
         traversals = []
 
         # if traversal hits top- or right-side of cell-matrix move to top-right
-        if i_p >= self.count_p or i_q >= self.count_q:
-            if i_p < self.count_p:
-                cell = self.cells[i_p][self.count_q - 1]
+        if i_p >= self.p.count or i_q >= self.q.count:
+            if i_p < self.p.count:
+                cell = self.cells[i_p][self.q.count - 1]
                 if cell.top_right_l <= self.lowest_l + tol:
                     next_traversal = traverse_a(cell.traverse_top_right_force(traversal))
                     traversals += self.traverse_rec(next_traversal)
-            if i_q < self.count_q:
-                cell = self.cells[self.count_p - 1][i_q]
+            if i_q < self.q.count:
+                cell = self.cells[self.p.count - 1][i_q]
                 if cell.top_right_l <= self.lowest_l + tol:
                     next_traversal = traverse_b(cell.traverse_top_right_force(traversal))
                     traversals += self.traverse_rec(next_traversal)
@@ -759,8 +808,8 @@ class CellMatrix:
             # traverse by critical traversal paths
             p = traversal[1]  # last point of traversal
             # horizontal
-            if i_p < self.count_p - 1:
-                for critical_traversal_horizontal in self.critical_traversals_horizontal[i_p + 1][i_q]:
+            if i_p < self.p.count - 1:
+                for critical_traversal_horizontal in self.critical_events_hor[i_p + 1][i_q]:
                     max_l = critical_traversal_horizontal[0]
                     start = critical_traversal_horizontal[1]
                     if p < start and self.lowest_l + tol >= max_l and \
@@ -768,8 +817,8 @@ class CellMatrix:
                         next_traversal = traverse_a(traverse_do(traversal, critical_traversal_horizontal))
                         traversals += self.traverse_rec(next_traversal)
             # vertical
-            if i_q < self.count_q - 1:
-                for critical_traversal_vertical in self.critical_traversals_vertical[i_p][i_q + 1]:
+            if i_q < self.q.count - 1:
+                for critical_traversal_vertical in self.critical_events_ver[i_p][i_q + 1]:
                     max_l = critical_traversal_vertical[0]
                     start = critical_traversal_vertical[1]
                     if p < start and self.lowest_l + tol >= max_l and \
@@ -803,28 +852,28 @@ class CellMatrix:
         samples["bounds-l"] = [self.bounds_l[0], self.bounds_l[1]]
 
         # sample input
-        samples["input"] = [self.points_p, self.points_q]
+        samples["input"] = [self.p.points, self.q.points]
 
         # sample cells
-        for i_p in range(self.count_p):
-            for i_q in range(self.count_q):
+        for i_p in range(self.p.count):
+            for i_q in range(self.q.count):
                 cell = self.cells[i_p][i_q]
                 samples["cells"].append((str(i_p) + "x" + str(i_q), cell.sample(ls, np)))
 
         # sample cell borders
-        for i in range(1, self.count_p):  # vertical
-            samples["borders-v"].append(("border-v: " + str(i), [Vector(self.offsets_p[i], 0),
-                                                                 Vector(self.offsets_p[i], self.length_q)]))
-        for i in range(1, self.count_q):  # horizontal
-            samples["borders-h"].append(("border-h: " + str(i), [Vector(0, self.offsets_q[i]),
-                                                                 Vector(self.length_p, self.offsets_q[i])]))
+        for i in range(1, self.p.count):  # vertical
+            samples["borders-v"].append(("border-v: " + str(i), [Vector(self.p.offsets[i], 0),
+                                                                 Vector(self.p.offsets[i], self.q.length)]))
+        for i in range(1, self.q.count):  # horizontal
+            samples["borders-h"].append(("border-h: " + str(i), [Vector(0, self.q.offsets[i]),
+                                                                 Vector(self.p.length, self.q.offsets[i])]))
 
         # include size in sample
-        samples["size"] = (self.length_p, self.length_q)
+        samples["size"] = (self.p.length, self.q.length)
 
         # sample critical traversals
-        samples["critical-traversals"] = list(self.critical_traversals_horizontal.values()) + \
-                                         list(self.critical_traversals_vertical.values())
+        samples["critical-traversals"] = self.critical_events_hor.list() + \
+                                         self.critical_events_ver.list()
 
         # Old Traversal Sample:
         # sample traversals
@@ -836,7 +885,7 @@ class CellMatrix:
         # sample a traversal
         if self.traverse > 0:
             traversal = self.traversals[0]
-            samples["traversal"] = self.sample_traversal(traversal, traversals_n * max(self.count_p, self.count_q))
+            samples["traversal"] = self.sample_traversal(traversal, traversals_n * max(self.p.count, self.q.count))
 
         # sample heatmap
         if heatmap > 0:
@@ -845,7 +894,7 @@ class CellMatrix:
         return samples
 
     def sample_heatmap_a(self, n_a: int) -> []:  # sample heat map with squares scaled by n_a divisions on a axis
-        n_b = math.floor(n_a * (self.length_q / self.length_p))
+        n_b = math.floor(n_a * (self.q.length / self.p.length))
         return self.sample_heatmap(n_a, int(n_b))
 
     def sample_heatmap(self, n_a: int, n_b: int) -> []:  # sample heatmap by n_a rectangles on a-axis and n_b on b-axis
@@ -854,8 +903,8 @@ class CellMatrix:
         ys = [[]]
         zs = [[]]
         # step size on a and b
-        s_a = self.length_p / n_a
-        s_b = self.length_q / n_b
+        s_a = self.p.length / n_a
+        s_b = self.q.length / n_b
         # x- & y-coordinate to iterate through
         x, y = 0, 0
         # counters of x- & and y-coordinates
@@ -864,19 +913,19 @@ class CellMatrix:
         c_a, c_b = 0, 0
 
         # iterate through cells & a-/b-axis
-        while c_b < self.count_q:
-            while y <= self.offsets_q[c_b + 1] or (c_b >= self.count_q - 1 and i_y <= n_b):
-                while x <= self.offsets_p[c_a + 1] or (c_a >= self.count_p - 1 and i_x <= n_a):
+        while c_b < self.q.count:
+            while y <= self.q.offsets[c_b + 1] or (c_b >= self.q.count - 1 and i_y <= n_b):
+                while x <= self.p.offsets[c_a + 1] or (c_a >= self.p.count - 1 and i_x <= n_a):
                     xs[-1].append(x)
                     ys[-1].append(y)
-                    z = self.cells[c_a][c_b].lp(Vector(x - self.offsets_p[c_a], y - self.offsets_q[c_b]))
+                    z = self.cells[c_a][c_b].lp(Vector(x - self.p.offsets[c_a], y - self.q.offsets[c_b]))
                     zs[-1].append(z)
 
                     i_x += 1
                     x += s_a
                 c_a += 1
 
-                if c_a >= self.count_p and c_b < self.count_q:
+                if c_a >= self.p.count and c_b < self.q.count:
                     xs.append([])
                     ys.append([])
                     zs.append([])
@@ -899,20 +948,20 @@ class CellMatrix:
         r_a = traversal_p.x
         r_b = traversal_p.y
 
-        if r_a < self.offsets_p[c_a]:
+        if r_a < self.p.offsets[c_a]:
             c_a = 0
-        if r_b < self.offsets_q[c_b]:
+        if r_b < self.q.offsets[c_b]:
             c_b = 0
 
-        while r_a > self.offsets_p[c_a + 1] and c_a < self.count_p - 1:
+        while r_a > self.p.offsets[c_a + 1] and c_a < self.p.count - 1:
             c_a += 1
-        while r_b > self.offsets_q[c_b + 1] and c_b < self.count_q - 1:
+        while r_b > self.q.offsets[c_b + 1] and c_b < self.q.count - 1:
             c_b += 1
 
-        r_a -= self.offsets_p[c_a]
-        r_b -= self.offsets_q[c_b]
-        a = self.path_p[c_a]
-        b = self.path_q[c_b]
+        r_a -= self.p.offsets[c_a]
+        r_b -= self.q.offsets[c_b]
+        a = self.p.segments[c_a]
+        b = self.q.segments[c_b]
         pa = a.frl(r_a)
         pb = b.frl(r_b)
 
@@ -949,9 +998,9 @@ class CellMatrix:
             i_t = 0
 
             p1 = t_ls.p1
-            while p1.x > self.offsets_p[c_a + 1] and c_a < self.count_p - 1:
+            while p1.x > self.p.offsets[c_a + 1] and c_a < self.p.count - 1:
                 c_a += 1
-            while p1.y > self.offsets_q[c_b + 1] and c_b < self.count_q - 1:
+            while p1.y > self.q.offsets[c_b + 1] and c_b < self.q.count - 1:
                 c_b += 1
 
             if ls[c_t] >= max_l:
@@ -982,14 +1031,14 @@ class CellMatrix:
                 i_t += 1
 
         if ls[-1] >= max_l:
-            sample["in-traversal-l"].append([self.points_p[-1], self.points_q[-1]])
-            x_l.append(self.length_p)
-            y_l.append(self.length_q)
+            sample["in-traversal-l"].append([self.p.points[-1], self.q.points[-1]])
+            x_l.append(self.p.length)
+            y_l.append(self.q.length)
             z_l.append(ls[-1])
         else:
-            sample["in-traversal"].append([self.points_p[-1], self.points_q[-1]])
-        x.append(self.length_p)
-        y.append(self.length_q)
+            sample["in-traversal"].append([self.p.points[-1], self.q.points[-1]])
+        x.append(self.p.length)
+        y.append(self.q.length)
         z.append(ls[-1])
 
         sample["traversal-3d"] = [x, y, z]

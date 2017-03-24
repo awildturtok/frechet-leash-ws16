@@ -15,6 +15,7 @@
 import math
 from typing import Tuple
 import numpy as np
+from bisect import bisect
 
 
 tol = 1e-13  # global absolute tolerance
@@ -81,6 +82,9 @@ class Vector:
     def d(self, other) -> float:  # distance to other point
         d = other - self
         return d.l
+
+    def x_to_y(self) -> 'Vector':  # switches x and y coordinates
+        return Vector(self.y, self.x)
 
     def norm(self) -> 'Vector':  # normalized vector (lenght = 1)
         return self * (1 / self.l)
@@ -321,6 +325,50 @@ class LineSegment:
         return Hyperbola(p1, p2, p3)
 
 
+class Path:
+    def __init__(self, points: [Vector]):
+        self.points = points
+        self.count = len(points) - 1
+        self.segments = []
+        self.length = 0
+        self.lengths = []
+        self.offsets = [0]
+
+        for i_segment in range(self.count):
+            p1 = points[i_segment]
+            p2 = points[i_segment + 1]
+            segment = LineSegment(p1, p2)
+            self.segments.append(segment)
+            length = segment.l
+            self.length += length
+            self.lengths.append(length)
+            self.offsets.append(self.length)
+
+    def __str__(self):
+        desc = " (l=" + str(self.length) + "):\n"
+        for i in range(self.count):
+            desc += "  " + str(i) + ": " + str(self.segments[i]) + '\n'
+
+        return desc
+
+    # Path Arithmetic
+
+    def i_rl(self, rl: float) -> Vector:  # index for set parameter rl
+        if not 0 <= rl <= self.length:
+            print("Error: Parameter rl=" + str(rl) + " is not in bounds: [0, " + str(self.length) + "].")
+            return int('nan')
+
+        i_segment = bisect(self.offsets[1:], rl)
+        return min(i_segment, self.count - 1)
+
+    def p_rl(self, rl: float) -> Vector:  # point for set parameter rl
+        i_segment = self.i_rl(rl)
+
+        if math.isnan(i_segment):
+            return Vector(float('nan'), float('nan'))
+        return self.segments[i_segment].frl(rl - self.offsets[i_segment])
+
+
 class Hyperbola:
     def __init__(self, s: Vector):
         self.s = s
@@ -337,19 +385,38 @@ class Hyperbola:
     def px(self, x: float) -> Vector:  # point for set x-value
         return Vector(x, self.fx(x))
 
-    def move_x(self, d_x: float):  # moves hyperbola on x-axis
-        d_p = Vector(d_x, 0)
-        self.move_p(d_p)
+    def fax(self, x: float) -> float:  # slope for set x-value
+        return (x - self.x) / self.fx(x)
 
-    def move_y(self, d_y: float):  # moves hyperbola on y-axis
-        d_p = Vector(0, d_y)
-        self.move_p(d_p)
+    def orientation(self, x: float) -> float:
+        # for set x: returns positive if falling, 0 if constant, negative if rising
+        return x - self.s.x
 
-    def move_p(self, d_p: Vector):  # moves hyperbola on y-axis
-        self.s += d_p
+    def reflect_x(self, x: float) -> 'Hyperbola':  # reflects hyperbola over vertical at set x
+        return Hyperbola(self.s + Vector(2 * self.orientation(x), 0))
+
+    def move_x(self, d_x: float) -> 'Hyperbola':  # moves hyperbola on x-axis
+        return self.move_p(Vector(d_x, 0))
+
+    def move_y(self, d_y: float) -> 'Hyperbola':  # moves hyperbola on y-axis
+        return self.move_p(Vector(0, d_y))
+
+    def move_p(self, d_p: Vector) -> 'Hyperbola':  # moves hyperbola on y-axis
+        return Hyperbola(self.s + d_p)
 
     def cuts_bounds_ver(self, bounds: (float, float)) -> [Vector]:
         return [self.px(bounds[0]), self.px(bounds[1])]
+
+    def intersects_hyperbola(self, other: 'Hyperbola') -> Vector:
+        s1 = self.s
+        s2 = other.s
+        if s1 == s2:
+            x = float("inf")
+        elif about_equal(s1.x, s2.x):
+            x = float("nan")
+        else:
+            x = 0.5 * (s1.y**2 + s1.x**2 - s2.y**2 - s2.x**2) / (s1.x - s2.x)
+        return self.px(x)
 
     def sample(self, bounds: (float, float), n: int) -> [Vector]:  # samples hyperbola in bounds with n edges
         sample_points = []
