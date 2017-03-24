@@ -408,11 +408,14 @@ class CriticalEvents:
             self.dict[epsilon] = []
         self.dict[epsilon].append(traversal)
     
-    def list(self) -> []:
+    def list(self) -> [Traversal]:
         sorted_events = []
-        for key in sorted(self.dict.keys()):
-            sorted_events += self.dict[key]
+        for epsilon in self.epsilons():
+            sorted_events += self[epsilon]
         return sorted_events
+
+    def epsilons(self) -> [float]:
+        return sorted(self.dict.keys())
 
 
 class CrossSection:
@@ -627,36 +630,28 @@ class CellMatrix:
         return cross_sections
 
     @staticmethod
-    def calculate_critical_points_no_borders(cross_sections: [CrossSection], other_path: Path) -> [[Vector]]:
+    def calculate_critical_points(cross_sections: [CrossSection], other_cross_sections: [CrossSection]) -> [[Vector]]:
         critical_points = []
+        path = cross_sections[0].path
+        other_path = other_cross_sections[0].path
 
         # events of type a
-        for i_cross_section in range(len(cross_sections)):
+        for i_cross_section in range(1, len(cross_sections) - 1):
             cross_section = cross_sections[i_cross_section]
+
+            # no borders
             minima_no_borders = cross_section.minima_no_borders()
-            for minima in minima_no_borders:
-                other_cross_section = CrossSection(other_path, cross_section.path.p_rl(minima))
+            for x in minima_no_borders:
+                other_cross_section = CrossSection(other_path, cross_section.path.p_rl(x))
                 if other_cross_section.is_maxima(other_path.offsets[i_cross_section]):
-                    critical_points.append([Vector(minima, other_path.offsets[i_cross_section])])
+                    critical_points.append([Vector(x, other_path.offsets[i_cross_section])])
 
-        # events of type b
-        #Todo: events of type b here !
-
-        return critical_points
-
-    @staticmethod
-    def calculate_critical_points_borders(cross_sections: [CrossSection], other_cross_sections: [CrossSection]) \
-            -> [[Vector]]:
-        critical_points = []
-
-        # event of type a
-        for i_cross_section in range(len(cross_sections)):
-            cross_section = cross_sections[i_cross_section]
+            # borders
             minima_borders = cross_section.minima_borders()
-            for minima in minima_borders:
-                other_cross_section = other_cross_sections[cross_section.path.i_rl(minima)]
+            for x in minima_borders:
+                other_cross_section = other_cross_sections[cross_section.path.i_rl(x)]
                 if other_cross_section.is_maxima(other_cross_section.path.offsets[i_cross_section]):
-                    critical_points.append([Vector(minima, other_cross_section.path.offsets[i_cross_section])])
+                    critical_points.append([Vector(x, other_cross_section.path.offsets[i_cross_section])])
 
         # events of type b
         #Todo: events of type b here !
@@ -668,11 +663,9 @@ class CellMatrix:
         critical_points = []
 
         if horizontal:
-            critical_points += self.calculate_critical_points_no_borders(self.cross_sections_ver, self.p)
-            critical_points += self.calculate_critical_points_borders(self.cross_sections_ver, self.cross_sections_hor)
+            critical_points += self.calculate_critical_points(self.cross_sections_ver, self.cross_sections_hor)
         else:
-            critical_points += self.calculate_critical_points_no_borders(self.cross_sections_hor, self.q)
-            critical_points += self.calculate_critical_points_borders(self.cross_sections_hor, self.cross_sections_ver)
+            critical_points += self.calculate_critical_points(self.cross_sections_hor, self.cross_sections_ver)
 
         for points in critical_points:
             if horizontal:
@@ -835,6 +828,8 @@ class CellMatrix:
         for i in range(nl + 1):
             l = self.bounds_l[0] + (float(i) / nl) * (self.bounds_l[1] - self.bounds_l[0])
             ls.append(l)
+
+        ls = self.critical_events_hor.epsilons() + self.critical_events_ver.epsilons()  # DEBUG !!!
 
         return self.sample(ls, np, heatmap=heatmap, traversals_n=traversals_n)
 

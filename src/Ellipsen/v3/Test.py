@@ -90,11 +90,11 @@ b_ys = [3, 3]'''
 
 # random test 1
 # path_a:
-a_xs = np.random.random_sample(6)
-a_ys = np.random.random_sample(6)
+a_xs = np.random.random_sample(3)
+a_ys = np.random.random_sample(3)
 # path_b:
-b_xs = np.random.random_sample(6)
-b_ys = np.random.random_sample(6)
+b_xs = np.random.random_sample(4)
+b_ys = np.random.random_sample(4)
 
 
 path_a = xy_to_vectors(a_xs, a_ys)
