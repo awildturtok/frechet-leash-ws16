@@ -15,7 +15,7 @@
 from Graphics import *
 
 
-n_l = 13  # number of height lines
+n_l = 7  # number of height lines
 n_p = 50  # points per ellipsis
 
 '''# path_a:
@@ -64,13 +64,13 @@ a_ys = [0, 0]
 b_xs = [1, 7, 4, 10]
 b_ys = [0, 3, -3, 0]'''
 
-'''# critical events test 1
+# critical events test 1
 # path_a:
 a_xs = [5, 10, 10, 0, 0, 10]
 a_ys = [10, 10, 0, 0, 5, 5]
 # path_b:
 b_xs = [-10, -5, -5, -15, -15, -5]
-b_ys = [10, 10, 5, 5, 0, 0]'''
+b_ys = [10, 10, 5, 5, 0, 0]
 
 '''# critical events test 2
 # path_a:
@@ -88,13 +88,21 @@ a_ys = [0, 0, 8, 10, 10]
 b_xs = [0, 10]
 b_ys = [3, 3]'''
 
-# random test 1
+'''# random test 1
 # path_a:
-a_xs = np.random.random_sample(3)
-a_ys = np.random.random_sample(3)
+a_xs = np.random.random_sample(8)
+a_ys = np.random.random_sample(8)
 # path_b:
-b_xs = np.random.random_sample(4)
-b_ys = np.random.random_sample(4)
+b_xs = np.random.random_sample(7)
+b_ys = np.random.random_sample(7)
+
+# random test save 1
+# path_a:
+a_xs = [0.4772922092138784, 0.01530327285512556, 0.18623288333654608, 0.9571042784382312, 0.7531384890787559, 0.5586263445891971, 0.4087144781918828, 0.742737156990017]
+a_ys = [0.9717921811331545, 0.2352575436671138, 0.5101121131543056, 0.04746020008338181, 0.45603230757057844, 0.44729409272770604, 0.4203528406682898, 0.27839889123856565]
+# path_b:
+b_xs = [0.46355916536642316, 0.7848048532306606, 0.8984278039692681, 0.07598172633778322, 0.2466328327882239, 0.04643325875918691, 0.14385640913682562]
+b_ys = [0.2252646424367046, 0.3992611940661893, 0.1551268264371849, 0.7049183480244169, 0.7245003824862535, 0.5009416536371276, 0.2867299714276945]'''
 
 
 path_a = xy_to_vectors(a_xs, a_ys)

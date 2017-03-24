@@ -18,6 +18,8 @@ import numpy as np
 from bisect import bisect
 
 
+Bounds_1D = (float, float)
+Bounds_2D = (Bounds_1D, Bounds_1D)
 tol = 1e-13  # global absolute tolerance
 
 
@@ -269,7 +271,7 @@ class LineSegment:
         r = self.intersection_r(ls)
         return r * self.l
 
-    def r_for_equal_dist_to_points(self, p1: Vector, p2: Vector) -> Vector:
+    def r_for_equal_dist_to_points(self, p1: Vector, p2: Vector) -> float:
         # parameter r for point on line that has equal distance to p1 and p2
         if p1 == p2:
             p = p1
@@ -281,7 +283,7 @@ class LineSegment:
 
         return self.intersection_r(ls)
 
-    def rl_for_equal_dist_to_points(self, p1: Vector, p2: Vector) -> Vector:
+    def rl_for_equal_dist_to_points(self, p1: Vector, p2: Vector) -> float:
         return self.r_for_equal_dist_to_points(p1, p2) * self.l
 
     def p_for_equal_dist_to_points(self, p1: Vector, p2: Vector) -> Vector:
@@ -311,13 +313,13 @@ class LineSegment:
 
         return points
 
-    def hyperbola_with_point(self, point: Vector) -> 'hyperbola':
+    def hyperbola_with_point(self, point: Vector) -> 'Hyperbola':
         projection_rl = self.project_p_rl(point)
         projection_d = self.d_l_point(point)
         s = Vector(projection_rl, projection_d)
         return Hyperbola(s)
 
-    def hyperbola_with_line(self, line: 'LineSegment') -> 'hyperbola':  #Todo: rewrite (see hyperbola_with_point)
+    def hyperbola_with_line(self, line: 'LineSegment') -> 'Hyperbola':  #Todo: rewrite (see hyperbola_with_point)
         l = math.sqrt(math.pow(self.l, 2) + math.pow(line.l, 2))
         p1 = Vector(0, self.p1.d(line.p1))
         p2 = Vector(0.5 * l, self.fr(0.5).d(line.fr(0.5)))
@@ -353,10 +355,10 @@ class Path:
 
     # Path Arithmetic
 
-    def i_rl(self, rl: float) -> Vector:  # index for set parameter rl
+    def i_rl(self, rl: float) -> float:  # index for set parameter rl
         if not 0 <= rl <= self.length:
             print("Error: Parameter rl=" + str(rl) + " is not in bounds: [0, " + str(self.length) + "].")
-            return int('nan')
+            return math.nan
 
         i_segment = bisect(self.offsets[1:], rl)
         return min(i_segment, self.count - 1)
@@ -417,6 +419,19 @@ class Hyperbola:
         else:
             x = 0.5 * (s1.y**2 + s1.x**2 - s2.y**2 - s2.x**2) / (s1.x - s2.x)
         return self.px(x)
+
+    def intersects_hyperbola_in_bounds(self, other: 'Hyperbola', bounds: Bounds_2D) -> Vector:
+        intersection = self.intersects_hyperbola(other)
+        if bounds[0] <= intersection.x <= bounds[1]:
+            return intersection
+        return Vector(float("nan"), float("nan"))
+
+    def intersects_hyperbola_in_bounds_critical(self, other: 'Hyperbola', bounds: Bounds_2D) -> Vector:
+        intersection = self.intersects_hyperbola_in_bounds(other, bounds)
+        x = intersection.x
+        if self.orientation(x) <= 0 <= other.orientation(x):
+            return intersection
+        return Vector(float("nan"), float("nan"))
 
     def sample(self, bounds: (float, float), n: int) -> [Vector]:  # samples hyperbola in bounds with n edges
         sample_points = []
