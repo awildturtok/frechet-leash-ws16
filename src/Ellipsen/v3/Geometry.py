@@ -23,8 +23,12 @@ Bounds_2D = (Bounds_1D, Bounds_1D)
 tol = 1e-13  # global absolute tolerance
 
 
-def about_equal(f1: float, f2: float) -> bool:
-    return math.isclose(f1, f2, abs_tol=tol)
+def about_equal(x1: float, x2: float) -> bool:
+    return math.isclose(x1, x2, abs_tol=tol)
+
+
+def in_bounds(x: float, bounds: Bounds_1D) -> bool:
+    return bounds[0] <= x <= bounds[1]
 
 
 class Vector:
@@ -46,13 +50,14 @@ class Vector:
     def __str__(self):
         return "(%s,%s)" % (self.x, self.y)
 
-    def __hash__(self):
-        return hash((self.x, self.y))
+    @staticmethod
+    def nan():
+        return Vector(float("nan"), float("nan"))
+
+    # Vector Arithmetic
 
     def __lt__(self, other: 'Vector') -> int:
         return self.x <= other.x and self.y <= other.y
-
-    # Vector Arithmetic
 
     def __add__(self, other: 'Vector') -> 'Vector':
         x = self.x + other.x
@@ -254,7 +259,7 @@ class LineSegment:
     def point_on(self, p: Vector) -> bool:  # is given point on line
         return about_equal(p.y, self.fx(p.x)) or about_equal(p.x, self.fy(p.y))
 
-    def intersection_r(self, ls: 'LineSegment'):  # calculates the parameter r of the intersection point
+    def intersection_r(self, ls: 'LineSegment') -> float:  # calculates the parameter r of the intersection point
         if not about_equal(self.m, ls.m):
             a = np.array([[-self.d.x, ls.d.x], [-self.d.y, ls.d.y]])
             b = np.array([self.p1.x - ls.p1.x, self.p1.y - ls.p1.y])
@@ -263,11 +268,11 @@ class LineSegment:
         else:
             return float('nan')
 
-    def intersection_p(self, ls: 'LineSegment'):  # calculates the intersection point of two line segments
+    def intersection_p(self, ls: 'LineSegment') -> Vector:  # calculates the intersection point of two line segments
         r = self.intersection_r(ls)
         return self.fr(r)
 
-    def intersection_rl(self, ls: 'LineSegment'):  # calculates the parameter r of the intersection point
+    def intersection_rl(self, ls: 'LineSegment') -> float:  # calculates the parameter r of the intersection point
         r = self.intersection_r(ls)
         return r * self.l
 
@@ -367,7 +372,7 @@ class Path:
         i_segment = self.i_rl(rl)
 
         if math.isnan(i_segment):
-            return Vector(float('nan'), float('nan'))
+            return Vector.nan()
         return self.segments[i_segment].frl(rl - self.offsets[i_segment])
 
 
@@ -378,6 +383,13 @@ class Hyperbola:
     def __str__(self):
         return "hyperbola: S" + str(self.s) + " func: " + str(self.func_str())
 
+    @staticmethod
+    def nan() -> 'Hyperbola':
+        return Hyperbola(Vector.nan())
+
+    def is_nan(self) -> bool:
+        return math.isnan(self.s.x)
+
     def func_str(self) -> str:
         return "sqrt( " + str(self.s.y) + "^2 + ( x - " + str(self.s.x) +  " )^2 )"
 
@@ -386,6 +398,19 @@ class Hyperbola:
 
     def px(self, x: float) -> Vector:  # point for set x-value
         return Vector(x, self.fx(x))
+
+    def fy(self, y: float) -> [float]:  # x-value(s) for set y-value
+        if y < self.s.y:
+            return []
+        elif y == self.sy:
+            return [self.s.x]
+        else:
+            w = math.sqrt(math.pow(y, 2) - math.pow(self.s.y, 2))
+            return [self.s.x - w, self.s.x + w]
+
+    def py(self, y: float) -> [Vector]:  # point(s) for set y-value
+        xs = self.fy(y)
+        return [Vector(x, y) for x in xs]
 
     def fax(self, x: float) -> float:  # slope for set x-value
         return (x - self.x) / self.fx(x)
@@ -424,14 +449,14 @@ class Hyperbola:
         intersection = self.intersects_hyperbola(other)
         if bounds[0] <= intersection.x <= bounds[1]:
             return intersection
-        return Vector(float("nan"), float("nan"))
+        return Vector.nan()
 
     def intersects_hyperbola_in_bounds_critical(self, other: 'Hyperbola', bounds: Bounds_2D) -> Vector:
         intersection = self.intersects_hyperbola_in_bounds(other, bounds)
         x = intersection.x
         if self.orientation(x) <= 0 <= other.orientation(x):
             return intersection
-        return Vector(float("nan"), float("nan"))
+        return Vector.nan()
 
     def sample(self, bounds: (float, float), n: int) -> [Vector]:  # samples hyperbola in bounds with n edges
         sample_points = []

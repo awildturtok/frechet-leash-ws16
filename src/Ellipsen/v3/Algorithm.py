@@ -16,8 +16,7 @@ import matplotlib.pyplot as plt  # DEBUG
 from Geometry import *
 
 CellCoord = (int, int)
-TraversalType = (float, Vector, [float], [Vector], CellCoord) # old
-
+TraversalType = (float, Vector, [float], [Vector], CellCoord)  # old
 
 # DEBUG:
 # Todo: create Sample in Graphics
@@ -36,15 +35,18 @@ def vectors_to_xy(vectors: [Vector]) -> ([float], [float]):  # converts array of
 
 
 class Cell:
-    def __init__(self, parallel: bool, a: LineSegment, b: LineSegment, norm_ellipsis: Ellipse,
+    def __init__(self, parallel: bool, p: LineSegment, q: LineSegment, norm_ellipsis: Ellipse,
                  bounds_xy: Bounds_1D, bounds_l: Bounds_1D, offset: Vector = Vector(0, 0)):
         self.parallel = parallel
         # line segments
-        self.a = a
-        self.b = b
+        self.p = p
+        self.q = q
 
         self.norm_ellipsis = norm_ellipsis  # normed ellipsis (l=1)
-        self.bounds_xy = bounds_xy  # cell bounds
+        self.bounds_xy = bounds_xy  # local cell bounds
+        self.bounds_hor = (offset.x, offset.x + bounds_xy[0])  # global bounds horizontal
+        self.bounds_ver = (offset.y, offset.y + bounds_xy[1])  # global bounds vertical
+        self.bounds_xy_global = (offset.to_tuple(), (self.bounds_hor[1], self.bounds_ver[1]))  # global cell bounds
         self.bounds_l = bounds_l  # l length bounds
         self.offset = offset  # offset in cell-matrix
 
@@ -89,9 +91,9 @@ class Cell:
         # which steepest decent traversals are possible
         self.traverses_right = not about_equal(self.l_ver_cut_right.y, self.bounds_xy[1])
         self.traverses_top = not about_equal(self.l_hor_cut_top.x, self.bounds_xy[0])
-        self.traverses_top_right = self.l_ver_cut_right.y > self.bounds_xy[1] \
-                                   or self.l_hor_cut_top.x > self.bounds_xy[0] \
-                                   or not self.traverses_right or not self.traverses_top
+        self.traverses_top_right = self.l_ver_cut_right.y > self.bounds_xy[1] or \
+                                   self.l_hor_cut_top.x > self.bounds_xy[0] or \
+                                   not self.traverses_right or not self.traverses_top
         self.traverses_left = not about_equal(self.l_ver_cut_left.y, 0)
         self.traverses_bottom = not about_equal(self.l_hor_cut_bottom.x, 0)
         self.traverses_bottom_left = self.l_ver_cut_left.y < 0 \
@@ -112,14 +114,14 @@ class Cell:
                "      top_right: " + str(self.traverses_top_right) + '\n' + \
                "      top: " + str(self.traverses_top) + '\n'
 
-    def sample_l(self, nl: int, np: int, rel_bounds: Bounds_2D = ((0, 1), (0, 1))) -> {}:
-        # sample cell for nl: # of ls, np: # of points per ellipsis, rel_bounds: relative xy bounds
+    def sample_l(self, n_l: int, n_p: int, rel_bounds: Bounds_2D = ((0, 1), (0, 1))) -> {}:
+        # sample cell for n_l: # of ls, n_p: # of points per ellipsis, rel_bounds: relative xy bounds
         ls = []
-        for i in range(nl):
-            l = self.bounds_l[0] + (float(i) / (nl - 1)) * (self.bounds_l[1] - self.bounds_l[0])
+        for i in range(n_l):
+            l = self.bounds_l[0] + (float(i) / (n_l - 1)) * (self.bounds_l[1] - self.bounds_l[0])
             ls.append(l)
 
-        return self.sample(ls, np, rel_bounds)
+        return self.sample(ls, n_p, rel_bounds)
 
     def sample(self, ls: [float], n: int, rel_bounds: Bounds_2D = ((0, 1), (0, 1))) \
             -> {}:
@@ -195,8 +197,52 @@ class Cell:
 
         return sample
 
-    def lp(self, p: Vector) -> float:  # length l for given point
-        return self.a.frl(p.x).d(self.b.frl(p.y))
+    def lp(self, p: Vector) -> float:  # epsilon for given point
+        return self.p.frl(p.x).d(self.q.frl(p.y))
+
+    def hyperbola_horizontal(self, y: float) -> Hyperbola:  # hyperbola for set height y
+        bounds = self.bounds_ver
+        if not in_bounds(y, bounds):
+            return Hyperbola.nan()
+        elif y == bounds[0]:
+            return self.hyperbola_bottom
+        elif y == bounds[1]:
+            return self.hyperbola_top
+        else:
+            return self.q.hyperbola_with_point(self.p.fr(y - self.offset.y))
+
+    def hyperbola_vertical(self, x: float) -> Hyperbola:  # hyperbola for set spot x
+        bounds = self.bounds_hor
+        if not in_bounds(x, bounds):
+            return Hyperbola.nan()
+        elif x == bounds[0]:
+            return self.hyperbola_left
+        elif x == bounds[1]:
+            return self.hyperbola_right
+        else:
+            return self.p.hyperbola_with_point(self.q.fr(x - self.offset.x))
+
+    def free_horizontal(self, y: float, epsilon: float) -> Bounds_1D:  # free interval for epsilon on height y
+        ret_bounds = (math.inf, -math.inf)
+        hyperbola = self.hyperbola_horizontal(y)
+        if not hyperbola.is_nan():
+            ys = hyperbola.fy(epsilon)
+            if len(ys) == 1:
+                ret_bounds = (ys[0], ys[0])
+            elif len(ys) == 2:
+                ret_bounds = (min(ys), max(ys))
+        return ret_bounds
+
+    def free_vertical(self, x: float, epsilon: float) -> Bounds_1D:  # free interval for epsilon on spot x
+        ret_bounds = (math.inf, -math.inf)
+        hyperbola = self.hyperbola_vertical(x)
+        if not hyperbola.is_nan():
+            ys = hyperbola.fy(epsilon)
+            if len(ys) == 1:
+                ret_bounds = (ys[0], ys[0])
+            elif len(ys) == 2:
+                ret_bounds = (min(ys), max(ys))
+        return ret_bounds
 
     def traverse_right(self, traversal: TraversalType) -> \
             TraversalType:  # steepest decent traversal to right
@@ -395,7 +441,7 @@ class CriticalEvents:
             desc += '\n' + str(traversal)
         return desc
 
-    def __getitem__(self, item) -> Traversal:
+    def __getitem__(self, item) -> [Traversal]:
         if item not in self.dict:
             return []
         return self.dict[item]
@@ -405,7 +451,7 @@ class CriticalEvents:
         if epsilon not in self.dict:
             self.dict[epsilon] = []
         self.dict[epsilon].append(traversal)
-    
+
     def list(self) -> [Traversal]:
         sorted_events = []
         for epsilon in self.epsilons():
@@ -441,9 +487,12 @@ class CrossSection:
             desc += "     " + str(i) + ": " + str(bounds) + ": " + str(self.hyperbolas[i]) + '\n'
         return desc
 
+    def __len__(self):
+        return self.path.count
+
     def __getitem__(self, item) -> Hyperbola:
         assert 0 <= int(item) <= self.path.count, "Error: No Hyperbola with index: " + str(item) + '\n' + \
-                                                 "Hyperbolas: \n" + str(self)
+                                                  "Hyperbolas: \n" + str(self)
         return self.hyperbolas[item]
 
     def minima(self) -> [float]:  # returns all local minima
@@ -517,10 +566,10 @@ class CellMatrix:
                                  max(self.bounds_l[1], two_line_segments.bounds_l[1]))
                 self.twoLSs[i_p].append(two_line_segments)
                 cell = two_line_segments.cell(offset=Vector(self.p.offsets[i_p], self.q.offsets[i_q]))
-                cell.border_left = self.cross_sections_ver[i_p][i_q]
-                cell.border_bottom = self.cross_sections_hor[i_q][i_p]
-                cell.border_right = self.cross_sections_ver[i_p + 1][i_q]
-                cell.border_top = self.cross_sections_hor[i_q + 1][i_p]
+                cell.hyperbola_left = self.cross_sections_ver[i_p][i_q]
+                cell.hyperbola_bottom = self.cross_sections_hor[i_q][i_p]
+                cell.hyperbola_right = self.cross_sections_ver[i_p + 1][i_q]
+                cell.hyperbola_top = self.cross_sections_hor[i_q + 1][i_p]
                 self.cells[i_p].append(cell)
 
         # critical events
@@ -618,7 +667,7 @@ class CellMatrix:
         return desc
 
     @staticmethod
-    def calculate_cross_sections(path, points) -> CrossSection:
+    def calculate_cross_sections(path, points) -> [CrossSection]:
         cross_sections = []
 
         for point in points:
@@ -707,6 +756,9 @@ class CellMatrix:
             critical_events.append(traversal)
 
         return critical_events
+
+    def decide_traversal(self, a: Vector, traversal: Traversal, b: Vector, epsilon: float) -> bool:
+        return True
 
     def traversal_from_points(self, points) -> Traversal:
         start = points[0]
@@ -853,20 +905,19 @@ class CellMatrix:
 
         return traversals
 
-    def sample_l(self, nl: int, np: int, heatmap: int = 100, traversals_n: int = 10) -> {}:
-        # sample cell-matrix with nl: number of ls and np: points per ellipses
+    def sample_l(self, n_l: int, n_p: int, heatmap: int = 500, traversals_n: int = 10) -> {}:  # DEBUG: heatmap = 100
+        # sample cell-matrix with n_l: number of ls and n_p: points per ellipses
         ls = []
 
-        for i in range(nl + 1):
-            l = self.bounds_l[0] + (float(i) / nl) * (self.bounds_l[1] - self.bounds_l[0])
-            ls.append(l)
+        if n_l > 0:
+            for i in range(n_l + 1):
+                l = self.bounds_l[0] + (float(i) / n_l) * (self.bounds_l[1] - self.bounds_l[0])
+                ls.append(l)
 
-        #ls = self.critical_events_hor.epsilons() + self.critical_events_ver.epsilons()  # DEBUG !!!
+        return self.sample(ls, n_p, heatmap=heatmap, traversals_n=traversals_n)
 
-        return self.sample(ls, np, heatmap=heatmap, traversals_n=traversals_n)
-
-    def sample(self, ls: [float], np: int, heatmap: int = 100, traversals_n: int = 10) -> {}:
-        # sample cell-matrix for given ls and np: points per ellipses
+    def sample(self, ls: [float], n_p: int, heatmap: int = 100, traversals_n: int = 10) -> {}:
+        # sample cell-matrix for given ls and n_p: points per ellipses
         samples = {"bounds-l": [], "borders-v": [], "borders-h": [], "cells": [], "traversals": []}
 
         # are all ls in bounds
@@ -885,7 +936,7 @@ class CellMatrix:
         for i_p in range(self.p.count):
             for i_q in range(self.q.count):
                 cell = self.cells[i_p][i_q]
-                samples["cells"].append((str(i_p) + "x" + str(i_q), cell.sample(ls, np)))
+                samples["cells"].append((str(i_p) + "x" + str(i_q), cell.sample(ls, n_p)))
 
         # sample cell borders
         for i in range(1, self.p.count):  # vertical
@@ -899,8 +950,7 @@ class CellMatrix:
         samples["size"] = (self.p.length, self.q.length)
 
         # sample critical traversals
-        samples["critical-traversals"] = self.critical_events_hor.list() + \
-                                         self.critical_events_ver.list()
+        samples["critical-traversals"] = self.critical_events_hor.list() + self.critical_events_ver.list()
 
         # Old Traversal Sample:
         # sample traversals
