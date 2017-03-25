@@ -18,8 +18,7 @@ import numpy as np
 from bisect import bisect
 
 
-Bounds_1D = (float, float)
-Bounds_2D = (Bounds_1D, Bounds_1D)
+Bounds_2D = ((float, float), (float, float))
 tol = 1e-13  # global absolute tolerance
 
 
@@ -27,8 +26,35 @@ def about_equal(x1: float, x2: float) -> bool:
     return math.isclose(x1, x2, abs_tol=tol)
 
 
-def in_bounds(x: float, bounds: Bounds_1D) -> bool:
-    return bounds[0] <= x <= bounds[1]
+class Bounds1D:
+    def __init__(self, start: float, end: float):
+        self.start = start
+        self.end = end
+
+    def __str__(self):
+        return "(" + str(self.start) + ", " + str(self.end) + ")"
+
+    def __getitem__(self, item):
+        if item == 0:
+            return self.start
+        return self.end
+
+    def __contains__(self, item: float):
+        return self.start <= item <= self.end
+
+    def cut(self, other: 'Bounds1D') -> 'Bounds1D':
+        new_start = max(self.start, other.start)
+        new_end = min(self.end, other.end)
+        if new_end < new_start:
+            return Bounds1D.nan()
+        return Bounds1D(new_start, new_end)
+
+    @staticmethod
+    def nan() -> 'Bounds1D':
+        return Bounds1D(math.inf, 0)
+
+    def is_nan(self) -> bool:
+        return self.end < self.start
 
 
 class Vector:
@@ -53,6 +79,9 @@ class Vector:
     @staticmethod
     def nan():
         return Vector(float("nan"), float("nan"))
+
+    def is_nan(self):
+        return math.isnan(self.x)
 
     # Vector Arithmetic
 

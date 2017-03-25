@@ -16,7 +16,9 @@ import matplotlib.pyplot as plt  # DEBUG
 from Geometry import *
 
 CellCoord = (int, int)
+CM_Point = (Vector, CellCoord)
 TraversalType = (float, Vector, [float], [Vector], CellCoord)  # old
+
 
 # DEBUG:
 # Todo: create Sample in Graphics
@@ -36,7 +38,7 @@ def vectors_to_xy(vectors: [Vector]) -> ([float], [float]):  # converts array of
 
 class Cell:
     def __init__(self, parallel: bool, p: LineSegment, q: LineSegment, norm_ellipsis: Ellipse,
-                 bounds_xy: Bounds_1D, bounds_l: Bounds_1D, offset: Vector = Vector(0, 0)):
+                 bounds_xy: Bounds1D, bounds_l: (float, float), offset: Vector = Vector(0, 0)):
         self.parallel = parallel
         # line segments
         self.p = p
@@ -44,8 +46,8 @@ class Cell:
 
         self.norm_ellipsis = norm_ellipsis  # normed ellipsis (l=1)
         self.bounds_xy = bounds_xy  # local cell bounds
-        self.bounds_hor = (offset.x, offset.x + bounds_xy[0])  # global bounds horizontal
-        self.bounds_ver = (offset.y, offset.y + bounds_xy[1])  # global bounds vertical
+        self.bounds_hor = Bounds1D(offset.x, offset.x + bounds_xy[0])  # global bounds horizontal
+        self.bounds_ver = Bounds1D(offset.y, offset.y + bounds_xy[1])  # global bounds vertical
         self.bounds_xy_global = (offset.to_tuple(), (self.bounds_hor[1], self.bounds_ver[1]))  # global cell bounds
         self.bounds_l = bounds_l  # l length bounds
         self.offset = offset  # offset in cell-matrix
@@ -202,7 +204,7 @@ class Cell:
 
     def hyperbola_horizontal(self, y: float) -> Hyperbola:  # hyperbola for set height y
         bounds = self.bounds_ver
-        if not in_bounds(y, bounds):
+        if y not in bounds:
             return Hyperbola.nan()
         elif y == bounds[0]:
             return self.hyperbola_bottom
@@ -213,7 +215,7 @@ class Cell:
 
     def hyperbola_vertical(self, x: float) -> Hyperbola:  # hyperbola for set spot x
         bounds = self.bounds_hor
-        if not in_bounds(x, bounds):
+        if x not in bounds:
             return Hyperbola.nan()
         elif x == bounds[0]:
             return self.hyperbola_left
@@ -222,8 +224,8 @@ class Cell:
         else:
             return self.p.hyperbola_with_point(self.q.fr(x - self.offset.x))
 
-    def free_horizontal(self, y: float, epsilon: float) -> Bounds_1D:  # free interval for epsilon on height y
-        ret_bounds = (math.inf, -math.inf)
+    def free_bounds_horizontal(self, y: float, epsilon: float) -> Bounds1D:  # free interval for epsilon on height y
+        ret_bounds = Bounds1D.nan()
         hyperbola = self.hyperbola_horizontal(y)
         if not hyperbola.is_nan():
             ys = hyperbola.fy(epsilon)
@@ -233,8 +235,8 @@ class Cell:
                 ret_bounds = (min(ys), max(ys))
         return ret_bounds
 
-    def free_vertical(self, x: float, epsilon: float) -> Bounds_1D:  # free interval for epsilon on spot x
-        ret_bounds = (math.inf, -math.inf)
+    def free_bounds_vertical(self, x: float, epsilon: float) -> Bounds1D:  # free interval for epsilon on spot x
+        ret_bounds = Bounds1D.nan()
         hyperbola = self.hyperbola_vertical(x)
         if not hyperbola.is_nan():
             ys = hyperbola.fy(epsilon)
@@ -387,7 +389,7 @@ class TwoLineSegments:  # calculates and saves parameters of two line segments
             norm_ellipsis = EllipseInfinite(self.anchor, a, self.dist)
 
         # set cell bounds: length of a and b
-        bounds_xy = (self.a.d.l, self.b.d.l)
+        bounds_xy = Bounds1D(self.a.d.l, self.b.d.l)
 
         return Cell(self.parallel, self.a, self.b, norm_ellipsis, bounds_xy, self.bounds_l, offset=offset)
 
@@ -411,16 +413,20 @@ def traverse_b(t: TraversalType) -> \
 
 
 class Traversal:
-    def __init__(self, cell_matrix: 'CellMatrix', a: Vector, b: Vector, path: [Vector], epsilon: float,
-                 epsilons: [float], cell_a: CellCoord, cell_b: CellCoord):
+    def __init__(self, cell_matrix: 'CellMatrix', a_cm: CM_Point, b_cm: CM_Point, path: [Vector], epsilon: float,
+                 epsilons: [float]):
         self.cell_matrix = cell_matrix
-        self.a = a
-        self.b = b
+        
+        self.a_cm = a_cm
+        self.a = a_cm[0]
+        self.cell_a = a_cm[1]
+        self.b_cm = b_cm
+        self.b = b_cm[0]
+        self.cell_b = b_cm[1]
+        
         self.path = path
         self.epsilon = epsilon
         self.epsilons = epsilons
-        self.cell_a = cell_a
-        self.cell_b = cell_b
 
     def __str__(self):
         return "    " + str(self.epsilon) + "-Traversal:" + '\n' + \
@@ -555,8 +561,8 @@ class CellMatrix:
         self.cross_sections_ver = self.calculate_cross_sections(self.q, self.p.points)
 
         # generate and save TwoLineSegments & Cells
-        self.twoLSs = []
-        self.cells = []
+        self.twoLSs: [[TwoLineSegments]] = []
+        self.cells: [[Cell]] = []
         for i_p in range(self.p.count):
             self.twoLSs.append([])
             self.cells.append([])
@@ -757,7 +763,41 @@ class CellMatrix:
 
         return critical_events
 
-    def decide_traversal(self, a: Vector, traversal: Traversal, b: Vector, epsilon: float) -> bool:
+    def decide_critical_traversal(self, a1_cm: CM_Point, traversal: Traversal, b2_cm: CM_Point) -> bool:
+        epsilon = traversal.epsilon
+        b1_cm = traversal.a_cm
+        a2_cm = traversal.b_cm
+        decision1 = self.decide_traversal(a1_cm, b1_cm, epsilon)
+        decision2 = self.decide_traversal(a2_cm, b2_cm, epsilon)
+        return decision1 and decision2
+    
+    def decide_traversal(self, a_cm: CM_Point, b_cm: CM_Point, epsilon: float) -> bool:
+        a = a_cm[0]
+        cell_a = a_cm[1]
+        b = b_cm[0]
+        cell_b = b_cm[1]
+        
+        if not a < b:
+            print("Error: Traversal is impossible, because not a < b: a=" + str(a) + " and b=" + str(b))
+            return False
+        
+        range_p = range(cell_a[0], cell_b[0] + 1)
+        range_q = range(cell_a[1], cell_b[1] + 1)
+
+        start_cell = self.cells[cell_a[0]][cell_a[1]]
+        start_bounds_p = Bounds1D(a.x, start_cell.bounds_x[1])
+        start_bounds_q = Bounds1D(a.y, start_cell.bounds_y[1])
+        reachable_bounds_p = start_cell.free_bounds_horizontal(a.y, epsilon)
+        reachable_bounds_q = start_cell.free_bounds_vertical(a.x, epsilon)
+        reachable_p = start_bounds_p.cut(reachable_bounds_p)
+        reachable_q = start_bounds_q.cut(reachable_bounds_q)
+        
+        for i_p in range_p:
+            reachable_p.append([])
+            reachable_q.append([])
+            for i_q in range_q:
+                print("fghjk")  #TODO: next!!!
+
         return True
 
     def traversal_from_points(self, points) -> Traversal:
@@ -773,7 +813,7 @@ class CellMatrix:
             epsilons.append(tmp_epsilon)
         epsilon = max(epsilons)
 
-        return Traversal(self, start, end, points, epsilon, epsilons, cell_a, cell_b)
+        return Traversal(self, (start, cell_a), (end, cell_b), points, epsilon, epsilons)
 
     # Old Traversal (v2):
     def traverse_best(self, criteria: int = 2, delete_duplicates: bool = True, start: Vector = Vector(0, 0)) \
