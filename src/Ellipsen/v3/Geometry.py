@@ -51,7 +51,7 @@ class Bounds1D:
 
     @staticmethod
     def nan() -> 'Bounds1D':
-        return Bounds1D(math.inf, 0)
+        return Bounds1D(math.inf, -math.inf)
 
     def is_nan(self) -> bool:
         return self.end < self.start
@@ -431,7 +431,7 @@ class Hyperbola:
     def fy(self, y: float) -> [float]:  # x-value(s) for set y-value
         if y < self.s.y:
             return []
-        elif y == self.sy:
+        elif y == self.s.y:
             return [self.s.x]
         else:
             w = math.sqrt(math.pow(y, 2) - math.pow(self.s.y, 2))
