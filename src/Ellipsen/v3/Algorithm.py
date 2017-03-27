@@ -206,9 +206,9 @@ class Cell:
         bounds = self.bounds_ver
         if y not in bounds:
             return Hyperbola.nan()
-        elif y == bounds[0]:
+        elif about_equal(y, bounds[0]):
             return self.hyperbola_bottom
-        elif y == bounds[1]:
+        elif about_equal(y, bounds[1]):
             return self.hyperbola_top
         else:
             return self.q.hyperbola_with_point(self.p.fr(y - self.offset.y))
@@ -217,9 +217,9 @@ class Cell:
         bounds = self.bounds_hor
         if x not in bounds:
             return Hyperbola.nan()
-        elif x == bounds[0]:
+        elif about_equal(x, bounds[0]):
             return self.hyperbola_left
-        elif x == bounds[1]:
+        elif about_equal(x, bounds[1]):
             return self.hyperbola_right
         else:
             return self.p.hyperbola_with_point(self.q.fr(x - self.offset.x))
@@ -233,7 +233,7 @@ class Cell:
                 ret_bounds = Bounds1D(ys[0], ys[0])
             elif len(ys) == 2:
                 ret_bounds = Bounds1D(min(ys), max(ys))
-        return ret_bounds
+        return self.bounds_hor.cut(ret_bounds)
 
     def free_bounds_vertical(self, x: float, epsilon: float) -> Bounds1D:  # free interval for epsilon on spot x
         ret_bounds = Bounds1D.nan()
@@ -244,7 +244,7 @@ class Cell:
                 ret_bounds = Bounds1D(ys[0], ys[0])
             elif len(ys) == 2:
                 ret_bounds = Bounds1D(min(ys), max(ys))
-        return ret_bounds
+        return self.bounds_ver.cut(ret_bounds)
 
     def traverse_right(self, traversal: TraversalType) -> \
             TraversalType:  # steepest decent traversal to right
@@ -585,8 +585,7 @@ class CellMatrix:
                 self.cells[i_p].append(cell)
 
         # critical events
-        self.critical_events_hor = self.calculate_critical_events(horizontal=True)
-        self.critical_events_ver = self.calculate_critical_events(horizontal=False)
+        self.critical_events = self.calculate_critical_events()
 
         # DEBUG: sample hyperbolas:
         fig_both = plt.figure(figsize=plt.figaspect(0.5))
@@ -666,9 +665,7 @@ class CellMatrix:
         for i_p in range(self.p.count + 1):
             desc += "   " + str(i_p) + ".\n" + str(self.cross_sections_ver[i_p]) + '\n'
         desc += '\n'
-        desc += " Critical Events: " + '\n'
-        desc += "  Horizontal: " + str(self.critical_events_hor) + '\n'
-        desc += "  Vertical: " + str(self.critical_events_ver) + '\n'
+        desc += " Critical Events:\n" + str(self.critical_events) + '\n'
         desc += '\n'
         if self.traverse > 0:
             desc += " Lowest_l: " + str(self.lowest_l) + '\n'
@@ -695,7 +692,7 @@ class CellMatrix:
         path = cross_sections[0].path
         other_path = other_cross_sections[0].path
 
-        # events of type a
+        # events of type b
         for i_cross_section in range(1, len(cross_sections) - 1):
             cross_section = cross_sections[i_cross_section]
 
@@ -715,7 +712,7 @@ class CellMatrix:
                 if other_cross_section.is_maxima(y):
                     critical_points.append([Vector(x, y)])
 
-        # events of type b
+        # events of type c
         for i_section in range(path.count):
             bounds = (path.offsets[i_section], path.offsets[i_section + 1])
             for i_start in range(n_cross_sections):
@@ -751,19 +748,23 @@ class CellMatrix:
 
         return critical_points
 
-    def calculate_critical_events(self, horizontal: bool) -> CriticalEvents:
+    def calculate_critical_events(self) -> CriticalEvents:
         critical_events = CriticalEvents()
-        critical_points = []
 
-        if horizontal:
-            critical_points += self.calculate_critical_points(self.cross_sections_ver, self.cross_sections_hor)
-        else:
-            critical_points += self.calculate_critical_points(self.cross_sections_hor, self.cross_sections_ver)
+        # event type a
+        critical_events.append(self.traversal_from_points([self.a_cm[0]]))
+        critical_events.append(self.traversal_from_points([self.b_cm[0]]))
 
-        for points in critical_points:
-            if horizontal:
-                points = [point.x_to_y() for point in points]
+        # horizontal
+        critical_points_hor = self.calculate_critical_points(self.cross_sections_ver, self.cross_sections_hor)
+        for points in critical_points_hor:
+            points = [point.x_to_y() for point in points]
+            traversal = self.traversal_from_points(points)
+            critical_events.append(traversal)
 
+        # vertical
+        critical_points_ver = self.calculate_critical_points(self.cross_sections_hor, self.cross_sections_ver)
+        for points in critical_points_ver:
             traversal = self.traversal_from_points(points)
             critical_events.append(traversal)
 
@@ -782,6 +783,9 @@ class CellMatrix:
         cell_a = a_cm[1]
         b = b_cm[0]
         cell_b = b_cm[1]
+
+        if a == b:
+            return True
 
         if not a < b:
             print("Error: Traversal is impossible, because not a < b: a=" + str(a) + " and b=" + str(b))
@@ -807,6 +811,10 @@ class CellMatrix:
 
         d_p = end_i_p - start_i_p + 1
         d_q = end_i_q - start_i_q + 1
+        if a.x == b.x:
+            d_p = 0
+        if a.y == b.y:
+            d_q = 0
 
         offsets_hor = self.p.offsets[start_i_p: end_i_p + 2]
         offsets_hor[0] = a.x
@@ -815,58 +823,62 @@ class CellMatrix:
         offsets_ver[0] = a.y
         offsets_ver[-1] = b.y
 
-        range_p = range(d_p)
-        range_q = range(d_q)
+        bounds_hor = [Bounds1D(offsets_hor[i_p], offsets_hor[i_p + 1]) for i_p in range(d_p)]
+        bounds_ver = [Bounds1D(offsets_ver[i_q], offsets_ver[i_q + 1]) for i_q in range(d_q)]
 
-        bounds_hor = [Bounds1D(offsets_hor[i_p], offsets_hor[i_p + 1]) for i_p in range_p]
-        bounds_ver = [Bounds1D(offsets_ver[i_q], offsets_ver[i_q + 1]) for i_q in range_q]
-
-        reachable_hor = [[Bounds1D.nan() for i_q in range(0, d_q)] for i_p in range(0, d_p + 1)]
-        reachable_ver = [[Bounds1D.nan() for i_q in range(0, d_q + 1)] for i_p in range(0, d_p)]
+        reachable_hor = [[Bounds1D.nan() for i_q in range(d_q + 1)] for i_p in range(d_p)]
+        reachable_ver = [[Bounds1D.nan() for i_q in range(d_q)] for i_p in range(d_p + 1)]
 
         start_cell = cells[start_i_p][start_i_q]
 
-        if d_p > 1:
+        if d_p > 0:
             reachable_bottom = bounds_hor[0].cut(start_cell.free_bounds_horizontal(offsets_ver[0], epsilon))
             if offsets_hor[0] in reachable_bottom:
                 reachable_hor[0][0] = reachable_bottom
             for i_p in range(1, d_p):
                 cell = cells[start_i_p + i_p][start_i_q]
                 reachable_bottom = bounds_hor[i_p].cut(cell.free_bounds_horizontal(offsets_ver[0], epsilon))
-                if reachable_hor[i_p - 1][0].end in reachable_bottom:
+                if reachable_bottom.start in reachable_hor[i_p - 1][0]:
                     reachable_hor[i_p][0] = reachable_bottom
+            if d_q == 0:
+                return b.x in reachable_hor[d_p - 1][0]
 
-        if d_q > 1:
+        if d_q > 0:
             reachable_left = bounds_ver[0].cut(start_cell.free_bounds_vertical(offsets_hor[0], epsilon))
             if offsets_ver[0] in reachable_left:
                 reachable_ver[0][0] = reachable_left
             for i_q in range(1, d_q):
                 cell = cells[start_i_p][start_i_q + i_q]
                 reachable_left = bounds_ver[i_q].cut(cell.free_bounds_vertical(offsets_hor[0], epsilon))
-                if reachable_ver[0][i_q - 1].end in reachable_left:
+                if reachable_left.start in reachable_ver[0][i_q - 1]:
                     reachable_ver[0][i_q] = reachable_left
+            if d_p == 0:
+                return b.y in reachable_ver[0][d_q - 1]
 
-        for i_p in range_p:
-            for i_q in range_q:
+        for i_p in range(d_p):
+            for i_q in range(d_q):
                 cell = cells[start_i_p + i_p][start_i_q + i_q]
-                reachable_bottom = reachable_hor[i_p][i_q]
+
                 reachable_left = reachable_ver[i_p][i_q]
-                free_top = cell.free_bounds_horizontal(offsets_ver[i_q + 1], epsilon)
-                free_right = cell.free_bounds_vertical(offsets_hor[i_p + 1], epsilon)
-                reachable_right = Bounds1D.nan()
+                reachable_bottom = reachable_hor[i_p][i_q]
+
+                free_top = bounds_hor[i_p].cut(cell.free_bounds_horizontal(offsets_ver[i_q + 1], epsilon))
                 reachable_top = Bounds1D.nan()
                 if not reachable_left.is_nan():
                     reachable_top = free_top
                 elif not reachable_bottom.cut(free_top).is_nan():
-                    reachable_top = Bounds1D(reachable_bottom.start, free_top.end)
+                    reachable_top = bounds_hor[i_p].cut(Bounds1D(reachable_bottom.start, free_top.end))
+                reachable_hor[i_p][i_q + 1] = reachable_top
+
+                free_right = bounds_ver[i_q].cut(cell.free_bounds_vertical(offsets_hor[i_p + 1], epsilon))
+                reachable_right = Bounds1D.nan()
                 if not reachable_bottom.is_nan():
                     reachable_right = free_right
                 elif not reachable_left.cut(free_right).is_nan():
-                    reachable_right = Bounds1D(reachable_left.start, free_right.end)
-                reachable_hor[i_p + 1][i_q] = reachable_top
-                reachable_ver[i_p][i_q + 1] = reachable_right
+                    reachable_right = bounds_ver[i_q].cut(Bounds1D(reachable_left.start, free_right.end))
+                reachable_ver[i_p + 1][i_q] = reachable_right
 
-        return (b.x in reachable_hor[d_p][d_q - 1]) or (b.y in reachable_ver[d_p - 1][d_q])
+        return (b.x in reachable_hor[d_p - 1][d_q]) or (b.y in reachable_ver[d_p][d_q - 1])
 
     def traversal_from_points(self, points) -> Traversal:
         start = points[0]
@@ -1013,7 +1025,7 @@ class CellMatrix:
 
         return traversals
 
-    def sample_l(self, n_l: int, n_p: int, heatmap: int = 500, traversals_n: int = 10) -> {}:  # DEBUG: heatmap = 100
+    def sample_l(self, n_l: int, n_p: int, heatmap: int = 100, traversals_n: int = 10) -> {}:  # DEBUG: heatmap = 100
         # sample cell-matrix with n_l: number of ls and n_p: points per ellipses
         ls = []
 
@@ -1021,6 +1033,8 @@ class CellMatrix:
             for i in range(n_l + 1):
                 l = self.bounds_l[0] + (float(i) / n_l) * (self.bounds_l[1] - self.bounds_l[0])
                 ls.append(l)
+        elif n_l == -1:
+            ls = self.critical_events.epsilons()
 
         return self.sample(ls, n_p, heatmap=heatmap, traversals_n=traversals_n)
 
@@ -1058,7 +1072,7 @@ class CellMatrix:
         samples["size"] = (self.p.length, self.q.length)
 
         # sample critical traversals
-        samples["critical-traversals"] = self.critical_events_hor.list() + self.critical_events_ver.list()
+        samples["critical-traversals"] = self.critical_events.list()
 
         # Old Traversal Sample:
         # sample traversals

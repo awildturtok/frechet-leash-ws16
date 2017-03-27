@@ -40,7 +40,7 @@ class Bounds1D:
         return self.end
 
     def __contains__(self, item: float):
-        return self.start <= item <= self.end
+        return self.start <= item <= self.end or about_equal(self.start, item) or about_equal(self.end, item)
 
     def cut(self, other: 'Bounds1D') -> 'Bounds1D':
         new_start = max(self.start, other.start)
