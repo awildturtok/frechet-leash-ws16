@@ -52,6 +52,12 @@ class Cell:
         self.bounds_l = bounds_l  # l length bounds
         self.offset = offset  # offset in cell-matrix
 
+        # border hyperbolas:
+        self.hyperbola_bottom = p.hyperbola_with_point(q.p1).move_x(offset.x)
+        self.hyperbola_top = p.hyperbola_with_point(q.p2).move_x(offset.x)
+        self.hyperbola_left = q.hyperbola_with_point(p.p1).move_x(offset.y)
+        self.hyperbola_right = q.hyperbola_with_point(p.p2).move_x(offset.y)
+
         # variables for traversal
         self.top_right = Vector(bounds_xy[0], bounds_xy[1])  # point at top right of cell local
         self.top_right_global = self.top_right + self.offset  # point at top right of cell in cell-matrix
@@ -578,10 +584,10 @@ class CellMatrix:
                                  max(self.bounds_l[1], two_line_segments.bounds_l[1]))
                 self.twoLSs[i_p].append(two_line_segments)
                 cell = two_line_segments.cell(offset=Vector(self.p.offsets[i_p], self.q.offsets[i_q]))
-                cell.hyperbola_left = self.cross_sections_ver[i_p][i_q]
+                '''cell.hyperbola_left = self.cross_sections_ver[i_p][i_q]
                 cell.hyperbola_bottom = self.cross_sections_hor[i_q][i_p]
                 cell.hyperbola_right = self.cross_sections_ver[i_p + 1][i_q]
-                cell.hyperbola_top = self.cross_sections_hor[i_q + 1][i_p]
+                cell.hyperbola_top = self.cross_sections_hor[i_q + 1][i_p]'''  # DEBUG
                 self.cells[i_p].append(cell)
 
         # critical events
@@ -590,6 +596,7 @@ class CellMatrix:
             traversal = self.critical_events[epsilon][0]
             if self.decide_critical_traversal(self.a_cm, traversal, self.b_cm):
                 self.lowest_l = epsilon
+                print("Kritisch...\n" + str(traversal) + '\n')
                 break
 
         '''# DEBUG: sample hyperbolas:
@@ -670,9 +677,9 @@ class CellMatrix:
         for i_p in range(self.p.count + 1):
             desc += "   " + str(i_p) + ".\n" + str(self.cross_sections_ver[i_p]) + '\n'
         desc += '\n'
-        desc += " Critical Events:\n" + str(self.critical_events) + '\n'
-        desc += '\n'
+        desc += " Critical Events: " + str(self.critical_events) + '\n'
         if self.traverse > 0:
+            desc += '\n'
             desc += " Lowest_l: " + str(self.lowest_l) + '\n'
             desc += " Traversals:\n"
             for traversal in self.traversals:
