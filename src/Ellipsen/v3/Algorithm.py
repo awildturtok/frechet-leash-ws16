@@ -584,15 +584,11 @@ class CellMatrix:
                                  max(self.bounds_l[1], two_line_segments.bounds_l[1]))
                 self.twoLSs[i_p].append(two_line_segments)
                 cell = two_line_segments.cell(offset=Vector(self.p.offsets[i_p], self.q.offsets[i_q]))
-                '''cell.hyperbola_left = self.cross_sections_ver[i_p][i_q]
-                cell.hyperbola_bottom = self.cross_sections_hor[i_q][i_p]
-                cell.hyperbola_right = self.cross_sections_ver[i_p + 1][i_q]
-                cell.hyperbola_top = self.cross_sections_hor[i_q + 1][i_p]'''  # DEBUG
                 self.cells[i_p].append(cell)
 
         # critical events
         self.critical_events = self.calculate_critical_events()
-        for epsilon in self.critical_events.epsilons():
+        for epsilon in self.critical_events.epsilons():  # DEBUG ->
             traversal = self.critical_events[epsilon][0]
             if self.decide_critical_traversal(self.a_cm, traversal, self.b_cm):
                 self.lowest_l = epsilon
