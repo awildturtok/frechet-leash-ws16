@@ -429,10 +429,10 @@ class Hyperbola:
         return Vector(x, self.fx(x))
 
     def fy(self, y: float) -> [float]:  # x-value(s) for set y-value
-        if y < self.s.y:
-            return []
-        elif y == self.s.y:
+        if about_equal(y, self.s.y):
             return [self.s.x]
+        elif y < self.s.y:
+            return []
         else:
             w = math.sqrt(math.pow(y, 2) - math.pow(self.s.y, 2))
             return [self.s.x - w, self.s.x + w]

@@ -586,8 +586,13 @@ class CellMatrix:
 
         # critical events
         self.critical_events = self.calculate_critical_events()
+        for epsilon in self.critical_events.epsilons():
+            traversal = self.critical_events[epsilon][0]
+            if self.decide_critical_traversal(self.a_cm, traversal, self.b_cm):
+                self.lowest_l = epsilon
+                break
 
-        # DEBUG: sample hyperbolas:
+        '''# DEBUG: sample hyperbolas:
         fig_both = plt.figure(figsize=plt.figaspect(0.5))
         ax_hor = fig_both.add_subplot(2, 1, 1, aspect=1, ylim=self.bounds_l, xlabel="p", ylabel="ε")
         ax_ver = fig_both.add_subplot(2, 1, 2, aspect=1, ylim=self.bounds_l, xlabel="p", ylabel="ε")
@@ -623,7 +628,7 @@ class CellMatrix:
                 ax.plot(y, x)
             ax_ver.plot(*vectors_to_xy(all_points), label="p = " + str(i_p))
         ax_hor.legend()
-        ax_ver.legend()
+        ax_ver.legend()'''
 
         # set fast=True to quit when global minimum is reached, local minimum is disregarded
         self.fast = fast
@@ -878,6 +883,16 @@ class CellMatrix:
                     reachable_right = bounds_ver[i_q].cut(Bounds1D(reachable_left.start, free_right.end))
                 reachable_ver[i_p + 1][i_q] = reachable_right
 
+        '''if epsilon == 0.6322879582403348:  # DEBUG
+            print("A: " + str([str(p) for p in a_cm]))
+            print("B: " + str([str(p) for p in b_cm]))
+            print("d_p: " + str(d_p))
+            print("d_q: " + str(d_q))
+            print("reachable_hor: " + str([[str(b) for b in bs] for bs in reachable_hor]))
+            print("reachable_ver: " + str([[str(b) for b in bs] for bs in reachable_ver]))
+            print("free: " + str(cells[d_p - 1][d_q - 1].free_bounds_vertical(offsets_hor[d_p], 0.6322879582403348)))
+            print("=====")'''
+
         return (b.x in reachable_hor[d_p - 1][d_q]) or (b.y in reachable_ver[d_p][d_q - 1])
 
     def traversal_from_points(self, points) -> Traversal:
@@ -1034,7 +1049,7 @@ class CellMatrix:
                 l = self.bounds_l[0] + (float(i) / n_l) * (self.bounds_l[1] - self.bounds_l[0])
                 ls.append(l)
         elif n_l == -1:
-            ls = self.critical_events.epsilons()
+            ls = [self.lowest_l]
 
         return self.sample(ls, n_p, heatmap=heatmap, traversals_n=traversals_n)
 
