@@ -389,16 +389,26 @@ class Path:
 
     # Path Arithmetic
 
-    def i_rl(self, rl: float) -> float:  # index for set parameter rl
+    def i_rl_path(self, rl: float) -> float:  # path index for set parameter rl
         if not 0 <= rl <= self.length:
-            print("Error: Parameter rl=" + str(rl) + " is not in bounds: [0, " + str(self.length) + "].")
+            print("Error: Parameter rl=" + str(rl) + " is not in bounds: [0.." + str(self.length) + "].")
             return math.nan
 
         i_segment = bisect(self.offsets[1:], rl)
         return min(i_segment, self.count - 1)
 
+    def i_rl_point(self, rl: float) -> float:  # point index for set parameter rl
+        if not 0 <= rl <= self.length:
+            print("Error: Parameter rl=" + str(rl) + " is not in bounds: [0.." + str(self.length) + "].")
+            return math.nan
+
+        i_segment = bisect(self.offsets[1:], rl)
+        if about_equal(rl, self.offsets[i_segment - 1]):
+            return i_segment - 1
+        return i_segment
+
     def p_rl(self, rl: float) -> Vector:  # point for set parameter rl
-        i_segment = self.i_rl(rl)
+        i_segment = self.i_rl_path(rl)
 
         if math.isnan(i_segment):
             return Vector.nan()
@@ -446,6 +456,8 @@ class Hyperbola:
 
     def orientation(self, x: float) -> float:
         # for set x: returns positive if falling, 0 if constant, negative if rising
+        if about_equal(x, self.s.x):
+            return 0
         return x - self.s.x
 
     def reflect_x(self, x: float) -> 'Hyperbola':  # reflects hyperbola over vertical at set x

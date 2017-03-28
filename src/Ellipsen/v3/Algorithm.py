@@ -446,8 +446,10 @@ class Traversal:
 
 
 class CriticalEvents:
-    def __init__(self):
-        self.dict = {}
+    def __init__(self, dictionary: {} = None):
+        if dictionary is None:
+            dictionary = {}
+        self.dictionary = dictionary
 
     def __str__(self):
         desc = ""
@@ -456,15 +458,18 @@ class CriticalEvents:
         return desc
 
     def __getitem__(self, item) -> [Traversal]:
-        if item not in self.dict:
+        if item not in self.dictionary:
             return []
-        return self.dict[item]
+        return self.dictionary[item]
+
+    def __len__(self):
+        return len(self.epsilons())
 
     def append(self, traversal: Traversal):
         epsilon = traversal.epsilon
-        if epsilon not in self.dict:
-            self.dict[epsilon] = []
-        self.dict[epsilon].append(traversal)
+        if epsilon not in self.dictionary:
+            self.dictionary[epsilon] = []
+        self.dictionary[epsilon].append(traversal)
 
     def list(self) -> [Traversal]:
         sorted_events = []
@@ -473,7 +478,47 @@ class CriticalEvents:
         return sorted_events
 
     def epsilons(self) -> [float]:
-        return sorted(self.dict.keys())
+        return sorted(self.dictionary.keys())
+
+    def in_bounds(self, a1_cm: CM_Point, b2_cm: CM_Point) -> 'CriticalEvents':
+        a1 = a1_cm[0]
+        b2 = b2_cm[0]
+
+        critical_events_cut = CriticalEvents()
+
+        for epsilon in self.epsilons():
+            for traversal in self[epsilon]:
+                b1 = traversal.a
+                a2 = traversal.b
+                if a1 < b1 and a2 < b2:
+                    critical_events_cut.append(traversal)
+
+        return critical_events_cut
+
+    def critical(self, cell_matrix: CellMatrix, a_cm: CM_Point, b_cm: CM_Point) -> [Traversal]:
+        traversals = []
+
+        critical_epsilon = self.critical_helper(cell_matrix, a_cm, b_cm, 0, len(self) - 1)
+        for traversal in self[critical_epsilon]:
+            if cell_matrix.decide_critical_traversal(a_cm, traversal, b_cm):
+                traversals.append(traversal)
+
+        return traversals
+
+    def critical_helper(self, cell_matrix: CellMatrix, a_cm: CM_Point, b_cm: CM_Point, i_start_epsilon: float,
+                        i_end_epsilon: float) -> [Traversal]:
+        epsilons = self.epsilons()
+        if i_start_epsilon == i_end_epsilon:
+            return epsilons[i_start_epsilon]
+
+        i_mid_epsilon = math.floor(0.5*(i_end_epsilon - i_start_epsilon))
+        mid_epsilon = epsilons[i_mid_epsilon]
+
+        decision = cell_matrix.decide_traversal(a_cm, b_cm, mid_epsilon)
+        if decision:
+            return self.critical_helper(cell_matrix, a_cm, b_cm, i_start_epsilon, i_mid_epsilon)
+        else:
+            return self.critical_helper(cell_matrix, a_cm, b_cm, i_mid_epsilon, i_end_epsilon)
 
 
 class CrossSection:
@@ -499,6 +544,8 @@ class CrossSection:
         for i in range(self.path.count):
             bounds = (self.path.offsets[i], self.path.offsets[i + 1])
             desc += "     " + str(i) + ": " + str(bounds) + ": " + str(self.hyperbolas[i]) + '\n'
+        desc += "     => Minima: " + str(self.minima())
+        desc += "     => Maxima: " + str(self.maxima())
         return desc
 
     def __len__(self):
@@ -549,7 +596,7 @@ class CrossSection:
                     self._maxima.append(x)
         return self._maxima
 
-    def is_maxima(self, x: float) -> bool:  # checks if a point is a local maxima
+    def is_maxima(self, x: float) -> bool:  # checks if local maxima at set x
         if len(self._maxima) == 0:
             self._maxima = self.maxima()
         return x in self._maxima
@@ -595,15 +642,14 @@ class CellMatrix:
                 print("Kritisch...\n" + str(traversal) + '\n')
                 break
 
-        '''# DEBUG: sample hyperbolas:
+        # DEBUG: sample hyperbolas:
         fig_both = plt.figure(figsize=plt.figaspect(0.5))
         ax_hor = fig_both.add_subplot(2, 1, 1, aspect=1, ylim=self.bounds_l, xlabel="p", ylabel="ε")
-        ax_ver = fig_both.add_subplot(2, 1, 2, aspect=1, ylim=self.bounds_l, xlabel="p", ylabel="ε")
+        ax_ver = fig_both.add_subplot(2, 1, 2, aspect=1, ylim=self.bounds_l, xlabel="q", ylabel="ε")
         # horizontal
-        fig_hor = plt.figure(figsize=plt.figaspect(0.5))
+        #fig_hor = plt.figure(figsize=plt.figaspect(0.5))
         for i_q in range(self.q.count + 1):
-            ax = fig_hor.add_subplot(self.q.count + 1, 1, self.q.count - i_q + 1, aspect=1, ylim=self.bounds_l,
-                                     xlabel="p", ylabel="ε")
+            #ax = fig_hor.add_subplot(self.q.count + 1, 1, self.q.count - i_q + 1, aspect=1, ylim=self.bounds_l, xlabel="p", ylabel="ε")
             all_points = []
             for i_p in range(self.p.count):
                 points = []
@@ -613,12 +659,12 @@ class CellMatrix:
                 points += sample
                 all_points += sample
                 x, y = vectors_to_xy(points)
-                ax.plot(x, y)
+                #ax.plot(x, y)
             ax_hor.plot(*vectors_to_xy(all_points), label="q = " + str(i_q))
         # vertical
-        fig_ver = plt.figure(figsize=plt.figaspect(0.5))
+        #fig_ver = plt.figure(figsize=plt.figaspect(0.5))
         for i_p in range(self.p.count + 1):
-            ax = fig_ver.add_subplot(1, self.p.count + 1, i_p + 1, aspect=1, xlim=self.bounds_l, xlabel="ε", ylabel="p")
+            #ax = fig_ver.add_subplot(1, self.p.count + 1, i_p + 1, aspect=1, xlim=self.bounds_l, xlabel="ε", ylabel="q")
             all_points = []
             for i_q in range(self.q.count):
                 points = []
@@ -628,10 +674,10 @@ class CellMatrix:
                 points += sample
                 all_points += sample
                 x, y = vectors_to_xy(points)
-                ax.plot(y, x)
+                #ax.plot(y, x)
             ax_ver.plot(*vectors_to_xy(all_points), label="p = " + str(i_p))
         ax_hor.legend()
-        ax_ver.legend()'''
+        ax_ver.legend()
 
         # set fast=True to quit when global minimum is reached, local minimum is disregarded
         self.fast = fast
@@ -715,7 +761,7 @@ class CellMatrix:
             # borders
             minima_borders = cross_section.minima_borders()
             for x in minima_borders:
-                other_cross_section = other_cross_sections[path.i_rl(x)]
+                other_cross_section = other_cross_sections[path.i_rl_point(x)]
                 y = other_path.offsets[i_cross_section]
                 if other_cross_section.is_maxima(y):
                     critical_points.append([Vector(x, y)])
@@ -902,8 +948,13 @@ class CellMatrix:
         start = points[0]
         end = points[-1]
 
-        cell_a = (self.p.i_rl(start.x), self.q.i_rl(start.y))
-        cell_b = (self.p.i_rl(end.x), self.q.i_rl(end.y))
+        cell_a = (self.p.i_rl_path(start.x), self.q.i_rl_path(start.y))
+        cell_b = (self.p.i_rl_path(end.x), self.q.i_rl_path(end.y))
+
+        if about_equal(self.p.offsets[cell_b[0]], end.x) and 0 < cell_b[0] < self.p.count:
+            cell_b = (cell_b[0] - 1, cell_b[1])
+        if about_equal(self.q.offsets[cell_b[1]], end.x) and 0 < cell_b[1] < self.q.count:
+            cell_b = (cell_b[0], cell_b[1] - 1)
 
         epsilons = []
         for point in points:

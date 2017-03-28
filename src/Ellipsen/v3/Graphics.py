@@ -84,12 +84,12 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
 
     # show axis labels
     if show_labels:
-        ax_2d.set_xlabel("Path A")
-        ax_2d.set_ylabel("Path B")
+        ax_2d.set_xlabel("Path P")
+        ax_2d.set_ylabel("Path Q")
 
         if plot_3d:
-            ax_3d.set_xlabel("Path A")
-            ax_3d.set_ylabel("Path B")
+            ax_3d.set_xlabel("Path P")
+            ax_3d.set_ylabel("Path Q")
             ax_3d.set_zlabel("Length l")
 
         if plot_input:
@@ -105,8 +105,8 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
         ax_in.quiver(xa[:-1], ya[:-1], xa[1:] - xa[:-1], ya[1:] - ya[:-1], color="b", scale_units='xy', angles='xy', scale=1)
         ax_in.quiver(xb[:-1], yb[:-1], xb[1:] - xb[:-1], yb[1:] - yb[:-1], color="c", scale_units='xy', angles='xy', scale=1)
 
-        ax_in.plot([], [], "b", label="Path A")
-        ax_in.plot([], [], "c", label="Path B")
+        ax_in.plot([], [], "b", label="Path P")
+        ax_in.plot([], [], "c", label="Path Q")
 
         xlim = [min(xa.min(), xb.min()), max(xa.max(), xb.max())]
         xd = xlim[1] - xlim[0]
