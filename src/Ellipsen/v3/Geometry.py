@@ -45,7 +45,9 @@ class Bounds1D:
     def cut(self, other: 'Bounds1D') -> 'Bounds1D':
         new_start = max(self.start, other.start)
         new_end = min(self.end, other.end)
-        if new_end < new_start:
+        if about_equal(new_start, new_end):
+            return Bounds1D(min(new_start, new_end), max(new_start, new_end))
+        elif new_end < new_start:
             return Bounds1D.nan()
         return Bounds1D(new_start, new_end)
 
@@ -86,7 +88,8 @@ class Vector:
     # Vector Arithmetic
 
     def __lt__(self, other: 'Vector') -> int:
-        return self.x <= other.x and self.y <= other.y
+        return (self.x <= other.x or about_equal(self.x, other.x)) and \
+               (self.y <= other.y or about_equal(self.y, other.y))
 
     def __add__(self, other: 'Vector') -> 'Vector':
         x = self.x + other.x
@@ -386,6 +389,10 @@ class Path:
             desc += "  " + str(i) + ": " + str(self.segments[i]) + '\n'
 
         return desc
+
+    def __getitem__(self, item):
+        assert 0 <= item < self.count, "Error: segment #" + str(item) + " not part of path:\n" + str(self)
+        return self.segments[item]
 
     # Path Arithmetic
 

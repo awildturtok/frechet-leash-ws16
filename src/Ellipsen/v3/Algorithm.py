@@ -217,7 +217,7 @@ class Cell:
         elif about_equal(y, bounds[1]):
             return self.hyperbola_top
         else:
-            return self.q.hyperbola_with_point(self.p.fr(y - self.offset.y))
+            return self.q.hyperbola_with_point(self.p.frl(y - self.offset.y)).move_x(self.offset.x)
 
     def hyperbola_vertical(self, x: float) -> Hyperbola:  # hyperbola for set spot x
         bounds = self.bounds_hor
@@ -228,7 +228,7 @@ class Cell:
         elif about_equal(x, bounds[1]):
             return self.hyperbola_right
         else:
-            return self.p.hyperbola_with_point(self.q.fr(x - self.offset.x))
+            return self.p.hyperbola_with_point(self.q.frl(x - self.offset.x)).move_x(self.offset.y)
 
     def free_bounds_horizontal(self, y: float, epsilon: float) -> Bounds1D:  # free interval for epsilon on height y
         ret_bounds = Bounds1D.nan()
@@ -400,26 +400,8 @@ class TwoLineSegments:  # calculates and saves parameters of two line segments
         return Cell(self.parallel, self.a, self.b, norm_ellipsis, bounds_xy, self.bounds_l, offset=offset)
 
 
-# functions for handling traversals
-
-def traverse_do(t1: TraversalType,
-                t2: TraversalType) -> \
-        TraversalType:  # traverse traversal t1 further by t2
-    return max(t1[0], t2[0]), t2[3][-1], t1[2] + t2[2], t1[3] + t2[3], (t1[4][0] + t2[4][0], t1[4][1] + t2[4][1])
-
-
-def traverse_a(t: TraversalType) -> \
-        TraversalType:  # traversal: move cell indicator one in direction of A
-    return t[0], t[1], t[2], t[3], (t[4][0] + 1, t[4][1])
-
-
-def traverse_b(t: TraversalType) -> \
-        TraversalType:  # traversal: move cell indicator one in direction of B
-    return t[0], t[1], t[2], t[3], (t[4][0], t[4][1] + 1)
-
-
 class Traversal:
-    def __init__(self, cell_matrix: 'CellMatrix', a_cm: CM_Point, b_cm: CM_Point, path: [Vector], epsilon: float,
+    def __init__(self, cell_matrix: 'CellMatrix', a_cm: CM_Point, b_cm: CM_Point, points: [Vector], epsilon: float,
                  epsilons: [float]):
         self.cell_matrix = cell_matrix
 
@@ -430,7 +412,7 @@ class Traversal:
         self.b = b_cm[0]
         self.cell_b = b_cm[1]
 
-        self.path = path
+        self.points = points
         self.epsilon = epsilon
         self.epsilons = epsilons
 
@@ -438,11 +420,17 @@ class Traversal:
         return "    " + str(self.epsilon) + "-Traversal:" + '\n' + \
                "      A: " + str(self.a) + " -> B: " + str(self.b) + '\n' + \
                "      Cell_A: " + str(self.cell_a) + " -> Cell_B: " + str(self.cell_b) + '\n' + \
-               "      Path: " + str([str(point) for point in self.path]) + '\n' + \
+               "      Points: " + str([str(point) for point in self.points]) + '\n' + \
                "      Epsilon: " + str(self.epsilon) + '\n' + \
                "      Epsilons: " + str(self.epsilons) + '\n' + \
                "      Decision: " + str(self.cell_matrix.decide_critical_traversal(self.cell_matrix.a_cm, self,
                                                                                    self.cell_matrix.b_cm))  # DEBUG
+
+    def __add__(self, other: 'Traversal') -> 'Traversal':
+        assert self.b_cm == other.a_cm, "Cannot combine Traversals (B1 != A2): \n" + str(self) + '\n' + str(other)
+
+        return Traversal(self.cell_matrix, self.a_cm, other.b_cm, self.points[:-1] + other.points,
+                         max(self.epsilon, other.epsilon), self.epsilons[:-1] + other.epsilons)
 
 
 class CriticalEvents:
@@ -463,7 +451,7 @@ class CriticalEvents:
         return self.dictionary[item]
 
     def __len__(self):
-        return len(self.epsilons())
+        return len(self.dictionary)
 
     def append(self, traversal: Traversal):
         epsilon = traversal.epsilon
@@ -480,38 +468,45 @@ class CriticalEvents:
     def epsilons(self) -> [float]:
         return sorted(self.dictionary.keys())
 
-    def in_bounds(self, a1_cm: CM_Point, b2_cm: CM_Point) -> 'CriticalEvents':
-        a1 = a1_cm[0]
-        b2 = b2_cm[0]
-
+    def in_bounds(self, a1: Vector, b2: Vector) -> 'CriticalEvents':
         critical_events_cut = CriticalEvents()
 
         for epsilon in self.epsilons():
             for traversal in self[epsilon]:
                 b1 = traversal.a
                 a2 = traversal.b
-                if a1 < b1 and a2 < b2:
+                if a1 < b1 and a2 < b2 and not (a1 == b1 or a2 == b2):
                     critical_events_cut.append(traversal)
 
         return critical_events_cut
 
-    def critical(self, cell_matrix: CellMatrix, a_cm: CM_Point, b_cm: CM_Point) -> [Traversal]:
+    def critical(self, cell_matrix: 'CellMatrix', a_cm: CM_Point, b_cm: CM_Point) -> (float, [Traversal]):
         traversals = []
+
+        if len(self) == 0:
+            return -1, traversals
 
         critical_epsilon = self.critical_helper(cell_matrix, a_cm, b_cm, 0, len(self) - 1)
         for traversal in self[critical_epsilon]:
             if cell_matrix.decide_critical_traversal(a_cm, traversal, b_cm):
                 traversals.append(traversal)
 
-        return traversals
+        if len(traversals) == 0:
+            return -1, traversals
 
-    def critical_helper(self, cell_matrix: CellMatrix, a_cm: CM_Point, b_cm: CM_Point, i_start_epsilon: float,
-                        i_end_epsilon: float) -> [Traversal]:
+        return critical_epsilon, traversals
+
+    def critical_helper(self, cell_matrix: 'CellMatrix', a_cm: CM_Point, b_cm: CM_Point, i_start_epsilon: int,
+                        i_end_epsilon: int) -> [Traversal]:
+
         epsilons = self.epsilons()
-        if i_start_epsilon == i_end_epsilon:
-            return epsilons[i_start_epsilon]
+        if i_start_epsilon + 1 >= i_end_epsilon:
+            start_epsilon = epsilons[i_start_epsilon]
+            if cell_matrix.decide_traversal(a_cm, b_cm, start_epsilon):
+                return start_epsilon
+            return epsilons[i_end_epsilon]
 
-        i_mid_epsilon = math.floor(0.5*(i_end_epsilon - i_start_epsilon))
+        i_mid_epsilon = i_start_epsilon + math.floor(0.5 * (i_end_epsilon - i_start_epsilon))
         mid_epsilon = epsilons[i_mid_epsilon]
 
         decision = cell_matrix.decide_traversal(a_cm, b_cm, mid_epsilon)
@@ -603,7 +598,7 @@ class CrossSection:
 
 
 class CellMatrix:
-    def __init__(self, points_p: [Vector], points_q: [Vector], traverse: int = 0, fast: bool = False):
+    def __init__(self, points_p: [Vector], points_q: [Vector], traverse: int = 0):
         # paths
         self.p = Path(points_p)
         self.q = Path(points_q)
@@ -635,21 +630,15 @@ class CellMatrix:
 
         # critical events
         self.critical_events = self.calculate_critical_events()
-        for epsilon in self.critical_events.epsilons():  # DEBUG ->
-            traversal = self.critical_events[epsilon][0]
-            if self.decide_critical_traversal(self.a_cm, traversal, self.b_cm):
-                self.lowest_l = epsilon
-                print("Kritisch...\n" + str(traversal) + '\n')
-                break
 
         # DEBUG: sample hyperbolas:
         fig_both = plt.figure(figsize=plt.figaspect(0.5))
         ax_hor = fig_both.add_subplot(2, 1, 1, aspect=1, ylim=self.bounds_l, xlabel="p", ylabel="ε")
         ax_ver = fig_both.add_subplot(2, 1, 2, aspect=1, ylim=self.bounds_l, xlabel="q", ylabel="ε")
         # horizontal
-        #fig_hor = plt.figure(figsize=plt.figaspect(0.5))
+        # fig_hor = plt.figure(figsize=plt.figaspect(0.5))
         for i_q in range(self.q.count + 1):
-            #ax = fig_hor.add_subplot(self.q.count + 1, 1, self.q.count - i_q + 1, aspect=1, ylim=self.bounds_l, xlabel="p", ylabel="ε")
+            # ax = fig_hor.add_subplot(self.q.count + 1, 1, self.q.count - i_q + 1, aspect=1, ylim=self.bounds_l, xlabel="p", ylabel="ε")
             all_points = []
             for i_p in range(self.p.count):
                 points = []
@@ -659,12 +648,12 @@ class CellMatrix:
                 points += sample
                 all_points += sample
                 x, y = vectors_to_xy(points)
-                #ax.plot(x, y)
+                # ax.plot(x, y)
             ax_hor.plot(*vectors_to_xy(all_points), label="q = " + str(i_q))
         # vertical
-        #fig_ver = plt.figure(figsize=plt.figaspect(0.5))
+        # fig_ver = plt.figure(figsize=plt.figaspect(0.5))
         for i_p in range(self.p.count + 1):
-            #ax = fig_ver.add_subplot(1, self.p.count + 1, i_p + 1, aspect=1, xlim=self.bounds_l, xlabel="ε", ylabel="q")
+            # ax = fig_ver.add_subplot(1, self.p.count + 1, i_p + 1, aspect=1, xlim=self.bounds_l, xlabel="ε", ylabel="q")
             all_points = []
             for i_q in range(self.q.count):
                 points = []
@@ -674,30 +663,25 @@ class CellMatrix:
                 points += sample
                 all_points += sample
                 x, y = vectors_to_xy(points)
-                #ax.plot(y, x)
+                # ax.plot(y, x)
             ax_ver.plot(*vectors_to_xy(all_points), label="p = " + str(i_p))
         ax_hor.legend()
         ax_ver.legend()
 
-        # set fast=True to quit when global minimum is reached, local minimum is disregarded
-        self.fast = fast
-        self.global_minimum_reached = False
-        # lower limit for smallest globally reachable l
-        self.min_global_l = max(self.p.points[0].d(self.q.points[0]), self.p.points[-1].d(self.q.points[-1]))
-
         # traverse
         self.traverse = traverse
-
-        # Old Traversal Call:
-        # traverse
-        self.traverse = traverse
-        if self.traverse > 0:
-            self.lowest_l = math.inf
-            self.traversals = self.traverse_best(self.traverse, delete_duplicates=True)
+        if traverse > 0:
+            self.max_epsilon, self.traversals = self.do_traverse()
 
     def __str__(self):
         desc = "Input (" + str(self.p.count) + "x" + str(self.q.count) + ") (" + \
                str(self.p.length) + "x" + str(self.q.length) + "):\n"
+        desc += " Points P:\n"
+        desc += "  p_xs = " + str([point.x for point in self.p.points]) + '\n'
+        desc += "  p_ys = " + str([point.y for point in self.p.points]) + '\n'
+        desc += " Points Q:\n"
+        desc += "  q_xs = " + str([point.x for point in self.q.points]) + '\n'
+        desc += "  q_ys = " + str([point.y for point in self.q.points]) + '\n'
         desc += " Path P " + str(self.p)
         desc += " Path Q " + str(self.q)
         desc += '\n'
@@ -719,13 +703,16 @@ class CellMatrix:
         for i_p in range(self.p.count + 1):
             desc += "   " + str(i_p) + ".\n" + str(self.cross_sections_ver[i_p]) + '\n'
         desc += '\n'
-        desc += " Critical Events: " + str(self.critical_events) + '\n'
+        if len(self.critical_events) > 0:
+            desc += " Critical Events: " + str(self.critical_events) + '\n'
+        else:
+            desc += " Critical Events: None\n"
         if self.traverse > 0:
             desc += '\n'
-            desc += " Lowest_l: " + str(self.lowest_l) + '\n'
+            desc += " Global Epsilon: " + str(self.max_epsilon) + '\n'
             desc += " Traversals:\n"
             for traversal in self.traversals:
-                desc += "   " + str(traversal) + '\n'
+                desc += str(traversal) + '\n'
 
         return desc
 
@@ -805,10 +792,6 @@ class CellMatrix:
     def calculate_critical_events(self) -> CriticalEvents:
         critical_events = CriticalEvents()
 
-        # event type a
-        critical_events.append(self.traversal_from_points([self.a_cm[0]]))
-        critical_events.append(self.traversal_from_points([self.b_cm[0]]))
-
         # horizontal
         critical_points_hor = self.calculate_critical_points(self.cross_sections_ver, self.cross_sections_hor)
         for points in critical_points_hor:
@@ -865,9 +848,9 @@ class CellMatrix:
 
         d_p = end_i_p - start_i_p + 1
         d_q = end_i_q - start_i_q + 1
-        if a.x == b.x:
+        if about_equal(a.x, b.x):
             d_p = 0
-        if a.y == b.y:
+        if about_equal(a.y, b.y):
             d_q = 0
 
         offsets_hor = self.p.offsets[start_i_p: end_i_p + 2]
@@ -932,169 +915,130 @@ class CellMatrix:
                     reachable_right = bounds_ver[i_q].cut(Bounds1D(reachable_left.start, free_right.end))
                 reachable_ver[i_p + 1][i_q] = reachable_right
 
-        '''if epsilon == 0.6322879582403348:  # DEBUG
+        '''if epsilon == 1.4142135623730951:  # DEBUG
             print("A: " + str([str(p) for p in a_cm]))
             print("B: " + str([str(p) for p in b_cm]))
+            print("start_i_p: " + str(start_i_p) + " bis end_i_p: " + str(end_i_p))
+            print("start_i_q: " + str(start_i_q) + " bis end_i_q: " + str(end_i_q))
             print("d_p: " + str(d_p))
             print("d_q: " + str(d_q))
             print("reachable_hor: " + str([[str(b) for b in bs] for bs in reachable_hor]))
             print("reachable_ver: " + str([[str(b) for b in bs] for bs in reachable_ver]))
-            print("free: " + str(cells[d_p - 1][d_q - 1].free_bounds_vertical(offsets_hor[d_p], 0.6322879582403348)))
-            print("=====")'''
+            print("offsets_hor: " + str([str(offset) for offset in offsets_hor]))
+            print("offsets_ver: " + str([str(offset) for offset in offsets_ver]))
+            print("bounds_hor: " + str([str(bound) for bound in bounds_hor]))
+            print("bounds_ver: " + str([str(bound) for bound in bounds_ver]))
+            print("==============")'''
 
         return (b.x in reachable_hor[d_p - 1][d_q]) or (b.y in reachable_ver[d_p][d_q - 1])
 
-    def traversal_from_points(self, points) -> Traversal:
+    def cm_point_a(self, a: Vector) -> CM_Point:
+        cell_a = (self.p.i_rl_path(a.x), self.q.i_rl_path(a.y))
+        return a, cell_a
+
+    def cm_point_b(self, b: Vector) -> CM_Point:
+        cell_b = (self.p.i_rl_path(b.x), self.q.i_rl_path(b.y))
+        if about_equal(self.p.offsets[cell_b[0]], b.x) and 0 < cell_b[0]:
+            cell_b = (cell_b[0] - 1, cell_b[1])
+        if about_equal(self.q.offsets[cell_b[1]], b.y) and 0 < cell_b[1]:
+            cell_b = (cell_b[0], cell_b[1] - 1)
+        return b, cell_b
+
+    def traversal_from_points(self, points: [Vector]) -> Traversal:
         start = points[0]
         end = points[-1]
 
-        cell_a = (self.p.i_rl_path(start.x), self.q.i_rl_path(start.y))
-        cell_b = (self.p.i_rl_path(end.x), self.q.i_rl_path(end.y))
-
-        if about_equal(self.p.offsets[cell_b[0]], end.x) and 0 < cell_b[0] < self.p.count:
-            cell_b = (cell_b[0] - 1, cell_b[1])
-        if about_equal(self.q.offsets[cell_b[1]], end.x) and 0 < cell_b[1] < self.q.count:
-            cell_b = (cell_b[0], cell_b[1] - 1)
+        start_cm = self.cm_point_b(start)
+        end_cm = self.cm_point_a(end)
 
         epsilons = []
         for point in points:
-            tmp_epsilon = self.p.p_rl(point.x).d(self.q.p_rl(point.y))
+            tmp_epsilon = self.epsilon_from_point(point)
             epsilons.append(tmp_epsilon)
         epsilon = max(epsilons)
 
-        return Traversal(self, (start, cell_a), (end, cell_b), points, epsilon, epsilons)
+        return Traversal(self, start_cm, end_cm, points, epsilon, epsilons)
 
-    # Old Traversal (v2):
-    def traverse_best(self, criteria: int = 2, delete_duplicates: bool = True, start: Vector = Vector(0, 0)) \
-            -> [TraversalType]:  # traverses cell-matrix and chooses best traversal depending on criteria
-        i_p = 0
-        i_q = 0
-        while start.x > self.p.offsets[i_p + 1]:
-            i_p += 1
-        while start.y > self.q.offsets[i_q + 1]:
-            i_q += 1
+    def epsilon_from_point(self, point: Vector) -> float:
+        epsilon = self.p.p_rl(point.x).d(self.q.p_rl(point.y))
+        if about_equal(epsilon, 0):
+            return 0.0
+        return epsilon
 
-        print("Lower Limit for minimum global l: " + str(self.min_global_l))
+    def epsilon_from_cm_point(self, point_cm: CM_Point) -> float:
+        cell = point_cm[1]
+        point = point_cm[0] - Vector(self.p.offsets[cell[0]], self.q.offsets[cell[1]])
+        epsilon = self.p[cell[0]].frl(point.x).d(self.q[cell[1]].frl(point.y))
+        if about_equal(epsilon, 0):
+            return 0.0
+        return epsilon
 
-        l_start = self.cells[i_p][i_q].lp(start)
-        traversals0 = self.traverse_rec((l_start, start, [l_start], [start], (i_p, i_q)))
-        traversals = traversals0
+    def do_traverse(self) -> (float, [Traversal]):
+        traversals = self.traverse_recursive(self.a_cm, self.critical_events, self.b_cm)
+        assert len(traversals) > 0, "Error: No Traversal was found !!? Traversals: " + str(traversals)
+        return traversals[0].epsilon, traversals
 
-        # select best traversal(s):
-        if criteria > 1:
-            # 1. lowest l
-            lowest_l = math.inf
-            for traversal in traversals0:
-                lowest_l = min(lowest_l, traversal[0])
-            traversals1 = []
-            for traversal in traversals0:
-                if traversal[0] <= lowest_l or about_equal(traversal[0], lowest_l):
-                    traversals1.append(traversal)
-            traversals = traversals1
+    def traverse_recursive(self, a1_cm: CM_Point, critical_events: CriticalEvents, b2_cm: CM_Point) -> [Traversal]:
 
-            if criteria > 2:
-                # 2. lowest average of ls
-                lowest_avg_ls = math.inf
-                for traversal in traversals1:
-                    avg_ls = sum(traversal[2]) / len(traversal[2])
-                    lowest_avg_ls = min(lowest_avg_ls, avg_ls)
-                traversals2 = []
-                for traversal in traversals1:
-                    avg_ls = sum(traversal[2]) / len(traversal[2])
-                    if avg_ls <= lowest_avg_ls or about_equal(avg_ls, lowest_avg_ls):
-                        traversals2.append(traversal)
-                traversals = traversals2
+        a1 = a1_cm[0]
+        b2 = b2_cm[0]
 
-        traversals_set = []
-        if len(traversals) > 1 and delete_duplicates:
-            for i1 in range(len(traversals)):
-                unique = True
-                traversal1 = traversals[i1]
-                for i2 in range(i1 + 1, len(traversals)):
-                    traversal2 = traversals[i2]
-                    if traversal1[3] == traversal2[3]:
-                        unique = False
-                        break
-                if unique:
-                    traversals_set.append(traversal1)
-            return traversals_set
+        a_epsilon = self.epsilon_from_cm_point(a1_cm)
+        b_epsilon = self.epsilon_from_cm_point(b2_cm)
+        max_ab_epsilon = max(a_epsilon, b_epsilon)
 
-        return traversals
+        if a1 == b2:
+            return [Traversal(self, a1_cm, b2_cm, [a1], max_ab_epsilon, [a_epsilon])]
 
-    # Old Traversal rec
-    def traverse_rec(self, traversal: TraversalType) -> \
-            [TraversalType]:  # traverse cells recursive
-        # indicate which cell to traverse next
-        i_p = traversal[4][0]
-        i_q = traversal[4][1]
+        if about_equal(a1.x, b2.x) or about_equal(a1.y, b2.y):
+            return [Traversal(self, a1_cm, b2_cm, [a1, b2], max_ab_epsilon, [a_epsilon, b_epsilon])]  #Todo:berichtigen!
 
-        if self.global_minimum_reached and self.fast:
-            return []
+        critical_event = critical_events.critical(self, a1_cm, b2_cm)
+        critical_epsilon = critical_event[0]
 
-        # complete recursive call on reach of cell-matrix top right
-        if i_p >= self.p.count and i_q >= self.q.count:
-            if traversal[0] < self.lowest_l:
-                self.lowest_l = traversal[0]
-                print("momentary lowest_l = " + str(self.lowest_l))
-                if self.lowest_l <= self.min_global_l and not self.global_minimum_reached:
-                    print("global minimum reached: " + str(self.lowest_l))
-                    self.global_minimum_reached = True
-            return [traversal]
+        print("========")
+        print("Critical Epsilon: " + str(critical_epsilon))
+        print("A: " + str(a1) + " Cell: " + str(a1_cm[1]) + " a_epsilon: " + str(a_epsilon))  # DEBUG
+        print("B: " + str(b2) + " Cell: " + str(b2_cm[1]) + " b_epsilon: " + str(b_epsilon))
+        print("=")
 
-        # stores possible traversals of this cell and beyond
+        if not about_equal(max_ab_epsilon, critical_epsilon) and \
+                (max_ab_epsilon > critical_epsilon or (max_ab_epsilon < critical_epsilon
+                                                       and self.decide_traversal(a1_cm, b2_cm, max_ab_epsilon))):
+            # Todo: steepest decent here!
+            # vorläufig einfach verbinden:
+            return [Traversal(self, a1_cm, b2_cm, [a1, b2], max_ab_epsilon, [a_epsilon, b_epsilon])]
+
+        critical_traversals = critical_event[1]
+
+        print("Critical Traversals:")  # DEBUG
+        print("critical_events_count: " + str(len(critical_events)))  # DEBUG
+        print("critical_traversals_count: " + str(len(critical_traversals)))  # DEBUG
+        print("critical_traversals: " + str([str(ct) for ct in critical_traversals]))  # DEBUG
+        print("===")
+
         traversals = []
+        for critical_traversal in critical_traversals:
 
-        # if traversal hits top- or right-side of cell-matrix move to top-right
-        if i_p >= self.p.count or i_q >= self.q.count:
-            if i_p < self.p.count:
-                cell = self.cells[i_p][self.q.count - 1]
-                if cell.top_right_l <= self.lowest_l + tol:
-                    next_traversal = traverse_a(cell.traverse_top_right_force(traversal))
-                    traversals += self.traverse_rec(next_traversal)
-            if i_q < self.q.count:
-                cell = self.cells[self.p.count - 1][i_q]
-                if cell.top_right_l <= self.lowest_l + tol:
-                    next_traversal = traverse_b(cell.traverse_top_right_force(traversal))
-                    traversals += self.traverse_rec(next_traversal)
+            b1_cm = critical_traversal.a_cm
+            a2_cm = critical_traversal.b_cm
+            b1 = b1_cm[0]
+            a2 = a2_cm[0]
 
-        else:  # if traversal is not at the top- or right-side yet
+            critical_events_1 = critical_events.in_bounds(a1, b1)
+            critical_events_2 = critical_events.in_bounds(a2, b2)
 
-            # traverse cell by steepest decent
-            sd_traversal = self.cells[i_p][i_q].traverse(traversal)
-            # traverse to right side?
-            if self.lowest_l + tol >= sd_traversal[0][0] and not math.isinf(sd_traversal[0][0]):
-                traversals += self.traverse_rec(sd_traversal[0])
-            # traverse to top-right side?
-            if self.lowest_l + tol >= sd_traversal[1][0] and not math.isinf(sd_traversal[1][0]):
-                traversals += self.traverse_rec(sd_traversal[1])
-            # traverse to top side?
-            if self.lowest_l + tol >= sd_traversal[2][0] and not math.isinf(sd_traversal[2][0]):
-                traversals += self.traverse_rec(sd_traversal[2])
+            traversals_1 = self.traverse_recursive(a1_cm, critical_events_1, b1_cm)
+            traversals_2 = self.traverse_recursive(a2_cm, critical_events_2, b2_cm)
 
-            # traverse by critical traversal paths
-            p = traversal[1]  # last point of traversal
-            # horizontal
-            if i_p < self.p.count - 1:
-                for critical_traversal_horizontal in self.critical_events_hor[i_p + 1][i_q]:
-                    max_l = critical_traversal_horizontal[0]
-                    start = critical_traversal_horizontal[1]
-                    if p < start and self.lowest_l + tol >= max_l and \
-                            (not self.fast or max_l >= self.min_global_l - tol):
-                        next_traversal = traverse_a(traverse_do(traversal, critical_traversal_horizontal))
-                        traversals += self.traverse_rec(next_traversal)
-            # vertical
-            if i_q < self.q.count - 1:
-                for critical_traversal_vertical in self.critical_events_ver[i_p][i_q + 1]:
-                    max_l = critical_traversal_vertical[0]
-                    start = critical_traversal_vertical[1]
-                    if p < start and self.lowest_l + tol >= max_l and \
-                            (not self.fast or max_l >= self.min_global_l - tol):
-                        next_traversal = traverse_b(traverse_do(traversal, critical_traversal_vertical))
-                        traversals += self.traverse_rec(next_traversal)
+            for traversal_1 in traversals_1:
+                for traversal_2 in traversals_2:
+                    traversal = traversal_1 + critical_traversal + traversal_2
+                    traversals.append(traversal)
 
         return traversals
 
-    def sample_l(self, n_l: int, n_p: int, heatmap: int = 100, traversals_n: int = 10) -> {}:  # DEBUG: heatmap = 100
+    def sample_l(self, n_l: int, n_p: int, heatmap: int = 100, traversals_n: int = 10) -> {}:
         # sample cell-matrix with n_l: number of ls and n_p: points per ellipses
         ls = []
 
@@ -1103,7 +1047,7 @@ class CellMatrix:
                 l = self.bounds_l[0] + (float(i) / n_l) * (self.bounds_l[1] - self.bounds_l[0])
                 ls.append(l)
         elif n_l == -1:
-            ls = [self.lowest_l]
+            ls = [self.max_epsilon]
 
         return self.sample(ls, n_p, heatmap=heatmap, traversals_n=traversals_n)
 
@@ -1143,14 +1087,11 @@ class CellMatrix:
         # sample critical traversals
         samples["critical-traversals"] = self.critical_events.list()
 
-        # Old Traversal Sample:
         # sample traversals
         if self.traverse > 0:
-            for traversal in self.traversals:
-                if traversal[0] != -1:
-                    samples["traversals"].append(traversal)
+            samples["traversals"] = self.traversals
 
-        # sample a traversal
+        # sample a traversal over the input paths
         if self.traverse > 0:
             traversal = self.traversals[0]
             samples["traversal"] = self.sample_traversal(traversal, traversals_n * max(self.p.count, self.q.count))
@@ -1210,9 +1151,8 @@ class CellMatrix:
 
         return [xs, ys, zs]
 
-    # Old Traversal Sampling
     def points_for_traversal_point(self, traversal_p: Vector, c_a: int = 0, c_b: int = 0) -> [Vector, Vector]:
-
+        # sample lines for sampling over the input paths
         r_a = traversal_p.x
         r_b = traversal_p.y
 
@@ -1235,33 +1175,32 @@ class CellMatrix:
 
         return [pa, pb]
 
-    # Old Traversal Sampling
-    def sample_traversal(self, traversal: TraversalType, n: int) -> {}:
+    def sample_traversal(self, traversal: Traversal, n: int) -> {}:
         # sample a specific traversal for lines between paths and 3d-plot with n points
 
         sample = {"in-traversal-l": [], "in-traversal": [], "traversal-3d": [], "traversal-3d-l": []}
 
-        max_l = traversal[0]
-        ls = traversal[2]
-        traversal_ls = []
+        epsilon = traversal.epsilon
+        epsilons = traversal.epsilons
+        traversal_segments = []
         traversal_length = 0
 
-        for i in range(1, len(traversal[3])):
-            p1 = traversal[3][i - 1]
-            p2 = traversal[3][i]
+        for i in range(1, len(traversal.points)):
+            p1 = traversal.points[i - 1]
+            p2 = traversal.points[i]
             if p1 != p2:
                 linesegment = LineSegment(p1, p2)
-                traversal_ls.append(linesegment)
+                traversal_segments.append(linesegment)
                 traversal_length += linesegment.l
 
         x, y, z = [], [], []  # arrays for traversal 3d-plot
-        x_l, y_l, z_l = [], [], []  # arrays for traversal 3d-plot max_l
+        x_l, y_l, z_l = [], [], []  # arrays for traversal 3d-plot epsilon
 
         c_a, c_b = 0, 0  # counters for active cell
 
-        for c_t in range(len(traversal_ls)):
+        for c_t in range(len(traversal_segments)):
 
-            t_ls = traversal_ls[c_t]
+            t_ls = traversal_segments[c_t]
             n_t = math.ceil((t_ls.l / traversal_length) * n)
             i_t = 0
 
@@ -1271,17 +1210,17 @@ class CellMatrix:
             while p1.y > self.q.offsets[c_b + 1] and c_b < self.q.count - 1:
                 c_b += 1
 
-            if ls[c_t] >= max_l:
+            if epsilons[c_t] >= epsilon:
                 line = self.points_for_traversal_point(p1, c_a=c_a, c_b=c_b)
                 sample["in-traversal-l"].append(line)
 
                 x_l.append(p1.x)
                 y_l.append(p1.y)
-                z_l.append(ls[c_t])
+                z_l.append(epsilons[c_t])
 
                 x.append(p1.x)
                 y.append(p1.y)
-                z.append(ls[c_t])
+                z.append(epsilons[c_t])
 
                 i_t += 1
 
@@ -1298,16 +1237,16 @@ class CellMatrix:
 
                 i_t += 1
 
-        if ls[-1] >= max_l:
+        if epsilons[-1] >= epsilon:
             sample["in-traversal-l"].append([self.p.points[-1], self.q.points[-1]])
             x_l.append(self.p.length)
             y_l.append(self.q.length)
-            z_l.append(ls[-1])
+            z_l.append(epsilons[-1])
         else:
             sample["in-traversal"].append([self.p.points[-1], self.q.points[-1]])
         x.append(self.p.length)
         y.append(self.q.length)
-        z.append(ls[-1])
+        z.append(epsilons[-1])
 
         sample["traversal-3d"] = [x, y, z]
         sample["traversal-3d-l"] = [x_l, y_l, z_l]

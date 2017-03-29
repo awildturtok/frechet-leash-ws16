@@ -205,19 +205,18 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
             p2 = tra.b
             ax_2d.plot([p1.x], [p1.y], "b.")
             ax_2d.plot([p2.x], [p2.y], "b.")
-            x, y = vectors_to_xy(tra.path)
+            x, y = vectors_to_xy(tra.points)
             ax_2d.plot(x, y, "b--", linewidth=1.0)
 
     # plot traversals
     if plot_traversals:
-
-        for tra in sample["traversals"]:
-            for i in range(len(tra[2])):
-                if tra[0] <= tra[2][i] + 1e-13:
-                    p = tra[3][i]
-                    ax_2d.plot([p.x], [p.y], "ro")
-            x, y = vectors_to_xy(tra[3])
-            ax_2d.plot(x, y, "r--", label="traversal: l=" + str(tra[0]), linewidth=1.5)
+        for traversal in sample["traversals"]:
+            for i in range(len(traversal.points)):
+                if about_equal(traversal.epsilon, traversal.epsilons[i]):
+                    point = traversal.points[i]
+                    ax_2d.plot([point.x], [point.y], "ro")
+            x, y = vectors_to_xy(traversal.points)
+            ax_2d.plot(x, y, "r--", label="traversal: l=" + str(traversal.epsilon), linewidth=1.5)
 
     if plot_3d and plot_traversals:
         x, y, z = sample["traversal"]["traversal-3d"]
