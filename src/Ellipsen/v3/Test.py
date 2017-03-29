@@ -98,13 +98,13 @@ q_ys = np.random.random_sample(6)'''
 
 '''# random test 2 sorted a ascending
 # path_p:
-p_xs = np.random.random_sample(8)
-p_ys = np.random.random_sample(8)
+p_xs = np.random.random_sample(11)
+p_ys = np.random.random_sample(11)
 p_xs.sort()
 p_ys.sort()
 # path_q:
-q_xs = np.random.random_sample(4)
-q_ys = np.random.random_sample(4)'''
+q_xs = np.random.random_sample(11)
+q_ys = np.random.random_sample(11)'''
 
 '''# random test 2 sorted a and b ascending
 # path_p:
@@ -206,26 +206,55 @@ p_ys = [0, 0, 2, 3]
 q_xs = [0, 2, 2, 1, 3]
 q_ys = [0, 2, 1, 1, 3]'''
 
-# traversal test 6 *
+'''# traversal test 6 *
 # path_p:
 p_xs = [0, 1.5, 0.5, 3.5, 3]
 p_ys = [0, 0, 2, 2, 3]
 # path_q:
 q_xs = [0, 0, 2, 2, 3]
-q_ys = [0, 1.5, 0.5, 3.5, 3]
+q_ys = [0, 1.5, 0.5, 3.5, 3]'''
 
+'''# traversal test 7 *
+# path_p:
+p_xs = [-0.5, 1, 1.5, 1, 0, -1, -1, 1, 0.5, 1.5]
+p_ys = [0.5, 0.5, 1, 2, 1, 2, 3, 3, 4.5, 4.5]
+# path_q:
+q_xs = [0, -1, 0.5, 0, -1, -1, 0, 0, 1.5, 1.5]
+q_ys = [0, 1, 1, 2, 1, 2, 2, 4, 3.5, 4.5]'''
+
+'''# traversal test 8 * #Todo: Höhenlinien !!
+geg_epsilon = math.sqrt(2)
+x1 = 0.5 * geg_epsilon**2
+x2 = math.sqrt(0.5 * (geg_epsilon**2 - 2))
+# path_p:
+p_xs = [0, x1, x1 - 1, x1 + 1] + [(x1+1) + x2, (x1+1) + x2]
+p_ys = [0, 0, x1 + 1, x1 + 1] + [(x1+1) + -1, (x1+1) + x2]
+# path_q:
+q_xs = [0, 0, x1 + 1, x1 + 1] + [(x1+1) + -1, (x1+1) + x2]
+q_ys = [0, x1, x1 - 1, x1 + 1] + [(x1+1) + x2, (x1+1) + x2]'''
+
+
+# traversal test 9 a **
+# path_p:
+x = math.sqrt(8)
+p_xs = [0, 4, 2, 6]
+p_ys = [0, 0, 6, 6]
+'''# traversal test 9 b **
+# path_p:
+x = math.sqrt(8)
+p_xs = [0, 3, 3, 6]
+p_ys = [0, -1, 7, 6]'''
+# traversal test 9 comb **
+# path_p:
+x = math.sqrt(8)
+p_xs = [-x, 0, 4, 2, 6] + [10, 8, 12] + [16, 16] + [19, 19, 22] + [22 + x]
+p_ys = [0, 0, 0, 6, 6] + [6, 12, 12] + [12, 16] + [15, 23, 22] + [22]
+# path_q:
+q_xs = p_ys
+q_ys = p_xs
 
 path_p = xy_to_vectors(p_xs, p_ys)
 path_q = xy_to_vectors(q_xs, q_ys)
-
-'''print("Copy to source (Test.py) for testing:")
-print("# path_p:")
-print("p_xs = " + str(p_xs.tolist()))
-print("p_ys = " + str(p_ys.tolist()))
-print("# path_q:")
-print("q_xs = " + str(q_xs.tolist()))
-print("q_ys = " + str(q_ys.tolist()))
-print("")'''
 
 input1 = CellMatrix(path_p, path_q, traverse=1)
 print(input1)
@@ -233,4 +262,4 @@ print(input1)
 sample1 = input1.sample_l(-1, n_p)
 #sample1 = input1.sample([2.1213203435596424], n_p)
 
-sample_to_matplotlib(sample1, plot_3d=False, plot_traversals=True, plot_critical_traversals=True, plot_l_lines=True, plot_borders=True)
+sample_to_matplotlib(sample1, plot_3d=False, plot_traversals=True, plot_critical_traversals=True, plot_l_lines=False, plot_borders=True)

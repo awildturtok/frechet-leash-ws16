@@ -990,32 +990,34 @@ class CellMatrix:
         if a1 == b2:
             return [Traversal(self, a1_cm, b2_cm, [a1], max_ab_epsilon, [a_epsilon])]
 
-        if about_equal(a1.x, b2.x) or about_equal(a1.y, b2.y):
-            return [Traversal(self, a1_cm, b2_cm, [a1, b2], max_ab_epsilon, [a_epsilon, b_epsilon])]  #Todo:berichtigen!
-
         critical_event = critical_events.critical(self, a1_cm, b2_cm)
         critical_epsilon = critical_event[0]
 
-        print("========")
+        '''print("========")  # DEBUG
         print("Critical Epsilon: " + str(critical_epsilon))
-        print("A: " + str(a1) + " Cell: " + str(a1_cm[1]) + " a_epsilon: " + str(a_epsilon))  # DEBUG
+        print("A: " + str(a1) + " Cell: " + str(a1_cm[1]) + " a_epsilon: " + str(a_epsilon))
         print("B: " + str(b2) + " Cell: " + str(b2_cm[1]) + " b_epsilon: " + str(b_epsilon))
-        print("=")
+        print("=")'''
 
         if not about_equal(max_ab_epsilon, critical_epsilon) and \
                 (max_ab_epsilon > critical_epsilon or (max_ab_epsilon < critical_epsilon
                                                        and self.decide_traversal(a1_cm, b2_cm, max_ab_epsilon))):
             # Todo: steepest decent here!
+
+            if about_equal(a1.x, b2.x) or about_equal(a1.y, b2.y):
+                return [Traversal(self, a1_cm, b2_cm, [a1, b2], max_ab_epsilon,
+                                  [a_epsilon, b_epsilon])]  # Todo:berichtigen!
+
             # vorläufig einfach verbinden:
             return [Traversal(self, a1_cm, b2_cm, [a1, b2], max_ab_epsilon, [a_epsilon, b_epsilon])]
 
         critical_traversals = critical_event[1]
 
-        print("Critical Traversals:")  # DEBUG
+        '''print("Critical Traversals:")  # DEBUG
         print("critical_events_count: " + str(len(critical_events)))  # DEBUG
         print("critical_traversals_count: " + str(len(critical_traversals)))  # DEBUG
         print("critical_traversals: " + str([str(ct) for ct in critical_traversals]))  # DEBUG
-        print("===")
+        print("===")'''
 
         traversals = []
         for critical_traversal in critical_traversals:
