@@ -233,25 +233,40 @@ p_ys = [0, 0, x1 + 1, x1 + 1] + [(x1+1) + -1, (x1+1) + x2]
 q_xs = [0, 0, x1 + 1, x1 + 1] + [(x1+1) + -1, (x1+1) + x2]
 q_ys = [0, x1, x1 - 1, x1 + 1] + [(x1+1) + x2, (x1+1) + x2]'''
 
-
-# traversal test 9 a **
+'''# traversal test 9 a **
 # path_p:
 x = math.sqrt(8)
 p_xs = [0, 4, 2, 6]
-p_ys = [0, 0, 6, 6]
+p_ys = [0, 0, 6, 6]'''
 '''# traversal test 9 b **
 # path_p:
 x = math.sqrt(8)
 p_xs = [0, 3, 3, 6]
 p_ys = [0, -1, 7, 6]'''
-# traversal test 9 comb **
+'''# traversal test 9 comb **
 # path_p:
 x = math.sqrt(8)
 p_xs = [-x, 0, 4, 2, 6] + [10, 8, 12] + [16, 16] + [19, 19, 22] + [22 + x]
-p_ys = [0, 0, 0, 6, 6] + [6, 12, 12] + [12, 16] + [15, 23, 22] + [22]
-# path_q:
+p_ys = [0, 0, 0, 6, 6] + [6, 12, 12] + [12, 16] + [15, 23, 22] + [22]'''
+'''# path_q:
 q_xs = p_ys
-q_ys = p_xs
+q_ys = p_xs'''
+
+# old type of critical event test 1
+# path_p:
+p_xs = [1, 1, 1, 1]
+p_ys = [1, 2, 0, 1]
+# path_q:
+q_xs = [0, 2]
+q_ys = [1, 1]
+
+# steepest decent test 1
+# path_p:
+p_xs = [-3, 2]
+p_ys = [0, 0]
+# path_q:
+q_xs = [-2, 2]
+q_ys = [-2, 1.5]
 
 path_p = xy_to_vectors(p_xs, p_ys)
 path_q = xy_to_vectors(q_xs, q_ys)
@@ -259,7 +274,7 @@ path_q = xy_to_vectors(q_xs, q_ys)
 input1 = CellMatrix(path_p, path_q, traverse=1)
 print(input1)
 
-sample1 = input1.sample_l(-1, n_p)
-#sample1 = input1.sample([2.1213203435596424], n_p)
+sample1 = input1.sample_l(9, n_p)
+#sample1 = input1.sample([1.4142135623730951], n_p)
 
-sample_to_matplotlib(sample1, plot_3d=False, plot_traversals=True, plot_critical_traversals=True, plot_l_lines=False, plot_borders=True)
+sample_to_matplotlib(sample1, plot_3d=False, plot_traversals=False, plot_critical_traversals=True, plot_l_lines=True, plot_borders=True)

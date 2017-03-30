@@ -43,7 +43,7 @@ class Cell:
         # line segments
         self.p = p
         self.q = q
-
+        
         self.norm_ellipsis = norm_ellipsis  # normed ellipsis (l=1)
         self.bounds_xy = bounds_xy  # local cell bounds
         self.bounds_hor = Bounds1D(offset.x, offset.x + bounds_xy[0])  # global bounds horizontal
@@ -57,14 +57,6 @@ class Cell:
         self.hyperbola_top = p.hyperbola_with_point(q.p2).move_x(offset.x)
         self.hyperbola_left = q.hyperbola_with_point(p.p1).move_x(offset.y)
         self.hyperbola_right = q.hyperbola_with_point(p.p2).move_x(offset.y)
-
-        # variables for traversal
-        self.top_right = Vector(bounds_xy[0], bounds_xy[1])  # point at top right of cell local
-        self.top_right_global = self.top_right + self.offset  # point at top right of cell in cell-matrix
-        self.top_right_l = self.lp(self.top_right)  # l for top right of cell
-        self.bottom_left = Vector(0, 0)  # point at bottom left of cell local
-        self.bottom_left_global = self.offset  # point at bottom left of cell in cell-matrix
-        self.bottom_left_l = self.lp(self.bottom_left_global)  # l for bottom left of cell
 
         # steepest decent lines l=l_ver and l'=l_hor
         if not self.parallel:  # case 1: lines are not parallel
@@ -80,47 +72,160 @@ class Cell:
             m = norm_ellipsis.m
             self.l_ver = LineSegment(m, m + c)
             self.l_hor = LineSegment(m, m + c)
-        # intersection points of l and l' with cell borders local
-        self.l_ver_cut_right = Vector(bounds_xy[0], self.l_ver.fx(bounds_xy[0]))
-        self.l_hor_cut_top = Vector(self.l_hor.fy(bounds_xy[1]), bounds_xy[1])
-        self.l_ver_cut_left = Vector(0, self.l_ver.fx(0))
-        self.l_hor_cut_bottom = Vector(self.l_hor.fy(0), 0)
-        # ls for these intersection points
-        self.l_ver_cut_right_l = self.lp(self.l_ver_cut_right)
-        self.l_hor_cut_top_l = self.lp(self.l_hor_cut_top)
-        self.l_ver_cut_left_l = self.lp(self.l_ver_cut_left)
-        self.l_hor_cut_bottom_l = self.lp(self.l_hor_cut_bottom)
-        # intersection points in cell-matrix
-        self.l_ver_cut_right_global = self.l_ver_cut_right + self.offset
-        self.l_hor_cut_top_global = self.l_hor_cut_top + self.offset
-        self.l_ver_cut_left_global = self.l_ver_cut_left + self.offset
-        self.l_hor_cut_bottom_global = self.l_hor_cut_bottom + self.offset
-
-        # which steepest decent traversals are possible
-        self.traverses_right = not about_equal(self.l_ver_cut_right.y, self.bounds_xy[1])
-        self.traverses_top = not about_equal(self.l_hor_cut_top.x, self.bounds_xy[0])
-        self.traverses_top_right = self.l_ver_cut_right.y > self.bounds_xy[1] or \
-                                   self.l_hor_cut_top.x > self.bounds_xy[0] or \
-                                   not self.traverses_right or not self.traverses_top
-        self.traverses_left = not about_equal(self.l_ver_cut_left.y, 0)
-        self.traverses_bottom = not about_equal(self.l_hor_cut_bottom.x, 0)
-        self.traverses_bottom_left = self.l_ver_cut_left.y < 0 \
-                                     or self.l_hor_cut_bottom.x < 0 \
-                                     or not self.traverses_left or not self.traverses_bottom
+        self.acute = self.l_hor.d.orientation() and self.l_ver.d.orientation()
 
     def __str__(self):
-        return "    Norm-" + str(self.norm_ellipsis) + '\n' + \
-               "    Offset: " + str(self.offset) + '\n' + \
-               "    End: " + str(self.top_right) + " l: " + str(self.top_right_l) + '\n' + \
+        return "    Offset: " + str(self.offset) + '\n' + \
+               "    Norm-" + str(self.norm_ellipsis) + '\n' + \
                "    Steepest Decent Lines:\n" + \
                "      l: " + str(self.l_ver.d) + '\n' + \
                "      l': " + str(self.l_hor.d) + '\n' + \
                "    Bounds l: " + str(self.bounds_l) + '\n' + \
-               "    Bounds XY: " + str(self.bounds_xy) + '\n' + \
-               "    Traverses:\n" + \
-               "      right: " + str(self.traverses_right) + '\n' + \
-               "      top_right: " + str(self.traverses_top_right) + '\n' + \
-               "      top: " + str(self.traverses_top) + '\n'
+               "    Bounds XY: " + str(self.bounds_xy) + '\n'
+
+    def lp(self, p: Vector) -> float:  # epsilon for given point
+        return self.p.frl(p.x).d(self.q.frl(p.y))
+
+    def steepest_decent_top_right(self, a: Vector) -> (Vector, CellCoord, float, (Hyperbola, Hyperbola)):
+        # calculates data needed for steepest decent to the top-right
+        assert a.x in self.bounds_hor and a.y in self.bounds_ver, "Error: Cannot do Steepest Decent.\n" +\
+                                                                  "A:" + str(a) + " not in Cell:\n" + str(self)
+
+        # define default return values
+        next_cell = (0, 0)
+        a_epsilon = self.lp(a - self.offset)
+        hyperbola_hor = Hyperbola.nan()
+        hyperbola_ver = Hyperbola.nan()
+
+        # wrong cell?
+        on_top_border = about_equal(self.bounds_ver.end, a.y)
+        on_right_border = about_equal(self.bounds_hor.end, a.x)
+        if on_top_border:
+            next_cell = (next_cell[0], next_cell[1] + 1)
+        if on_right_border:
+            next_cell = (next_cell[0] + 1, next_cell[1])
+        if on_top_border or on_right_border:
+            return a, next_cell, a_epsilon, (hyperbola_hor, hyperbola_ver)
+
+        # steepest decent lines
+        lh = self.l_hor
+        lv = self.l_ver
+
+        # which case for steepest decent
+        case_hor = lh.point_above(a)
+        case_ver = lv.point_right(a)
+        lv_left = lv.point_left(a)
+        lh_below = lh.point_below(a)
+        case_eq = lv_left and lh_below
+        on_lh = lh.point_on(a)
+        on_lv = lv.point_on(a)
+        on_l = on_lh and on_lv
+
+        # determine direction of traversal
+        if not self.parallel and self.norm_ellipsis.m == a:
+            print("Error: Cannot do Steepest Decent. Lowest Point reached.\nA:" + str(a) + " Cell:\n" + str(self))
+            return a, next_cell, a_epsilon, (hyperbola_hor, hyperbola_ver)
+        elif self.acute and on_lh:
+            r = lh.d.norm_dir()
+        elif self.acute and on_lv:
+            r = lv.d.norm_dir()
+        elif case_hor:
+            assert lv_left, "Error: Cannot do Steepest Decent.\n" +\
+                            "A:" + str(a) + " above l & right of l'. Cell:\n" + str(self)
+            r = Vector(1, 0)
+        elif case_ver:
+            assert lh_below, "Error: Cannot do Steepest Decent.\n" +\
+                             "A:" + str(a) + " above l & right of l'. Cell:\n" + str(self)
+            r = Vector(0, 1)
+        elif case_eq:
+            r = Vector(math.sqrt(0.5), math.sqrt(0.5))
+
+        # determine endpoint a2 of traversal
+        a_r = LineSegment(a, a + r)
+        ellipsis_midpoint = self.norm_ellipsis.m + self.offset
+
+        if not on_l:
+            cut_l_rl = min(a_r.intersection_rl(lv), a_r.intersection_rl(lh))
+        elif a < ellipsis_midpoint:
+            cut_l_rl = a.d(ellipsis_midpoint)
+        else:
+            cut_l_rl = math.inf
+
+        cut_top_rl = a_r.rly(self.bounds_ver.end)
+        cut_right_rl = a_r.rly(self.bounds_hor.end)
+        cut_border_rl = np.nanmin([cut_right_rl, cut_top_rl])
+
+        if cut_border_rl <= cut_l_rl:
+            if about_equal(cut_top_rl, cut_right_rl):
+                next_cell = (1, 1)
+            elif cut_top_rl < cut_right_rl:
+                next_cell = (0, 1)
+            else:
+                next_cell = (1, 0)
+            a2_rl = cut_border_rl
+        else:
+            a2_rl = cut_l_rl
+
+        a2 = a_r.frl(a2_rl)
+
+        # determine horizontal and vertical hyperbolas
+        d_x = a2.x - a.x
+        d_y = a2.y - a.y
+        a_a2 = LineSegment(a, a + a2)
+        bounds_hor = Bounds1D(a.x, a2.x)
+        bounds_ver = Bounds1D(a.y, a2.y)
+        if about_equal(d_x, 0):
+            hyperbola_ver = self.hyperbola_vertical(a2.x)
+        elif about_equal(d_y, 0):
+            hyperbola_hor = self.hyperbola_horizontal(a2.y)
+        else:
+            #Todo: hyperbola aus zwei Strecken berechnen !
+            print("Todo!")
+
+
+    def hyperbola_horizontal(self, y: float) -> Hyperbola:  # hyperbola for set height y
+        bounds = self.bounds_ver
+        if y not in bounds:
+            return Hyperbola.nan()
+        elif about_equal(y, bounds[0]):
+            return self.hyperbola_bottom
+        elif about_equal(y, bounds[1]):
+            return self.hyperbola_top
+        else:
+            return self.q.hyperbola_with_point(self.p.frl(y - self.offset.y)).move_x(self.offset.x)
+
+    def hyperbola_vertical(self, x: float) -> Hyperbola:  # hyperbola for set spot x
+        bounds = self.bounds_hor
+        if x not in bounds:
+            return Hyperbola.nan()
+        elif about_equal(x, bounds[0]):
+            return self.hyperbola_left
+        elif about_equal(x, bounds[1]):
+            return self.hyperbola_right
+        else:
+            return self.p.hyperbola_with_point(self.q.frl(x - self.offset.x)).move_x(self.offset.y)
+
+    def free_bounds_horizontal(self, y: float, epsilon: float) -> Bounds1D:  # free interval for epsilon on height y
+        ret_bounds = Bounds1D.nan()
+        hyperbola = self.hyperbola_horizontal(y)
+        if not hyperbola.is_nan():
+            ys = hyperbola.fy(epsilon)
+            if len(ys) == 1:
+                ret_bounds = Bounds1D(ys[0], ys[0])
+            elif len(ys) == 2:
+                ret_bounds = Bounds1D(min(ys), max(ys))
+        return self.bounds_hor.cut(ret_bounds)
+
+    def free_bounds_vertical(self, x: float, epsilon: float) -> Bounds1D:  # free interval for epsilon on spot x
+        ret_bounds = Bounds1D.nan()
+        hyperbola = self.hyperbola_vertical(x)
+        if not hyperbola.is_nan():
+            ys = hyperbola.fy(epsilon)
+            if len(ys) == 1:
+                ret_bounds = Bounds1D(ys[0], ys[0])
+            elif len(ys) == 2:
+                ret_bounds = Bounds1D(min(ys), max(ys))
+        return self.bounds_ver.cut(ret_bounds)
 
     def sample_l(self, n_l: int, n_p: int, rel_bounds: Bounds_2D = ((0, 1), (0, 1))) -> {}:
         # sample cell for n_l: # of ls, n_p: # of points per ellipsis, rel_bounds: relative xy bounds
@@ -204,118 +309,6 @@ class Cell:
         sample["l-lines"].append(("l'", [p + self.offset for p in self.l_hor.cuts_bounds(bounds)]))
 
         return sample
-
-    def lp(self, p: Vector) -> float:  # epsilon for given point
-        return self.p.frl(p.x).d(self.q.frl(p.y))
-
-    def hyperbola_horizontal(self, y: float) -> Hyperbola:  # hyperbola for set height y
-        bounds = self.bounds_ver
-        if y not in bounds:
-            return Hyperbola.nan()
-        elif about_equal(y, bounds[0]):
-            return self.hyperbola_bottom
-        elif about_equal(y, bounds[1]):
-            return self.hyperbola_top
-        else:
-            return self.q.hyperbola_with_point(self.p.frl(y - self.offset.y)).move_x(self.offset.x)
-
-    def hyperbola_vertical(self, x: float) -> Hyperbola:  # hyperbola for set spot x
-        bounds = self.bounds_hor
-        if x not in bounds:
-            return Hyperbola.nan()
-        elif about_equal(x, bounds[0]):
-            return self.hyperbola_left
-        elif about_equal(x, bounds[1]):
-            return self.hyperbola_right
-        else:
-            return self.p.hyperbola_with_point(self.q.frl(x - self.offset.x)).move_x(self.offset.y)
-
-    def free_bounds_horizontal(self, y: float, epsilon: float) -> Bounds1D:  # free interval for epsilon on height y
-        ret_bounds = Bounds1D.nan()
-        hyperbola = self.hyperbola_horizontal(y)
-        if not hyperbola.is_nan():
-            ys = hyperbola.fy(epsilon)
-            if len(ys) == 1:
-                ret_bounds = Bounds1D(ys[0], ys[0])
-            elif len(ys) == 2:
-                ret_bounds = Bounds1D(min(ys), max(ys))
-        return self.bounds_hor.cut(ret_bounds)
-
-    def free_bounds_vertical(self, x: float, epsilon: float) -> Bounds1D:  # free interval for epsilon on spot x
-        ret_bounds = Bounds1D.nan()
-        hyperbola = self.hyperbola_vertical(x)
-        if not hyperbola.is_nan():
-            ys = hyperbola.fy(epsilon)
-            if len(ys) == 1:
-                ret_bounds = Bounds1D(ys[0], ys[0])
-            elif len(ys) == 2:
-                ret_bounds = Bounds1D(min(ys), max(ys))
-        return self.bounds_ver.cut(ret_bounds)
-
-    def traverse_right(self, traversal: TraversalType) -> \
-            TraversalType:  # steepest decent traversal to right
-        max_l = math.inf
-        end = self.l_ver_cut_right_global
-        end_l = self.l_ver_cut_right_l
-
-        if self.traverses_right:
-            start = traversal[1]
-            if self.l_ver_cut_right_global.y <= start.y:
-                end = Vector(self.top_right_global.x, start.y)
-                end_l = self.lp(end - self.offset)
-                max_l = max(traversal[0], end_l)
-            elif start.y < self.l_ver_cut_right_global.y < self.top_right_global.y:
-
-                max_l = max(traversal[0], end_l)
-
-        return max_l, end, traversal[2] + [end_l], traversal[3] + [end], (traversal[4][0] + 1, traversal[4][1])
-
-    def traverse_top(self, traversal: TraversalType) -> \
-            TraversalType:  # steepest decent traversal to top
-        max_l = math.inf
-        end = self.l_hor_cut_top_global
-        end_l = self.l_hor_cut_top_l
-
-        if self.traverses_top:
-            start = traversal[1]
-            if self.l_hor_cut_top_global.x <= start.x:
-                end = Vector(start.x, self.top_right_global.y)
-                end_l = self.lp(end - self.offset)
-                max_l = max(traversal[0], end_l)
-            elif start.x < self.l_hor_cut_top_global.x < self.top_right_global.x:
-                max_l = max(traversal[0], end_l)
-
-        return max_l, end, traversal[2] + [end_l], traversal[3] + [end], (traversal[4][0], traversal[4][1] + 1)
-
-    def traverse_top_right(self, traversal: TraversalType) -> \
-            TraversalType:  # steepest decent traversal to top-right
-        max_l = math.inf
-        end = self.top_right_global
-        end_l = self.top_right_l
-
-        if self.traverses_top_right:
-            max_l = max(traversal[0], end_l)
-
-        return max_l, end, traversal[2] + [end_l], traversal[3] + [end], (traversal[4][0] + 1, traversal[4][1] + 1)
-
-    def traverse_top_right_force(self, traversal: TraversalType) -> \
-            TraversalType:  # force traversal to top-right
-        end = self.top_right_global
-        end_l = self.top_right_l
-        max_l = max(traversal[0], end_l)
-
-        return max_l, end, traversal[2] + [end_l], traversal[3] + [end], traversal[4]
-
-    def traverse(self, traversal: TraversalType) -> \
-            [TraversalType]:
-        # steepest decent traversal to all possible destination
-        traversal_right = self.traverse_right(traversal)
-        traversal_top = self.traverse_top(traversal)
-        traversal_top_right = self.traverse_top_right(traversal)
-
-        traversals = [traversal_right, traversal_top_right, traversal_top]
-
-        return traversals
 
 
 class OneLineSegment(LineSegment):  # one line segment and intersection point
@@ -476,6 +469,18 @@ class CriticalEvents:
                 b1 = traversal.a
                 a2 = traversal.b
                 if a1 < b1 and a2 < b2 and not (a1 == b1 or a2 == b2):
+                    critical_events_cut.append(traversal)
+
+        return critical_events_cut
+
+    def in_and_on_bounds(self, a1: Vector, b2: Vector) -> 'CriticalEvents':
+        critical_events_cut = CriticalEvents()
+
+        for epsilon in self.epsilons():
+            for traversal in self[epsilon]:
+                b1 = traversal.a
+                a2 = traversal.b
+                if a1 < b1 and a2 < b2:
                     critical_events_cut.append(traversal)
 
         return critical_events_cut

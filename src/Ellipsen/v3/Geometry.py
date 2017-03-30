@@ -109,7 +109,10 @@ class Vector:
         y = self.y * s
         return Vector(x, y)
 
-    def __abs__(self) -> float:
+    def __abs__(self) -> 'Vector':
+        return Vector(abs(self.x), abs(self.y))
+
+    def __len__(self) -> float:
         return self.l
 
     def __eq__(self, other) -> bool:
@@ -125,11 +128,18 @@ class Vector:
     def x_to_y(self) -> 'Vector':  # switches x and y coordinates
         return Vector(self.y, self.x)
 
-    def norm(self) -> 'Vector':  # normalized vector (lenght = 1)
+    def norm(self) -> 'Vector':  # normalized vector (length = 1)
         return self * (1 / self.l)
+
+    def norm_dir(self) -> 'Vector':  #normalize vector (length = 1) and direction (x >= 0 and y >= 0)
+        return abs(self).norm()
 
     def scalar(self, other: 'Vector') -> bool:
         return about_equal(self.x / other.x, self.y / other.y)
+
+    def orientation(self) -> bool:
+        xy = self.x * self.y
+        return xy >= 0 or about_equal(xy, 0)
 
     def dot_product(self, other: 'Vector') -> float:
         return self.x * other.x + self.y * other.y
@@ -137,8 +147,9 @@ class Vector:
     def cross_product(self, other: 'Vector') -> float:
         return self.x * other.y - self.y * other.x
 
-    def acute(self, other) -> bool:  # returns true if angle between vectors is < 90°
-        return self.dot_product(other) > 0
+    def acute(self, other) -> bool:  # returns true if angle between vectors is <= 90°
+        dot = self.dot_product(other)
+        return dot >= 0 or about_equal(dot, 0)
 
     def angle(self) -> float:
         return math.atan2(self.y, self.x)
@@ -231,17 +242,23 @@ class LineSegment:
         else:
             return float("nan")
 
-    def rx(self, x: float) -> float:  # parameter r for set y-value
+    def rx(self, x: float) -> float:  # parameter r for set x-value
         if not math.isinf(self.m):
             return (x - self.p1.x) / (self.p2.x - self.p1.x)
         else:
             return float("nan")
 
-    def ry(self, y: float) -> float:  # parameter r for set x-value
+    def ry(self, y: float) -> float:  # parameter r for set y-value
         if self.m != 0:
             return (y - self.p1.y) / (self.p2.y - self.p1.y)
         else:
             return float("nan")
+
+    def rlx(self, x: float) -> float:  # parameter rl for set x-value
+        return self.rx(x) * self.l
+
+    def rly(self, y: float) -> float:  # parameter rl for set y-value
+        return self.ry(y) * self.l
 
     def contains_point(self, p: Vector) -> bool:  # does point p lie on the line segment
         return (self.m == float("inf") or 0 - tol <= self.rx(p.x) <= 1 + tol) and\
@@ -283,10 +300,16 @@ class LineSegment:
             return min(self.p1.d(p), self.p2.d(p))
 
     def point_above(self, p: Vector) -> bool:  # is given point above line
-        return p.y > self.fx(p.x)
+        return not self.point_on(p) and p.y > self.fx(p.x)
+
+    def point_below(self, p: Vector) -> bool:  # is given point below line
+        return not self.point_on(p) and p.y < self.fx(p.x)
 
     def point_right(self, p: Vector) -> bool:  # is given point on the right side of line
-        return p.x > self.fy(p.y)
+        return not self.point_on(p) and p.x > self.fy(p.y)
+
+    def point_left(self, p: Vector) -> bool:  # is given point on the left side of line
+        return not self.point_on(p) and p.x < self.fy(p.y)
 
     def point_on(self, p: Vector) -> bool:  # is given point on line
         return about_equal(p.y, self.fx(p.x)) or about_equal(p.x, self.fy(p.y))
