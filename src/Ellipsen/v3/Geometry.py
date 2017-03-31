@@ -140,8 +140,8 @@ class Vector:
     def norm(self) -> 'Vector':  # normalized vector (length = 1)
         return self * (1 / self.l)
 
-    def norm_dir(self) -> 'Vector':  #normalize vector (length = 1) and direction (x >= 0 and y >= 0)
-        return abs(self).norm()
+    def norm_dir(self) -> 'Vector':  # normalize vector (length = 1) and direction (x >= 0 and y >= 0)
+        return self.__abs__().norm()
 
     def scalar(self, other: 'Vector') -> bool:
         return about_equal(self.x / other.x, self.y / other.y)

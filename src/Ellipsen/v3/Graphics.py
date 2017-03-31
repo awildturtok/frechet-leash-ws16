@@ -167,11 +167,11 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
 
         # plot ellipses
         if plot_ellipsis:
-            for ellipsis in data["ellipses"]:
-                l = ellipsis[0]
-                if len(ellipsis[1]) > 0:
-                    x, y = vectors_to_xy(ellipsis[1])
-                    if ellipsis[0] == 0:
+            for ellipsis_to_plot in data["ellipses"]:
+                l = ellipsis_to_plot[0]
+                if len(ellipsis_to_plot[1]) > 0:
+                    x, y = vectors_to_xy(ellipsis_to_plot[1])
+                    if ellipsis_to_plot[0] == 0:
                         ax_2d.plot(x, y, "k.")
                     else:
                         ax_2d.plot(x, y, "k", linewidth=0.8)

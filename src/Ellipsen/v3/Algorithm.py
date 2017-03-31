@@ -45,10 +45,9 @@ class Cell:
         self.q = q
         
         self.norm_ellipsis = norm_ellipsis  # normed ellipsis (l=1)
-        self.bounds_xy = bounds_xy  # local cell bounds
         self.bounds_hor = Bounds1D(offset.x, offset.x + bounds_xy[0])  # global bounds horizontal
         self.bounds_ver = Bounds1D(offset.y, offset.y + bounds_xy[1])  # global bounds vertical
-        self.bounds_xy_global = (offset.to_tuple(), (self.bounds_hor[1], self.bounds_ver[1]))  # global cell bounds
+        self.bounds_xy = (self.bounds_hor, self.bounds_ver)  # global cell bounds
         self.bounds_l = bounds_l  # l length bounds
         self.offset = offset  # offset in cell-matrix
 
@@ -90,7 +89,8 @@ class Cell:
         # calculates data needed for steepest decent to the top-right
         assert a.x in self.bounds_hor and a.y in self.bounds_ver, "Error: Cannot do Steepest Decent.\n" +\
                                                                   "A:" + str(a) + " not in Cell:\n" + str(self)
-        assert direction == 1 or direction == -1, "Error: Cannot do Steepest Decent.\nInvalid direction ("+ str(direction)+") given."
+        assert direction == 1 or direction == -1, "Error: Cannot do Steepest Decent.\n" +\
+                                                  "Invalid direction (" + str(direction) + ") given."
 
         # define default return values
         next_cell = (0, 0)
@@ -106,7 +106,7 @@ class Cell:
         if on_border_ver:
             next_cell = (direction, next_cell[1])
         if on_border_hor or on_border_ver:
-            return a, next_cell, a_epsilon, (hyperbola_hor, hyperbola_ver)
+            return (a, next_cell), a_epsilon, (hyperbola_hor, hyperbola_ver)
 
         # steepest decent lines
         lv = self.l_ver
@@ -131,7 +131,7 @@ class Cell:
         # determine direction of traversal
         if not self.parallel and self.norm_ellipsis.m == a:
             print("Error: Cannot do Steepest Decent. Lowest Point reached.\nA:" + str(a) + " Cell:\n" + str(self))
-            return a, next_cell, a_epsilon, (hyperbola_hor, hyperbola_ver)
+            return (a, next_cell), a_epsilon, (hyperbola_hor, hyperbola_ver)
         elif self.acute and on_lv:
             r = lv.d.norm_dir() * direction
         elif self.acute and on_lh:
@@ -149,13 +149,13 @@ class Cell:
 
         # determine endpoint a2 of traversal
         a_r = LineSegment(a, a + r)
-        ellipsis_midpoint = self.norm_ellipsis.m + self.offset
+        ellipsis_midpoint = self.norm_ellipsis.m
 
         if not on_l:
             lv_rl = a_r.intersection_rl(lv)
             lh_rl = a_r.intersection_rl(lh)
             cut_l_rl = np.nanmin([lv_rl, lh_rl])
-        elif a < ellipsis_midpoint:
+        elif (direction == 1 and a < ellipsis_midpoint) or (direction == -1 and a > ellipsis_midpoint):
             cut_l_rl = a.d(ellipsis_midpoint)
         else:
             cut_l_rl = math.inf
@@ -250,12 +250,10 @@ class Cell:
 
         return self.sample(ls, n_p, rel_bounds)
 
-    def sample(self, ls: [float], n: int, rel_bounds: Bounds_2D = ((0, 1), (0, 1))) \
-            -> {}:
+    def sample(self, ls: [float], n: int) -> {}:
         # sample cell with ls: array of ls to sample, n: # of points per ellipsis, rel_bounds: relative xy bounds
 
-        bounds = ((rel_bounds[0][0] * self.bounds_xy[0], rel_bounds[0][1] * self.bounds_xy[0]),
-                  (rel_bounds[1][0] * self.bounds_xy[1], rel_bounds[1][1] * self.bounds_xy[1]))
+        bounds = self.bounds_xy
 
         # holds ellipses, steepest decent lines and axis in form: (name, [Vector])
         sample = {"ellipses": [], "l-lines": [], "axis": []}
@@ -269,13 +267,13 @@ class Cell:
                 if l == 0:  # plot points as points
                     p = self.norm_ellipsis.m
                     if p.in_bounds(bounds):
-                        sample["ellipses"].append((l, [p + self.offset]))
+                        sample["ellipses"].append((l, [p]))
                     continue
 
-                ellipsis = self.norm_ellipsis * l
+                ellipsis_to_sample = self.norm_ellipsis * l
 
                 # sample ellipsis only in bounds of cell
-                ts = ellipsis.cuts_bounds_t(bounds)
+                ts = ellipsis_to_sample.cuts_bounds_t(bounds)
 
                 if len(ts) == 0:
                     ts.append(0)
@@ -289,38 +287,35 @@ class Cell:
                     d_t = t2 - t1
                     mid_t = t1 + 0.5 * d_t
 
-                    if ellipsis.p(mid_t).in_bounds(bounds):
-                        ellipsis_sample = [ellipsis.p(t1) + self.offset]
+                    if ellipsis_to_sample.p(mid_t).in_bounds(bounds):
+                        ellipsis_sample = [ellipsis_to_sample.p(t1)]
 
                         np1 = math.ceil((t1 / (2 * math.pi)) * n)
                         np2 = math.ceil((t2 / (2 * math.pi)) * n)
 
                         for ip in range(np1, np2):
                             t = (ip / n) * 2 * math.pi
-                            ellipsis_sample.append(ellipsis.p(t) + self.offset)
+                            ellipsis_sample.append(ellipsis_to_sample.p(t))
 
-                        ellipsis_sample.append(ellipsis.p(t2) + self.offset)
+                        ellipsis_sample.append(ellipsis_to_sample.p(t2))
 
                         sample["ellipses"].append((l, ellipsis_sample))
 
             else:  # case 2: lines are parallel
-                ellipsis = self.norm_ellipsis * l
-                for ps in ellipsis.cuts_bounds_p(bounds):
-                    ellipsis_sample = [p + self.offset for p in ps]
+                ellipsis_to_sample = self.norm_ellipsis * l
+                for ellipsis_sample in ellipsis_to_sample.cuts_bounds_p(bounds):
                     sample["ellipses"].append((l, ellipsis_sample))
 
         # Sample Ellipsis axis
         if not self.parallel:
-            sample["axis"].append(("c", [p + self.offset for p in
-                                         LineSegment(self.norm_ellipsis.m,
-                                                     self.norm_ellipsis.m + self.norm_ellipsis.a).cuts_bounds(bounds)]))
-            sample["axis"].append(("d", [p + self.offset for p in
-                                         LineSegment(self.norm_ellipsis.m,
-                                                     self.norm_ellipsis.m + self.norm_ellipsis.b).cuts_bounds(bounds)]))
+            sample["axis"].append(("c", LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.m +
+                                                    self.norm_ellipsis.a).cuts_bounds(bounds)))
+            sample["axis"].append(("d", LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.m +
+                                                    self.norm_ellipsis.b).cuts_bounds(bounds)))
 
         # Sample steepest decent lines
-        sample["l-lines"].append(("l", [p + self.offset for p in self.l_ver.cuts_bounds(bounds)]))
-        sample["l-lines"].append(("l'", [p + self.offset for p in self.l_hor.cuts_bounds(bounds)]))
+        sample["l-lines"].append(("l", self.l_ver.cuts_bounds(bounds)))
+        sample["l-lines"].append(("l'", self.l_hor.cuts_bounds(bounds)))
 
         return sample
 
@@ -391,7 +386,7 @@ class TwoLineSegments:  # calculates and saves parameters of two line segments
             m_b = Vector(0, self.b.l) * self.b.rs
             m = m_a + m_b
 
-            norm_ellipsis = Ellipse(m, c, d)
+            norm_ellipsis = Ellipse(m + offset, c, d)
 
         else:  # case 2: lines are parallel
             if self.dirB:
@@ -399,7 +394,7 @@ class TwoLineSegments:  # calculates and saves parameters of two line segments
             else:
                 a = Vector(-1, 1)
 
-            norm_ellipsis = EllipseInfinite(self.anchor, a, self.dist)
+            norm_ellipsis = EllipseInfinite(self.anchor + offset, a, self.dist)
 
         # set cell bounds: length of a and b
         bounds_xy = Bounds1D(self.a.d.l, self.b.d.l)
@@ -1049,22 +1044,28 @@ class CellMatrix:
 
             if about_equal(a_epsilon, b_epsilon):
                 # do steepest decent from A and B
-                a2_cm, a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cell.steepest_decent(a, 1)
-                b2_cm, b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cell.steepest_decent(b, -1)
+                (a2, cc_a2), a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cell.steepest_decent(a, 1)
+                (b2, cc_b2), b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cell.steepest_decent(b, -1)
             elif a_epsilon > b_epsilon:
                 # do steepest decent from A
-                a2_cm, a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cell.steepest_decent(a, 1)
-                b2_cm, b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cm, b_epsilon, (Hyperbola.nan(),
-                                                                                        Hyperbola.nan())
+                (a2, cc_a2), a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cell.steepest_decent(a, 1)
+                (b2, cc_b2), b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cm, b_epsilon, (Hyperbola.nan(),
+                                                                                              Hyperbola.nan())
             else:
                 # do steepest decent from B
-                a2_cm, a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cm, a_epsilon, (Hyperbola.nan(),
-                                                                                        Hyperbola.nan())
-                b2_cm, b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cell.steepest_decent(b, -1)
+                (a2, cc_a2), a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cm, a_epsilon, (Hyperbola.nan(),
+                                                                                              Hyperbola.nan())
+                (b2, cc_b2), b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cell.steepest_decent(b, -1)
 
-            a2, cc_a2 = a2_cm
-            b2, cc_b2 = b2_cm
+            # set cell coords
+            cc_a2 = (max(min((cc_a[0] + cc_a2[0]), self.p.count - 1), 0),
+                     max(min((cc_a[1] + cc_a2[1]), self.q.count - 1), 0))
+            cc_b2 = (max(min((cc_b[0] + cc_b2[0]), self.p.count - 1), 0),
+                     max(min((cc_b[1] + cc_b2[1]), self.q.count - 1), 0))
+            a2_cm = (a2, cc_a2)  # self.cm_point_a(a2)
+            b2_cm = (b2, cc_b2)  # self.cm_point_b(b2)
 
+            # set bounds
             a_bounds_hor = Bounds1D(min(a.x, a2.x), max(a.x, a2.x))
             a_bounds_ver = Bounds1D(min(a.y, a2.y), max(a.y, a2.y))
             b_bounds_hor = Bounds1D(min(b.x, b2.x), max(b.x, b2.x))
