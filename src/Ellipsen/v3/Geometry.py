@@ -35,7 +35,7 @@ class Bounds1D:
         return "(" + str(self.start) + ", " + str(self.end) + ")"
 
     def __getitem__(self, item):
-        if item == 0:
+        if item <= 0:
             return self.start
         return self.end
 
@@ -57,6 +57,13 @@ class Bounds1D:
 
     def is_nan(self) -> bool:
         return self.end < self.start
+
+    def in_bounds(self, items: [float]) -> [float]:
+        ret_items = []
+        for item in items:
+            if item in self:
+                ret_items.append(item)
+        return ret_items
 
 
 class Vector:
@@ -122,6 +129,8 @@ class Vector:
         return not self.__eq__(other)
 
     def d(self, other) -> float:  # distance to other point
+        if self == other:
+            return 0
         d = other - self
         return d.l
 
@@ -379,12 +388,30 @@ class LineSegment:
         s = Vector(projection_rl, projection_d)
         return Hyperbola(s)
 
-    def hyperbola_with_line(self, line: 'LineSegment') -> 'Hyperbola':  #Todo: rewrite (see hyperbola_with_point)
-        l = math.sqrt(math.pow(self.l, 2) + math.pow(line.l, 2))
-        p1 = Vector(0, self.p1.d(line.p1))
-        p2 = Vector(0.5 * l, self.fr(0.5).d(line.fr(0.5)))
-        p3 = Vector(l, self.p2.d(line.p2))
-        return Hyperbola(p1, p2, p3)
+    def hyperbola_with_line(self, line: 'LineSegment') -> 'Hyperbola':
+        l = math.sqrt(self.l**2 + line.l**2)
+        d1 = self.p1.d(line.p1)
+        d2 = self.fr(0.5).d(line.fr(0.5))
+        d3 = self.p2.d(line.p2)
+        g2 = (d2**2 - d1**2)
+        g3 = (d3**2 - d1**2)
+        a = (2*g3 - 4*g2) / l**2
+        b = (4*g2 - g3) / l
+        c = d1**2
+        if about_equal(a, 0):
+            a = 0
+            if not about_equal(b, 0):
+                print("Error: Invalid Hyperbola from two line segments:\n1." + str(self) + "\n2." + str(line) +
+                      "\nd1=" + str(d1) + " d2=" + str(d2) + " d3=" + str(d3) + "\ng2=" + str(g2) + " g3=" + str(g3) +
+                      "\na=" + str(a) + " b=" + str(b) + " c=" + str(c) + "\nSetting b=0.")
+            s = Vector(0, math.sqrt(c))
+        else:
+            if about_equal(b, 0):
+                b = 0
+            if about_equal(c, 0):
+                c = 0
+            s = Vector(-b / (2*a), math.sqrt(c - b**2 / (4*a)))
+        return Hyperbola(s, a)
 
 
 class Path:
@@ -419,7 +446,7 @@ class Path:
 
     # Path Arithmetic
 
-    def i_rl_path(self, rl: float) -> float:  # path index for set parameter rl
+    def i_rl_path(self, rl: float) -> int:  # path index for set parameter rl
         if not 0 <= rl <= self.length:
             print("Error: Parameter rl=" + str(rl) + " is not in bounds: [0.." + str(self.length) + "].")
             return math.nan
@@ -427,7 +454,7 @@ class Path:
         i_segment = bisect(self.offsets[1:], rl)
         return min(i_segment, self.count - 1)
 
-    def i_rl_point(self, rl: float) -> float:  # point index for set parameter rl
+    def i_rl_point(self, rl: float) -> int:  # point index for set parameter rl
         if not 0 <= rl <= self.length:
             print("Error: Parameter rl=" + str(rl) + " is not in bounds: [0.." + str(self.length) + "].")
             return math.nan
@@ -446,8 +473,9 @@ class Path:
 
 
 class Hyperbola:
-    def __init__(self, s: Vector):
+    def __init__(self, s: Vector, a: float = 1):
         self.s = s
+        self.a = a
 
     def __str__(self):
         return "hyperbola: S" + str(self.s) + " func: " + str(self.func_str())
@@ -460,10 +488,10 @@ class Hyperbola:
         return math.isnan(self.s.x)
 
     def func_str(self) -> str:
-        return "sqrt( " + str(self.s.y) + "^2 + ( x - " + str(self.s.x) +  " )^2 )"
+        return "sqrt( " + str(self.s.y) + "^2 + " + str(self.a) + " * ( x - " + str(self.s.x) + " )^2 )"
 
     def fx(self, x: float) -> float:  # y-value for set x-value
-        return math.sqrt(math.pow(self.s.y, 2) + math.pow(x - self.s.x, 2))
+        return math.sqrt(self.s.y**2 + self.a * (x - self.s.x)**2)
 
     def px(self, x: float) -> Vector:  # point for set x-value
         return Vector(x, self.fx(x))
@@ -474,7 +502,7 @@ class Hyperbola:
         elif y < self.s.y:
             return []
         else:
-            w = math.sqrt(math.pow(y, 2) - math.pow(self.s.y, 2))
+            w = math.sqrt((y**2 - self.s.y**2) / self.a)
             return [self.s.x - w, self.s.x + w]
 
     def py(self, y: float) -> [Vector]:  # point(s) for set y-value
@@ -482,7 +510,7 @@ class Hyperbola:
         return [Vector(x, y) for x in xs]
 
     def fax(self, x: float) -> float:  # slope for set x-value
-        return (x - self.x) / self.fx(x)
+        return (self.a * (x - self.s.x)) / self.fx(x)
 
     def orientation(self, x: float) -> float:
         # for set x: returns positive if falling, 0 if constant, negative if rising
@@ -500,7 +528,10 @@ class Hyperbola:
         return self.move_p(Vector(0, d_y))
 
     def move_p(self, d_p: Vector) -> 'Hyperbola':  # moves hyperbola on y-axis
-        return Hyperbola(self.s + d_p)
+        return Hyperbola(self.s + d_p, self.a)
+
+    def scaled(self, f: float) -> 'Hyperbola':  # scale hyperbola by factor f
+        return Hyperbola(Vector(self.s.x * f, self.s.y), self.a / f**2)
 
     def cuts_bounds_ver(self, bounds: (float, float)) -> [Vector]:
         return [self.px(bounds[0]), self.px(bounds[1])]
@@ -525,7 +556,7 @@ class Hyperbola:
     def intersects_hyperbola_in_bounds_critical(self, other: 'Hyperbola', bounds: Bounds_2D) -> Vector:
         intersection = self.intersects_hyperbola_in_bounds(other, bounds)
         x = intersection.x
-        if self.orientation(x) <= 0 <= other.orientation(x):
+        if self.orientation(x) <= 0.0 <= other.orientation(x):
             return intersection
         return Vector.nan()
 

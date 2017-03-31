@@ -78,18 +78,19 @@ class Cell:
         return "    Offset: " + str(self.offset) + '\n' + \
                "    Norm-" + str(self.norm_ellipsis) + '\n' + \
                "    Steepest Decent Lines:\n" + \
-               "      l: " + str(self.l_ver.d) + '\n' + \
-               "      l': " + str(self.l_hor.d) + '\n' + \
+               "      l: " + str(self.l_ver) + '\n' + \
+               "      l': " + str(self.l_hor) + '\n' + \
                "    Bounds l: " + str(self.bounds_l) + '\n' + \
                "    Bounds XY: " + str(self.bounds_xy) + '\n'
 
     def lp(self, p: Vector) -> float:  # epsilon for given point
         return self.p.frl(p.x).d(self.q.frl(p.y))
 
-    def steepest_decent_top_right(self, a: Vector) -> (Vector, CellCoord, float, (Hyperbola, Hyperbola)):
+    def steepest_decent(self, a: Vector, direction: int) -> (Vector, CellCoord, float, (Hyperbola, Hyperbola)):
         # calculates data needed for steepest decent to the top-right
         assert a.x in self.bounds_hor and a.y in self.bounds_ver, "Error: Cannot do Steepest Decent.\n" +\
                                                                   "A:" + str(a) + " not in Cell:\n" + str(self)
+        assert direction == 1 or direction == -1, "Error: Cannot do Steepest Decent.\nInvalid direction ("+ str(direction)+") given."
 
         # define default return values
         next_cell = (0, 0)
@@ -98,90 +99,103 @@ class Cell:
         hyperbola_ver = Hyperbola.nan()
 
         # wrong cell?
-        on_top_border = about_equal(self.bounds_ver.end, a.y)
-        on_right_border = about_equal(self.bounds_hor.end, a.x)
-        if on_top_border:
-            next_cell = (next_cell[0], next_cell[1] + 1)
-        if on_right_border:
-            next_cell = (next_cell[0] + 1, next_cell[1])
-        if on_top_border or on_right_border:
+        on_border_hor = about_equal(self.bounds_ver[direction], a.y)
+        on_border_ver = about_equal(self.bounds_hor[direction], a.x)
+        if on_border_hor:
+            next_cell = (0, direction)
+        if on_border_ver:
+            next_cell = (direction, next_cell[1])
+        if on_border_hor or on_border_ver:
             return a, next_cell, a_epsilon, (hyperbola_hor, hyperbola_ver)
 
         # steepest decent lines
-        lh = self.l_hor
         lv = self.l_ver
+        lh = self.l_hor
 
         # which case for steepest decent
-        case_hor = lh.point_above(a)
-        case_ver = lv.point_right(a)
-        lv_left = lv.point_left(a)
-        lh_below = lh.point_below(a)
-        case_eq = lv_left and lh_below
-        on_lh = lh.point_on(a)
+        if direction == 1:
+            case_hor = lv.point_above(a)
+            case_ver = lh.point_right(a)
+            lh_left = lh.point_left(a)
+            lv_below = lv.point_below(a)
+        else:
+            case_hor = lv.point_below(a)
+            case_ver = lh.point_left(a)
+            lh_left = lh.point_right(a)
+            lv_below = lv.point_above(a)
+        case_eq = lh_left and lv_below
         on_lv = lv.point_on(a)
-        on_l = on_lh and on_lv
+        on_lh = lh.point_on(a)
+        on_l = on_lv and on_lh
 
         # determine direction of traversal
         if not self.parallel and self.norm_ellipsis.m == a:
             print("Error: Cannot do Steepest Decent. Lowest Point reached.\nA:" + str(a) + " Cell:\n" + str(self))
             return a, next_cell, a_epsilon, (hyperbola_hor, hyperbola_ver)
-        elif self.acute and on_lh:
-            r = lh.d.norm_dir()
         elif self.acute and on_lv:
-            r = lv.d.norm_dir()
+            r = lv.d.norm_dir() * direction
+        elif self.acute and on_lh:
+            r = lh.d.norm_dir() * direction
         elif case_hor:
-            assert lv_left, "Error: Cannot do Steepest Decent.\n" +\
+            assert lh_left, "Error: Cannot do Steepest Decent.\n" +\
                             "A:" + str(a) + " above l & right of l'. Cell:\n" + str(self)
-            r = Vector(1, 0)
+            r = Vector(direction, 0)
         elif case_ver:
-            assert lh_below, "Error: Cannot do Steepest Decent.\n" +\
+            assert lv_below, "Error: Cannot do Steepest Decent.\n" +\
                              "A:" + str(a) + " above l & right of l'. Cell:\n" + str(self)
-            r = Vector(0, 1)
+            r = Vector(0, direction)
         elif case_eq:
-            r = Vector(math.sqrt(0.5), math.sqrt(0.5))
+            r = Vector(math.sqrt(0.5), math.sqrt(0.5)) * direction
 
         # determine endpoint a2 of traversal
         a_r = LineSegment(a, a + r)
         ellipsis_midpoint = self.norm_ellipsis.m + self.offset
 
         if not on_l:
-            cut_l_rl = min(a_r.intersection_rl(lv), a_r.intersection_rl(lh))
+            lv_rl = a_r.intersection_rl(lv)
+            lh_rl = a_r.intersection_rl(lh)
+            cut_l_rl = np.nanmin([lv_rl, lh_rl])
         elif a < ellipsis_midpoint:
             cut_l_rl = a.d(ellipsis_midpoint)
         else:
             cut_l_rl = math.inf
 
-        cut_top_rl = a_r.rly(self.bounds_ver.end)
-        cut_right_rl = a_r.rly(self.bounds_hor.end)
+        cut_top_rl = a_r.rly(self.bounds_ver[direction])
+        cut_right_rl = a_r.rly(self.bounds_hor[direction])
         cut_border_rl = np.nanmin([cut_right_rl, cut_top_rl])
 
         if cut_border_rl <= cut_l_rl:
             if about_equal(cut_top_rl, cut_right_rl):
-                next_cell = (1, 1)
+                next_cell = (direction, direction)
             elif cut_top_rl < cut_right_rl:
-                next_cell = (0, 1)
+                next_cell = (0, direction)
             else:
-                next_cell = (1, 0)
+                next_cell = (direction, 0)
             a2_rl = cut_border_rl
         else:
             a2_rl = cut_l_rl
 
         a2 = a_r.frl(a2_rl)
+        a2_epsilon = self.lp(a2 - self.offset)
+        if about_equal(a2_epsilon, 0):
+            a2_epsilon = 0
 
         # determine horizontal and vertical hyperbolas
-        d_x = a2.x - a.x
-        d_y = a2.y - a.y
-        a_a2 = LineSegment(a, a + a2)
-        bounds_hor = Bounds1D(a.x, a2.x)
-        bounds_ver = Bounds1D(a.y, a2.y)
+        d_x = abs(a2.x - a.x)
+        d_y = abs(a2.y - a.y)
+        a_a2 = LineSegment(a, a2)
         if about_equal(d_x, 0):
             hyperbola_ver = self.hyperbola_vertical(a2.x)
         elif about_equal(d_y, 0):
             hyperbola_hor = self.hyperbola_horizontal(a2.y)
         else:
-            #Todo: hyperbola aus zwei Strecken berechnen !
-            print("Todo!")
+            p_cut = LineSegment(self.p.frl(min(a.x, a2.x) - self.offset.x), self.p.frl(max(a.x, a2.x) - self.offset.x))
+            q_cut = LineSegment(self.q.frl(min(a.y, a2.y) - self.offset.y), self.q.frl(max(a.y, a2.y) - self.offset.y))
+            hyperbola = p_cut.hyperbola_with_line(q_cut)
+            hyperbola_hor = hyperbola.scaled(d_x / a_a2.l).move_x(min(a.x, a2.x))
+            hyperbola_ver = hyperbola.scaled(d_y / a_a2.l).move_x(min(a.y, a2.y))
 
+        return (a2, next_cell), a2_epsilon, (hyperbola_hor, hyperbola_ver)
 
     def hyperbola_horizontal(self, y: float) -> Hyperbola:  # hyperbola for set height y
         bounds = self.bounds_ver
@@ -419,7 +433,21 @@ class Traversal:
                "      Decision: " + str(self.cell_matrix.decide_critical_traversal(self.cell_matrix.a_cm, self,
                                                                                    self.cell_matrix.b_cm))  # DEBUG
 
+    @staticmethod
+    def nan() -> 'Traversal':
+        return Traversal(None, (Vector.nan(), (math.nan, math.nan)), (Vector.nan(), (math.nan, math.nan)),
+                         [Vector.nan()], math.inf, [math.inf])
+
+    def is_nan(self) -> bool:
+        return math.isinf(self.epsilon)
+
     def __add__(self, other: 'Traversal') -> 'Traversal':
+
+        if self.is_nan():
+            return other
+        if other.is_nan():
+            return self
+
         assert self.b_cm == other.a_cm, "Cannot combine Traversals (B1 != A2): \n" + str(self) + '\n' + str(other)
 
         return Traversal(self.cell_matrix, self.a_cm, other.b_cm, self.points[:-1] + other.points,
@@ -983,19 +1011,22 @@ class CellMatrix:
         assert len(traversals) > 0, "Error: No Traversal was found !!? Traversals: " + str(traversals)
         return traversals[0].epsilon, traversals
 
-    def traverse_recursive(self, a1_cm: CM_Point, critical_events: CriticalEvents, b2_cm: CM_Point) -> [Traversal]:
+    def traverse_recursive(self, a_cm: CM_Point, critical_events: CriticalEvents, b_cm: CM_Point) -> [Traversal]:
 
-        a1 = a1_cm[0]
-        b2 = b2_cm[0]
+        a = a_cm[0]
+        b = b_cm[0]
 
-        a_epsilon = self.epsilon_from_cm_point(a1_cm)
-        b_epsilon = self.epsilon_from_cm_point(b2_cm)
+        cc_a = a_cm[1]
+        cc_b = b_cm[1]
+
+        a_epsilon = self.epsilon_from_cm_point(a_cm)
+        b_epsilon = self.epsilon_from_cm_point(b_cm)
         max_ab_epsilon = max(a_epsilon, b_epsilon)
 
-        if a1 == b2:
-            return [Traversal(self, a1_cm, b2_cm, [a1], max_ab_epsilon, [a_epsilon])]
+        if a == b:
+            return [Traversal(self, a_cm, b_cm, [a], max_ab_epsilon, [a_epsilon])]
 
-        critical_event = critical_events.critical(self, a1_cm, b2_cm)
+        critical_event = critical_events.critical(self, a_cm, b_cm)
         critical_epsilon = critical_event[0]
 
         '''print("========")  # DEBUG
@@ -1006,15 +1037,83 @@ class CellMatrix:
 
         if not about_equal(max_ab_epsilon, critical_epsilon) and \
                 (max_ab_epsilon > critical_epsilon or (max_ab_epsilon < critical_epsilon
-                                                       and self.decide_traversal(a1_cm, b2_cm, max_ab_epsilon))):
+                                                       and self.decide_traversal(a_cm, b_cm, max_ab_epsilon))):
             # Todo: steepest decent here!
 
-            if about_equal(a1.x, b2.x) or about_equal(a1.y, b2.y):
-                return [Traversal(self, a1_cm, b2_cm, [a1, b2], max_ab_epsilon,
+            if about_equal(a.x, b.x) or about_equal(a.y, b.y) or a.x > b.x or a.y > b.y:
+                return [Traversal(self, a_cm, b_cm, [a, b], max_ab_epsilon,
                                   [a_epsilon, b_epsilon])]  # Todo:berichtigen!
 
-            # vorläufig einfach verbinden:
-            return [Traversal(self, a1_cm, b2_cm, [a1, b2], max_ab_epsilon, [a_epsilon, b_epsilon])]
+            a_cell = self.cells[cc_a[0]][cc_a[1]]
+            b_cell = self.cells[cc_b[0]][cc_b[1]]
+
+            if about_equal(a_epsilon, b_epsilon):
+                # do steepest decent from A and B
+                a2_cm, a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cell.steepest_decent(a, 1)
+                b2_cm, b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cell.steepest_decent(b, -1)
+            elif a_epsilon > b_epsilon:
+                # do steepest decent from A
+                a2_cm, a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cell.steepest_decent(a, 1)
+                b2_cm, b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cm, b_epsilon, (Hyperbola.nan(),
+                                                                                        Hyperbola.nan())
+            else:
+                # do steepest decent from B
+                a2_cm, a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cm, a_epsilon, (Hyperbola.nan(),
+                                                                                        Hyperbola.nan())
+                b2_cm, b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cell.steepest_decent(b, -1)
+
+            a2, cc_a2 = a2_cm
+            b2, cc_b2 = b2_cm
+
+            a_bounds_hor = Bounds1D(min(a.x, a2.x), max(a.x, a2.x))
+            a_bounds_ver = Bounds1D(min(a.y, a2.y), max(a.y, a2.y))
+            b_bounds_hor = Bounds1D(min(b.x, b2.x), max(b.x, b2.x))
+            b_bounds_ver = Bounds1D(min(b.y, b2.y), max(b.y, b2.y))
+
+            # if possible decent to equal height
+            if not about_equal(a2_epsilon, b2_epsilon) and b2_epsilon > a2_epsilon:
+                a2_x = b.x
+                a2_y = b.y
+                if not a_hyperbel_hor.is_nan():
+                    xs = a_bounds_hor.in_bounds(a_hyperbel_hor.fy(b2_epsilon))
+                    if len(xs) > 0:
+                        a2_x = xs[0]
+                if not a_hyperbel_ver.is_nan():
+                    ys = a_bounds_ver.in_bounds(a_hyperbel_ver.fy(b2_epsilon))
+                    if len(ys) > 0:
+                        a2_y = ys[0]
+                a2 = Vector(a2_x, a2_y)
+                a2_cm = self.cm_point_a(a2)
+                a2_epsilon = b2_epsilon
+            elif not about_equal(a2_epsilon, b2_epsilon) and a2_epsilon > b2_epsilon:
+                b2_x = b.x
+                b2_y = b.y
+                if not b_hyperbel_hor.is_nan():
+                    xs = b_bounds_hor.in_bounds(b_hyperbel_hor.fy(a2_epsilon))
+                    if len(xs) > 0:
+                        b2_x = xs[0]
+                if not b_hyperbel_ver.is_nan():
+                    ys = b_bounds_ver.in_bounds(b_hyperbel_ver.fy(a2_epsilon))
+                    if len(ys) > 0:
+                        b2_y = ys[0]
+                b2 = Vector(b2_x, b2_y)
+                b2_cm = self.cm_point_b(b2)
+                b2_epsilon = a2_epsilon
+
+            # create traversals
+            traversal_a = Traversal.nan()
+            traversal_b = Traversal.nan()
+            if a != a2:
+                traversal_a = Traversal(self, a_cm, a2_cm, [a, a2], max(a_epsilon, a2_epsilon), [a_epsilon, a2_epsilon])
+            if b != b2:
+                traversal_b = Traversal(self, b2_cm, b_cm, [b2, b], max(b_epsilon, b2_epsilon), [b2_epsilon, b_epsilon])
+
+            new_critical_events = critical_events.in_and_on_bounds(a2, b2)
+            rec_traversals = self.traverse_recursive(a2_cm, new_critical_events, b2_cm)
+            traversals = []
+            for rec_traversal in rec_traversals:
+                traversals.append(traversal_a + rec_traversal + traversal_b)
+            return traversals
 
         critical_traversals = critical_event[1]
 
@@ -1022,21 +1121,22 @@ class CellMatrix:
         print("critical_events_count: " + str(len(critical_events)))  # DEBUG
         print("critical_traversals_count: " + str(len(critical_traversals)))  # DEBUG
         print("critical_traversals: " + str([str(ct) for ct in critical_traversals]))  # DEBUG
+        print("critical_traversals: " + str([str(ct) for ct in critical_traversals]))  # DEBUG
         print("===")'''
 
         traversals = []
         for critical_traversal in critical_traversals:
 
             b1_cm = critical_traversal.a_cm
-            a2_cm = critical_traversal.b_cm
+            a1_cm = critical_traversal.b_cm
             b1 = b1_cm[0]
-            a2 = a2_cm[0]
+            a1 = a1_cm[0]
 
-            critical_events_1 = critical_events.in_bounds(a1, b1)
-            critical_events_2 = critical_events.in_bounds(a2, b2)
+            critical_events_1 = critical_events.in_bounds(a, b1)
+            critical_events_2 = critical_events.in_bounds(a1, b)
 
-            traversals_1 = self.traverse_recursive(a1_cm, critical_events_1, b1_cm)
-            traversals_2 = self.traverse_recursive(a2_cm, critical_events_2, b2_cm)
+            traversals_1 = self.traverse_recursive(a_cm, critical_events_1, b1_cm)
+            traversals_2 = self.traverse_recursive(a1_cm, critical_events_2, b_cm)
 
             for traversal_1 in traversals_1:
                 for traversal_2 in traversals_2:
