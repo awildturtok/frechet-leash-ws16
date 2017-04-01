@@ -157,10 +157,17 @@ class Cell:
             cut_l_rl = a.d(self.norm_ellipsis.m)
         else:
             cut_l_rl = math.inf
+        '''elif not self.acute:
+            bisector = LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.m + Vector(-1, 1))
+            cut_l_rl = a_r.intersection_rl(bisector)
+            if about_equal(cut_l_rl, 0):
+                cut_l_rl = math.inf
+        else:
+            cut_l_rl = math.inf'''  # DEBUG
 
-        cut_top_rl = a_r.rly(self.bounds_ver[direction])
-        cut_right_rl = a_r.rlx(self.bounds_hor[direction])
-        cut_border_rl = np.nanmin([cut_right_rl, cut_top_rl])
+        cut_hor_rl = a_r.rly(self.bounds_ver[direction])
+        cut_ver_rl = a_r.rlx(self.bounds_hor[direction])
+        cut_border_rl = np.nanmin([cut_hor_rl, cut_ver_rl])
 
         if cut_border_rl <= cut_l_rl:
             a2_rl = cut_border_rl
@@ -168,7 +175,12 @@ class Cell:
             a2_rl = cut_l_rl
 
         a2 = a_r.frl(a2_rl)
-        a2 = a2.to_bounds(self.bounds_xy)
+        #a2 = a2.to_bounds(self.bounds_xy)
+
+        if a == a2:
+            print("Error: Steepest decent not possible.")
+            return a, a_epsilon, (hyperbola_hor, hyperbola_ver)
+
         a2_epsilon = self.lp(a2 - self.offset)
         a2_epsilon = self.bounds_l.to_bounds(a2_epsilon)
 
@@ -1037,20 +1049,20 @@ class CellMatrix:
 
             if about_equal(a_epsilon, b_epsilon):
                 # do steepest decent from A and B
-                a2, a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cell.steepest_decent(a, 1)
-                b2, b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cell.steepest_decent(b, -1)
+                a2, a2_epsilon, (a_hyperbola_hor, a_hyperbola_ver) = a_cell.steepest_decent(a, 1)
+                b2, b2_epsilon, (b_hyperbola_hor, b_hyperbola_ver) = b_cell.steepest_decent(b, -1)
                 a2_cm = self.cm_point_a(a2)
                 b2_cm = self.cm_point_b(b2)
             elif a_epsilon > b_epsilon:
                 # do steepest decent from A
-                a2, a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cell.steepest_decent(a, 1)
-                b2, b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b, b_epsilon, (Hyperbola.nan(), Hyperbola.nan())
+                a2, a2_epsilon, (a_hyperbola_hor, a_hyperbola_ver) = a_cell.steepest_decent(a, 1)
+                b2, b2_epsilon, (b_hyperbola_hor, b_hyperbola_ver) = b, b_epsilon, (Hyperbola.nan(), Hyperbola.nan())
                 a2_cm = self.cm_point_a(a2)
                 b2_cm = b_cm
             else:
                 # do steepest decent from B
-                a2, a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a, a_epsilon, (Hyperbola.nan(), Hyperbola.nan())
-                b2, b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cell.steepest_decent(b, -1)
+                a2, a2_epsilon, (a_hyperbola_hor, a_hyperbola_ver) = a, a_epsilon, (Hyperbola.nan(), Hyperbola.nan())
+                b2, b2_epsilon, (b_hyperbola_hor, b_hyperbola_ver) = b_cell.steepest_decent(b, -1)
                 a2_cm = a_cm
                 b2_cm = self.cm_point_b(b2)
 
@@ -1064,12 +1076,12 @@ class CellMatrix:
             if not about_equal(a2_epsilon, b2_epsilon) and b2_epsilon > a2_epsilon:
                 a2_x = a.x
                 a2_y = a.y
-                if not a_hyperbel_hor.is_nan():
-                    xs = a_bounds_hor.in_bounds(a_hyperbel_hor.fy(b2_epsilon))
+                if not a_hyperbola_hor.is_nan():
+                    xs = a_bounds_hor.in_bounds(a_hyperbola_hor.fy(b2_epsilon))
                     if len(xs) > 0:
                         a2_x = xs[0]
-                if not a_hyperbel_ver.is_nan():
-                    ys = a_bounds_ver.in_bounds(a_hyperbel_ver.fy(b2_epsilon))
+                if not a_hyperbola_ver.is_nan():
+                    ys = a_bounds_ver.in_bounds(a_hyperbola_ver.fy(b2_epsilon))
                     if len(ys) > 0:
                         a2_y = ys[0]
                 a2 = Vector(a2_x, a2_y)
@@ -1078,17 +1090,18 @@ class CellMatrix:
             elif not about_equal(a2_epsilon, b2_epsilon) and a2_epsilon > b2_epsilon:
                 b2_x = b.x
                 b2_y = b.y
-                if not b_hyperbel_hor.is_nan():
-                    xs = b_bounds_hor.in_bounds(b_hyperbel_hor.fy(a2_epsilon))
+                if not b_hyperbola_hor.is_nan():
+                    xs = b_bounds_hor.in_bounds(b_hyperbola_hor.fy(a2_epsilon))
                     if len(xs) > 0:
                         b2_x = xs[0]
-                if not b_hyperbel_ver.is_nan():
-                    ys = b_bounds_ver.in_bounds(b_hyperbel_ver.fy(a2_epsilon))
+                if not b_hyperbola_ver.is_nan():
+                    ys = b_bounds_ver.in_bounds(b_hyperbola_ver.fy(a2_epsilon))
                     if len(ys) > 0:
                         b2_y = ys[0]
                 b2 = Vector(b2_x, b2_y)
                 b2_cm = self.cm_point_b(b2)
                 b2_epsilon = a2_epsilon
+
 
             # create traversals
             traversal_a = Traversal.nan()
