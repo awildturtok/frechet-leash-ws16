@@ -65,6 +65,13 @@ class Bounds1D:
                 ret_items.append(item)
         return ret_items
 
+    def to_bounds(self, x: float) -> float:
+        if x < self.start:
+            return self.start
+        if x > self.end:
+            return self.end
+        return x
+
 
 class Vector:
     def __init__(self, x: float, y: float):
@@ -127,6 +134,15 @@ class Vector:
 
     def __ne__(self, other) -> bool:
         return not self.__eq__(other)
+
+    def to_bounds_hor(self, bounds_hor: Bounds1D) -> 'Vector':
+        return Vector(bounds_hor.to_bounds(self.x), self.y)
+
+    def to_bounds_ver(self, bounds_ver: Bounds1D) -> 'Vector':
+        return Vector(self.x, bounds_ver.to_bounds(self.y))
+
+    def to_bounds(self, bounds: (Bounds1D, Bounds1D)) -> 'Vector':
+        return Vector(bounds[0].to_bounds(self.x), bounds[1].to_bounds(self.y))
 
     def d(self, other) -> float:  # distance to other point
         if self == other:
@@ -410,7 +426,10 @@ class LineSegment:
                 b = 0
             if about_equal(c, 0):
                 c = 0
-            s = Vector(-b / (2*a), math.sqrt(c - b**2 / (4*a)))
+            w = c - b**2 / (4*a)
+            if about_equal(w, 0):
+                w = 0
+            s = Vector(-b / (2*a), math.sqrt(w))
         return Hyperbola(s, a)
 
 
@@ -433,6 +452,8 @@ class Path:
             self.lengths.append(length)
             self.offsets.append(self.length)
 
+        self.bounds = Bounds1D(0, self.length)
+
     def __str__(self):
         desc = " (l=" + str(self.length) + "):\n"
         for i in range(self.count):
@@ -447,17 +468,13 @@ class Path:
     # Path Arithmetic
 
     def i_rl_path(self, rl: float) -> int:  # path index for set parameter rl
-        if not 0 <= rl <= self.length:
-            print("Error: Parameter rl=" + str(rl) + " is not in bounds: [0.." + str(self.length) + "].")
-            return math.nan
+        rl = self.bounds.to_bounds(rl)
 
         i_segment = bisect(self.offsets[1:], rl)
         return min(i_segment, self.count - 1)
 
     def i_rl_point(self, rl: float) -> int:  # point index for set parameter rl
-        if not 0 <= rl <= self.length:
-            print("Error: Parameter rl=" + str(rl) + " is not in bounds: [0.." + str(self.length) + "].")
-            return math.nan
+        rl = self.bounds.to_bounds(rl)
 
         i_segment = bisect(self.offsets[1:], rl)
         if about_equal(rl, self.offsets[i_segment - 1]):

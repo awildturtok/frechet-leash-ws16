@@ -85,7 +85,7 @@ class Cell:
     def lp(self, p: Vector) -> float:  # epsilon for given point
         return self.p.frl(p.x).d(self.q.frl(p.y))
 
-    def steepest_decent(self, a: Vector, direction: int) -> (Vector, CellCoord, float, (Hyperbola, Hyperbola)):
+    def steepest_decent(self, a: Vector, direction: int) -> (Vector, float, (Hyperbola, Hyperbola)):
         # calculates data needed for steepest decent to the top-right
         assert a.x in self.bounds_hor and a.y in self.bounds_ver, "Error: Cannot do Steepest Decent.\n" +\
                                                                   "A:" + str(a) + " not in Cell:\n" + str(self)
@@ -93,20 +93,9 @@ class Cell:
                                                   "Invalid direction (" + str(direction) + ") given."
 
         # define default return values
-        next_cell = (0, 0)
         a_epsilon = self.lp(a - self.offset)
         hyperbola_hor = Hyperbola.nan()
         hyperbola_ver = Hyperbola.nan()
-
-        # wrong cell?
-        on_border_hor = about_equal(self.bounds_ver[direction], a.y)
-        on_border_ver = about_equal(self.bounds_hor[direction], a.x)
-        if on_border_hor:
-            next_cell = (0, direction)
-        if on_border_ver:
-            next_cell = (direction, next_cell[1])
-        if on_border_hor or on_border_ver:
-            return (a, next_cell), a_epsilon, (hyperbola_hor, hyperbola_ver)
 
         # steepest decent lines
         lv = self.l_ver
@@ -126,16 +115,22 @@ class Cell:
         case_eq = lh_left and lv_below
         on_lv = lv.point_on(a)
         on_lh = lh.point_on(a)
-        on_l = on_lv and on_lh
+        on_l = on_lv or on_lh
 
         # determine direction of traversal
         if not self.parallel and self.norm_ellipsis.m == a:
             print("Error: Cannot do Steepest Decent. Lowest Point reached.\nA:" + str(a) + " Cell:\n" + str(self))
-            return (a, next_cell), a_epsilon, (hyperbola_hor, hyperbola_ver)
-        elif self.acute and on_lv:
-            r = lv.d.norm_dir() * direction
-        elif self.acute and on_lh:
-            r = lh.d.norm_dir() * direction
+            return a, a_epsilon, (hyperbola_hor, hyperbola_ver)
+        elif on_lv:
+            if self.acute:
+                r = lv.d.norm_dir() * direction
+            else:
+                r = Vector(direction, 0)
+        elif on_lh:
+            if self.acute:
+                r = lh.d.norm_dir() * direction
+            else:
+                r = Vector(0, direction)
         elif case_hor:
             assert lh_left, "Error: Cannot do Steepest Decent.\n" +\
                             "A:" + str(a) + " above l & right of l'. Cell:\n" + str(self)
@@ -146,39 +141,36 @@ class Cell:
             r = Vector(0, direction)
         elif case_eq:
             r = Vector(math.sqrt(0.5), math.sqrt(0.5)) * direction
+        else:
+            print("Error: no direction for steepest decent found!")
+            r = Vector(direction, direction)
 
         # determine endpoint a2 of traversal
         a_r = LineSegment(a, a + r)
-        ellipsis_midpoint = self.norm_ellipsis.m
 
         if not on_l:
             lv_rl = a_r.intersection_rl(lv)
             lh_rl = a_r.intersection_rl(lh)
             cut_l_rl = np.nanmin([lv_rl, lh_rl])
-        elif (direction == 1 and a < ellipsis_midpoint) or (direction == -1 and a > ellipsis_midpoint):
-            cut_l_rl = a.d(ellipsis_midpoint)
+        elif not self.parallel and (direction == 1 and a < self.norm_ellipsis.m) or\
+                (direction == -1 and a > self.norm_ellipsis.m):
+            cut_l_rl = a.d(self.norm_ellipsis.m)
         else:
             cut_l_rl = math.inf
 
         cut_top_rl = a_r.rly(self.bounds_ver[direction])
-        cut_right_rl = a_r.rly(self.bounds_hor[direction])
+        cut_right_rl = a_r.rlx(self.bounds_hor[direction])
         cut_border_rl = np.nanmin([cut_right_rl, cut_top_rl])
 
         if cut_border_rl <= cut_l_rl:
-            if about_equal(cut_top_rl, cut_right_rl):
-                next_cell = (direction, direction)
-            elif cut_top_rl < cut_right_rl:
-                next_cell = (0, direction)
-            else:
-                next_cell = (direction, 0)
             a2_rl = cut_border_rl
         else:
             a2_rl = cut_l_rl
 
         a2 = a_r.frl(a2_rl)
+        a2 = a2.to_bounds(self.bounds_xy)
         a2_epsilon = self.lp(a2 - self.offset)
-        if about_equal(a2_epsilon, 0):
-            a2_epsilon = 0
+        a2_epsilon = self.bounds_l.to_bounds(a2_epsilon)
 
         # determine horizontal and vertical hyperbolas
         d_x = abs(a2.x - a.x)
@@ -195,7 +187,7 @@ class Cell:
             hyperbola_hor = hyperbola.scaled(d_x / a_a2.l).move_x(min(a.x, a2.x))
             hyperbola_ver = hyperbola.scaled(d_y / a_a2.l).move_x(min(a.y, a2.y))
 
-        return (a2, next_cell), a2_epsilon, (hyperbola_hor, hyperbola_ver)
+        return a2, a2_epsilon, (hyperbola_hor, hyperbola_ver)
 
     def hyperbola_horizontal(self, y: float) -> Hyperbola:  # hyperbola for set height y
         bounds = self.bounds_ver
@@ -336,7 +328,7 @@ class OneLineSegment(LineSegment):  # one line segment and intersection point
 class TwoLineSegments:  # calculates and saves parameters of two line segments
     def __init__(self, a, b):
         # calculate shortest and longest possible line length
-        self.bounds_l = (min(a.d_ls_point(b.p1), a.d_ls_point(b.p2), b.d_ls_point(a.p1), b.d_ls_point(a.p2)),
+        self.bounds_l = Bounds1D(min(a.d_ls_point(b.p1), a.d_ls_point(b.p2), b.d_ls_point(a.p1), b.d_ls_point(a.p2)),
                          max(a.p1.d(b.p1), a.p1.d(b.p2), a.p2.d(b.p1), a.p2.d(b.p2)))
 
         self.parallel = about_equal(a.m, b.m)
@@ -348,7 +340,7 @@ class TwoLineSegments:  # calculates and saves parameters of two line segments
 
             self.intersect = self.a.intersects and self.b.intersects  # does the intersection point lie on A and B
             if self.intersect:  # if line segments intersect, set min length to 0
-                self.bounds_l = (0.0, self.bounds_l[1])
+                self.bounds_l = Bounds1D(0.0, self.bounds_l[1])
 
         else:  # case 2: lines are parallel
             # parallel lines don't intersect
@@ -615,7 +607,9 @@ class CrossSection:
                 x = self.path.offsets[i]
                 left_hyperbola = self.hyperbolas_overload[i]
                 right_hyperbola = self.hyperbolas_overload[i + 1]
-                if left_hyperbola.orientation(x) > 0 > right_hyperbola.orientation(x):
+                orientation_left = left_hyperbola.orientation(x)
+                orientation_right = right_hyperbola.orientation(x)
+                if orientation_left >= 0 > orientation_right or orientation_left > 0 >= orientation_right:
                     self._maxima.append(x)
         return self._maxima
 
@@ -1033,9 +1027,8 @@ class CellMatrix:
         if not about_equal(max_ab_epsilon, critical_epsilon) and \
                 (max_ab_epsilon > critical_epsilon or (max_ab_epsilon < critical_epsilon
                                                        and self.decide_traversal(a_cm, b_cm, max_ab_epsilon))):
-            # Todo: steepest decent here!
-
             if about_equal(a.x, b.x) or about_equal(a.y, b.y) or a.x > b.x or a.y > b.y:
+                print("********** Quad!!?")  # DEBUG
                 return [Traversal(self, a_cm, b_cm, [a, b], max_ab_epsilon,
                                   [a_epsilon, b_epsilon])]  # Todo:berichtigen!
 
@@ -1044,26 +1037,22 @@ class CellMatrix:
 
             if about_equal(a_epsilon, b_epsilon):
                 # do steepest decent from A and B
-                (a2, cc_a2), a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cell.steepest_decent(a, 1)
-                (b2, cc_b2), b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cell.steepest_decent(b, -1)
+                a2, a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cell.steepest_decent(a, 1)
+                b2, b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cell.steepest_decent(b, -1)
+                a2_cm = self.cm_point_a(a2)
+                b2_cm = self.cm_point_b(b2)
             elif a_epsilon > b_epsilon:
                 # do steepest decent from A
-                (a2, cc_a2), a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cell.steepest_decent(a, 1)
-                (b2, cc_b2), b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cm, b_epsilon, (Hyperbola.nan(),
-                                                                                              Hyperbola.nan())
+                a2, a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cell.steepest_decent(a, 1)
+                b2, b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b, b_epsilon, (Hyperbola.nan(), Hyperbola.nan())
+                a2_cm = self.cm_point_a(a2)
+                b2_cm = b_cm
             else:
                 # do steepest decent from B
-                (a2, cc_a2), a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a_cm, a_epsilon, (Hyperbola.nan(),
-                                                                                              Hyperbola.nan())
-                (b2, cc_b2), b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cell.steepest_decent(b, -1)
-
-            # set cell coords
-            cc_a2 = (max(min((cc_a[0] + cc_a2[0]), self.p.count - 1), 0),
-                     max(min((cc_a[1] + cc_a2[1]), self.q.count - 1), 0))
-            cc_b2 = (max(min((cc_b[0] + cc_b2[0]), self.p.count - 1), 0),
-                     max(min((cc_b[1] + cc_b2[1]), self.q.count - 1), 0))
-            a2_cm = (a2, cc_a2)  # self.cm_point_a(a2)
-            b2_cm = (b2, cc_b2)  # self.cm_point_b(b2)
+                a2, a2_epsilon, (a_hyperbel_hor, a_hyperbel_ver) = a, a_epsilon, (Hyperbola.nan(), Hyperbola.nan())
+                b2, b2_epsilon, (b_hyperbel_hor, b_hyperbel_ver) = b_cell.steepest_decent(b, -1)
+                a2_cm = a_cm
+                b2_cm = self.cm_point_b(b2)
 
             # set bounds
             a_bounds_hor = Bounds1D(min(a.x, a2.x), max(a.x, a2.x))
@@ -1073,8 +1062,8 @@ class CellMatrix:
 
             # if possible decent to equal height
             if not about_equal(a2_epsilon, b2_epsilon) and b2_epsilon > a2_epsilon:
-                a2_x = b.x
-                a2_y = b.y
+                a2_x = a.x
+                a2_y = a.y
                 if not a_hyperbel_hor.is_nan():
                     xs = a_bounds_hor.in_bounds(a_hyperbel_hor.fy(b2_epsilon))
                     if len(xs) > 0:
@@ -1108,6 +1097,9 @@ class CellMatrix:
                 traversal_a = Traversal(self, a_cm, a2_cm, [a, a2], max(a_epsilon, a2_epsilon), [a_epsilon, a2_epsilon])
             if b != b2:
                 traversal_b = Traversal(self, b2_cm, b_cm, [b2, b], max(b_epsilon, b2_epsilon), [b2_epsilon, b_epsilon])
+
+            if a == a2 and b == b2:  # DEBUG: just connect if no steepest decent possible
+                return [Traversal(self, a_cm, b_cm, [a, b], max(a_epsilon, b_epsilon), [a_epsilon, b_epsilon])]
 
             new_critical_events = critical_events.in_and_on_bounds(a2, b2)
             rec_traversals = self.traverse_recursive(a2_cm, new_critical_events, b2_cm)
