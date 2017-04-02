@@ -40,6 +40,8 @@ class Bounds1D:
         return self.end
 
     def __contains__(self, item: float):
+        if self.is_nan():
+            return False
         return self.start <= item <= self.end or about_equal(self.start, item) or about_equal(self.end, item)
 
     def cut(self, other: 'Bounds1D') -> 'Bounds1D':
@@ -267,6 +269,12 @@ class LineSegment:
         else:
             return float("nan")
 
+    def px(self, x: float) -> float:  # point for set x-value
+        return Vector(x, self.fx(x))
+
+    def py(self, y: float) -> float:  # point for set x-value
+        return Vector(self.fy(y), y)
+
     def rx(self, x: float) -> float:  # parameter r for set x-value
         if not math.isinf(self.m):
             return (x - self.p1.x) / (self.p2.x - self.p1.x)
@@ -339,20 +347,29 @@ class LineSegment:
     def point_on(self, p: Vector) -> bool:  # is given point on line
         return about_equal(p.y, self.fx(p.x)) or about_equal(p.x, self.fy(p.y))
 
-    def intersection_r(self, ls: 'LineSegment') -> float:  # calculates the parameter r of the intersection point
+    def intersection_r_both(self, ls: 'LineSegment') -> (float, float):
+        # calculates both parameters r of the intersection point (on self and on ls)
         if not about_equal(self.m, ls.m):
             a = np.array([[-self.d.x, ls.d.x], [-self.d.y, ls.d.y]])
             b = np.array([self.p1.x - ls.p1.x, self.p1.y - ls.p1.y])
             [self_r, ls_r] = np.linalg.solve(a, b)
-            return self_r
+            return self_r, ls_r
         else:
-            return float('nan')
+            return float('nan'), float('nan')
+
+    def intersection_r(self, ls: 'LineSegment') -> float:  # calculates the parameter r of the intersection point
+        return self.intersection_r_both(ls)[0]
 
     def intersection_p(self, ls: 'LineSegment') -> Vector:  # calculates the intersection point of two line segments
         r = self.intersection_r(ls)
         return self.fr(r)
 
-    def intersection_rl(self, ls: 'LineSegment') -> float:  # calculates the parameter r of the intersection point
+    def intersection_rl_both(self, ls: 'LineSegment') -> float:
+        # calculates both parameters rl of the intersection point (on self and on ls)
+        self_r, ls_r = self.intersection_r(ls)
+        return self_r * self.l, ls_r * ls.l
+
+    def intersection_rl(self, ls: 'LineSegment') -> float:  # calculates the parameter rl of the intersection point
         r = self.intersection_r(ls)
         return r * self.l
 
@@ -427,7 +444,7 @@ class LineSegment:
             if about_equal(c, 0):
                 c = 0
             w = c - b**2 / (4*a)
-            if about_equal(w, 0):
+            if w < 0:
                 w = 0
             s = Vector(-b / (2*a), math.sqrt(w))
         return Hyperbola(s, a)
@@ -553,29 +570,39 @@ class Hyperbola:
     def cuts_bounds_ver(self, bounds: (float, float)) -> [Vector]:
         return [self.px(bounds[0]), self.px(bounds[1])]
 
-    def intersects_hyperbola(self, other: 'Hyperbola') -> Vector:
+    def intersects_hyperbola(self, other: 'Hyperbola') -> [Vector]:
         s1 = self.s
         s2 = other.s
-        if s1 == s2:
-            x = float("inf")
-        elif about_equal(s1.x, s2.x):
-            x = float("nan")
+        if self.a == 1 and other.a == 1:
+            if s1 == s2:
+                xs = [float("inf")]
+            elif about_equal(s1.x, s2.x):
+                xs = []
+            else:
+                xs = [0.5 * (s1.y**2 + s1.x**2 - s2.y**2 - s2.x**2) / (s1.x - s2.x)]
+        elif self.a != 1 and other.a == 1:
+            a = self.a
+            w = a * (s2.x**2 - 2 * s2.x * s1.x + s2.y**2 - s1.y**2 + s1.x**2) - s2.y**2 + s1.y**2
+            if about_equal(w, 0):
+                w = 0
+            elif w < 0:
+                return []
+            xs = [-(math.sqrt(w) - a * s1.x + s2.x) / (a - 1), (math.sqrt(w) + a * s1.x - s2.x) / (a - 1)]
         else:
-            x = 0.5 * (s1.y**2 + s1.x**2 - s2.y**2 - s2.x**2) / (s1.x - s2.x)
-        return self.px(x)
+            xs = []
+        return [self.px(x) for x in xs]
 
-    def intersects_hyperbola_in_bounds(self, other: 'Hyperbola', bounds: Bounds_2D) -> Vector:
-        intersection = self.intersects_hyperbola(other)
-        if bounds[0] <= intersection.x <= bounds[1]:
-            return intersection
-        return Vector.nan()
+    def intersects_hyperbola_in_bounds(self, other: 'Hyperbola', bounds: Bounds_2D) -> [Vector]:
+        intersections = self.intersects_hyperbola(other)
+        return [intersection for intersection in intersections if bounds[0] <= intersection.x <= bounds[1]]
 
-    def intersects_hyperbola_in_bounds_critical(self, other: 'Hyperbola', bounds: Bounds_2D) -> Vector:
-        intersection = self.intersects_hyperbola_in_bounds(other, bounds)
-        x = intersection.x
-        if self.orientation(x) <= 0.0 <= other.orientation(x):
-            return intersection
-        return Vector.nan()
+    def intersects_hyperbola_in_bounds_critical(self, other: 'Hyperbola', bounds: Bounds_2D, orientation: int = 1) -> [Vector]:
+        intersections = self.intersects_hyperbola_in_bounds(other, bounds)
+        if orientation == -1:
+            return [intersection for intersection in intersections
+                    if self.orientation(intersection.x) >= 0.0 >= other.orientation(intersection.x)]
+        return [intersection for intersection in intersections
+                if self.orientation(intersection.x) <= 0.0 <= other.orientation(intersection.x)]
 
     def sample(self, bounds: (float, float), n: int) -> [Vector]:  # samples hyperbola in bounds with n edges
         sample_points = []

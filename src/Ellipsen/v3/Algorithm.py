@@ -150,7 +150,11 @@ class Cell:
 
         if not on_l:
             lv_rl = a_r.intersection_rl(lv)
+            if lv_rl < 0:
+                lv_rl = math.inf
             lh_rl = a_r.intersection_rl(lh)
+            if lh_rl < 0:
+                lh_rl = math.inf
             cut_l_rl = np.nanmin([lv_rl, lh_rl])
         elif not self.parallel and (direction == 1 and a < self.norm_ellipsis.m) or\
                 (direction == -1 and a > self.norm_ellipsis.m):
@@ -161,9 +165,9 @@ class Cell:
             bisector = LineSegment(self.norm_ellipsis.m, self.norm_ellipsis.m + Vector(-1, 1))
             cut_l_rl = a_r.intersection_rl(bisector)
             if about_equal(cut_l_rl, 0):
-                cut_l_rl = math.inf
+                cut_l_rl = math.inf  # DEBUG
         else:
-            cut_l_rl = math.inf'''  # DEBUG
+            cut_l_rl = math.inf'''
 
         cut_hor_rl = a_r.rly(self.bounds_ver[direction])
         cut_ver_rl = a_r.rlx(self.bounds_hor[direction])
@@ -175,7 +179,7 @@ class Cell:
             a2_rl = cut_l_rl
 
         a2 = a_r.frl(a2_rl)
-        #a2 = a2.to_bounds(self.bounds_xy)
+        a2 = a2.to_bounds(self.bounds_xy)
 
         if a == a2:
             print("Error: Steepest decent not possible.")
@@ -210,7 +214,7 @@ class Cell:
         elif about_equal(y, bounds[1]):
             return self.hyperbola_top
         else:
-            return self.q.hyperbola_with_point(self.p.frl(y - self.offset.y)).move_x(self.offset.x)
+            return self.p.hyperbola_with_point(self.q.frl(y - self.offset.y)).move_x(self.offset.x)
 
     def hyperbola_vertical(self, x: float) -> Hyperbola:  # hyperbola for set spot x
         bounds = self.bounds_hor
@@ -221,7 +225,7 @@ class Cell:
         elif about_equal(x, bounds[1]):
             return self.hyperbola_right
         else:
-            return self.p.hyperbola_with_point(self.q.frl(x - self.offset.x)).move_x(self.offset.y)
+            return self.q.hyperbola_with_point(self.p.frl(x - self.offset.x)).move_x(self.offset.y)
 
     def free_bounds_horizontal(self, y: float, epsilon: float) -> Bounds1D:  # free interval for epsilon on height y
         ret_bounds = Bounds1D.nan()
@@ -479,6 +483,16 @@ class CriticalEvents:
             self.dictionary[epsilon] = []
         self.dictionary[epsilon].append(traversal)
 
+    def __add__(self, other: 'CriticalEvents') -> 'CriticalEvents':
+        critical_events = CriticalEvents()
+
+        traversals_self = self.list()
+        traversals_other = other.list()
+        for traversal in traversals_self + traversals_other:
+            critical_events.append(traversal)
+
+        return critical_events
+
     def list(self) -> [Traversal]:
         sorted_events = []
         for epsilon in self.epsilons():
@@ -487,6 +501,16 @@ class CriticalEvents:
 
     def epsilons(self) -> [float]:
         return sorted(self.dictionary.keys())
+
+    def in_epsilon_bound(self, bound: Bounds1D) -> 'CriticalEvents':
+        critical_events_cut = CriticalEvents()
+
+        for epsilon in self.epsilons():
+            if epsilon in bound:
+                for traversal in self[epsilon]:
+                    critical_events_cut.append(traversal)
+
+        return critical_events_cut
 
     def in_bounds(self, a1: Vector, b2: Vector) -> 'CriticalEvents':
         critical_events_cut = CriticalEvents()
@@ -629,6 +653,47 @@ class CrossSection:
         if len(self._maxima) == 0:
             self._maxima = self.maxima()
         return x in self._maxima
+
+
+def steepest_decent_helper_point_for_epsilon(hyperbola_hor: Hyperbola, bounds_hor: Bounds1D, hyperbola_ver: Hyperbola,
+                                             bounds_ver: Bounds1D, point: Vector, epsilon: float) -> Vector:
+    x = point.x
+    y = point.y
+    if not hyperbola_hor.is_nan():
+        xs = bounds_hor.in_bounds(hyperbola_hor.fy(epsilon))
+        if len(xs) > 0:
+            x = xs[0]
+    if not hyperbola_ver.is_nan():
+        ys = bounds_ver.in_bounds(hyperbola_ver.fy(epsilon))
+        if len(ys) > 0:
+            y = ys[0]
+    return Vector(x, y)
+
+
+def steepest_decent_helper_critical_from_hyperbolas(bounds: Bounds1D, decent_hyperbola: Hyperbola,
+                                                    hyperbolas: [Hyperbola], direction: int) -> [(float, float, int)]:
+    critical = []
+
+    for i in range(len(hyperbolas)):
+        border_hyperbola = hyperbolas[i]
+        intersections = decent_hyperbola.intersects_hyperbola_in_bounds_critical(border_hyperbola, bounds, direction)
+        if len(intersections) == 0:
+            continue
+        intersection = intersections[0]
+        x = intersection.x
+        if math.isnan(x):
+            continue
+        epsilon = intersection.y
+        is_critical = True
+        for i_btw in range(i):
+            border_hyperbola = hyperbolas[i_btw]
+            if not border_hyperbola.fx(x) <= epsilon + tol:
+                is_critical = False
+
+        if is_critical:
+            critical.append((x, epsilon, i))
+
+    return critical
 
 
 class CellMatrix:
@@ -797,7 +862,10 @@ class CellMatrix:
                     cross_section_end = cross_sections[i_end]
                     hyperbola_end = cross_section_end[i_section]
 
-                    intersection = hyperbola_start.intersects_hyperbola_in_bounds_critical(hyperbola_end, bounds)
+                    intersections = hyperbola_start.intersects_hyperbola_in_bounds_critical(hyperbola_end, bounds)
+                    if len(intersections) == 0:
+                        continue
+                    intersection = intersections[0]
                     x = intersection.x
                     if math.isnan(x):
                         continue
@@ -937,7 +1005,7 @@ class CellMatrix:
                 reachable_top = Bounds1D.nan()
                 if not reachable_left.is_nan():
                     reachable_top = free_top
-                elif not reachable_bottom.cut(free_top).is_nan():
+                elif reachable_bottom.start <= free_top.end + tol:
                     reachable_top = bounds_hor[i_p].cut(Bounds1D(reachable_bottom.start, free_top.end))
                 reachable_hor[i_p][i_q + 1] = reachable_top
 
@@ -945,11 +1013,11 @@ class CellMatrix:
                 reachable_right = Bounds1D.nan()
                 if not reachable_bottom.is_nan():
                     reachable_right = free_right
-                elif not reachable_left.cut(free_right).is_nan():
+                elif reachable_left.start <= free_right.end + tol:
                     reachable_right = bounds_ver[i_q].cut(Bounds1D(reachable_left.start, free_right.end))
                 reachable_ver[i_p + 1][i_q] = reachable_right
 
-        '''if epsilon == 1.4142135623730951:  # DEBUG
+        '''if epsilon == 0.6170368168895033:  # DEBUG
             print("A: " + str([str(p) for p in a_cm]))
             print("B: " + str([str(p) for p in b_cm]))
             print("start_i_p: " + str(start_i_p) + " bis end_i_p: " + str(end_i_p))
@@ -1074,51 +1142,195 @@ class CellMatrix:
 
             # if possible decent to equal height
             if not about_equal(a2_epsilon, b2_epsilon) and b2_epsilon > a2_epsilon:
-                a2_x = a.x
-                a2_y = a.y
-                if not a_hyperbola_hor.is_nan():
-                    xs = a_bounds_hor.in_bounds(a_hyperbola_hor.fy(b2_epsilon))
-                    if len(xs) > 0:
-                        a2_x = xs[0]
-                if not a_hyperbola_ver.is_nan():
-                    ys = a_bounds_ver.in_bounds(a_hyperbola_ver.fy(b2_epsilon))
-                    if len(ys) > 0:
-                        a2_y = ys[0]
-                a2 = Vector(a2_x, a2_y)
+                a2 = steepest_decent_helper_point_for_epsilon(a_hyperbola_hor, a_bounds_hor, a_hyperbola_ver,
+                                                              a_bounds_ver, a, b2_epsilon)
                 a2_cm = self.cm_point_a(a2)
                 a2_epsilon = b2_epsilon
+                a_bounds_hor = Bounds1D(min(a.x, a2.x), max(a.x, a2.x))
+                a_bounds_ver = Bounds1D(min(a.y, a2.y), max(a.y, a2.y))
             elif not about_equal(a2_epsilon, b2_epsilon) and a2_epsilon > b2_epsilon:
-                b2_x = b.x
-                b2_y = b.y
-                if not b_hyperbola_hor.is_nan():
-                    xs = b_bounds_hor.in_bounds(b_hyperbola_hor.fy(a2_epsilon))
-                    if len(xs) > 0:
-                        b2_x = xs[0]
-                if not b_hyperbola_ver.is_nan():
-                    ys = b_bounds_ver.in_bounds(b_hyperbola_ver.fy(a2_epsilon))
-                    if len(ys) > 0:
-                        b2_y = ys[0]
-                b2 = Vector(b2_x, b2_y)
+                b2 = steepest_decent_helper_point_for_epsilon(b_hyperbola_hor, b_bounds_hor, b_hyperbola_ver,
+                                                              b_bounds_ver, b, a2_epsilon)
                 b2_cm = self.cm_point_b(b2)
                 b2_epsilon = a2_epsilon
+                b_bounds_hor = Bounds1D(min(b.x, b2.x), max(b.x, b2.x))
+                b_bounds_ver = Bounds1D(min(b.y, b2.y), max(b.y, b2.y))
 
+            # if steepest decent paths cut, traverse to this point:
+            if a != a2 and b != b2:
+                ls_a_a2 = LineSegment(a, a2)
+                ls_b_b2 = LineSegment(b, b2)
+                r_a3, r_b3 = ls_a_a2.intersection_r_both(ls_b_b2)
+                bounds_r = Bounds1D(0, 1)
+                if r_a3 in bounds_r and r_b3 in bounds_r:
+                    a2 = ls_a_a2.fr(r_a3)
+                    b2 = ls_b_b2.fr(r_b3)
+                    a2_cm = (a2, cc_a)
+                    b2_cm = (b2, cc_b)
+                    a2_epsilon = self.epsilon_from_cm_point(a2_cm)
+                    b2_epsilon = self.epsilon_from_cm_point(b2_cm)
 
-            # create traversals
-            traversal_a = Traversal.nan()
-            traversal_b = Traversal.nan()
+            # check for critical events
+            # old type
+            bound_epsilon = Bounds1D(max(a_epsilon, b_epsilon), max(a2_epsilon, b2_epsilon))
+            old_type_critical_events = critical_events.in_epsilon_bound(bound_epsilon)  # DEBUG - bringt das was?
+            # new type
+            # on a_a2
+            new_type_critical_events_a = CriticalEvents()
             if a != a2:
-                traversal_a = Traversal(self, a_cm, a2_cm, [a, a2], max(a_epsilon, a2_epsilon), [a_epsilon, a2_epsilon])
+                ls_a_a2 = LineSegment(a, a2)
+                # vertical
+                if not about_equal(a.x, a2.x):
+                    border_hyperbolas = []
+                    for i in range(cc_a[1], cc_b[1] + 1):
+                        border_hyperbolas.append(self.cells[cc_a[0]][i].hyperbola_top)
+                    criticals = steepest_decent_helper_critical_from_hyperbolas(a_bounds_hor, a_hyperbola_hor,
+                                                                                border_hyperbolas, 1)
+                    for critical in criticals:
+                        x, epsilon, d_i = critical
+                        points = [ls_a_a2.px(x)]
+                        for i in range(d_i + 1):
+                            points.append(Vector(x, self.q.offsets[cc_a[1] + i + 1]))
+                        if points[0] != points[1]:
+                            new_type_critical_events_a.append(self.traversal_from_points(points))
+                # horizontal
+                if not about_equal(a.y, a2.y):
+                    border_hyperbolas = []
+                    for i in range(cc_a[0], cc_b[0] + 1):
+                        border_hyperbolas.append(self.cells[i][cc_a[1]].hyperbola_right)
+                    criticals = steepest_decent_helper_critical_from_hyperbolas(a_bounds_ver, a_hyperbola_ver,
+                                                                                border_hyperbolas, 1)
+                    for critical in criticals:
+                        y, epsilon, d_i = critical
+                        points = [ls_a_a2.py(y)]
+                        for i in range(d_i + 1):
+                            points.append(Vector(self.p.offsets[cc_a[0] + i + 1], y))
+                        if points[0] != points[1]:
+                            new_type_critical_events_a.append(self.traversal_from_points(points))
+            # on b_b2
+            new_type_critical_events_b = CriticalEvents()
             if b != b2:
-                traversal_b = Traversal(self, b2_cm, b_cm, [b2, b], max(b_epsilon, b2_epsilon), [b2_epsilon, b_epsilon])
+                ls_b_b2 = LineSegment(b, b2)
+                # vertical
+                if not about_equal(b.x, b2.x):
+                    border_hyperbolas = []
+                    for i in range(cc_b[1], cc_a[1] - 1, -1):
+                        border_hyperbolas.append(self.cells[cc_b[0]][i].hyperbola_bottom)
+                    criticals = steepest_decent_helper_critical_from_hyperbolas(b_bounds_hor, b_hyperbola_hor,
+                                                                                border_hyperbolas, -1)
+                    for critical in criticals:
+                        x, epsilon, d_i = critical
+                        points = [ls_b_b2.px(x)]
+                        for i in range(d_i + 1):
+                            points.append(Vector(x, self.q.offsets[cc_b[1] - i]))
+                        points.reverse()
+                        if points[0] != points[1]:
+                            new_type_critical_events_b.append(self.traversal_from_points(points))
+                # horizontal
+                if not about_equal(b.y, b2.y):
+                    border_hyperbolas = []
+                    for i in range(cc_b[0], cc_a[0] - 1, -1):
+                        border_hyperbolas.append(self.cells[cc_b[1]][i].hyperbola_left)
+                    criticals = steepest_decent_helper_critical_from_hyperbolas(b_bounds_ver, b_hyperbola_ver,
+                                                                                border_hyperbolas, -1)
+                    for critical in criticals:
+                        y, epsilon, d_i = critical
+                        points = [ls_b_b2.py(y)]
+                        for i in range(d_i + 1):
+                            points.append(Vector(self.p.offsets[cc_b[0] - i], y))
+                        points.reverse()
+                        if points[0] != points[1]:
+                            new_type_critical_events_b.append(self.traversal_from_points(points))
 
-            if a == a2 and b == b2:  # DEBUG: just connect if no steepest decent possible
-                return [Traversal(self, a_cm, b_cm, [a, b], max(a_epsilon, b_epsilon), [a_epsilon, b_epsilon])]
-
-            new_critical_events = critical_events.in_and_on_bounds(a2, b2)
-            rec_traversals = self.traverse_recursive(a2_cm, new_critical_events, b2_cm)
+            # traverse critical event
             traversals = []
-            for rec_traversal in rec_traversals:
-                traversals.append(traversal_a + rec_traversal + traversal_b)
+            # on a_a2
+            if a != a2:
+                possible_critical_events_a = old_type_critical_events + new_type_critical_events_a
+                possible_critical_epsilons_a = possible_critical_events_a.epsilons()
+                possible_critical_epsilons_a.reverse()
+                for epsilon in possible_critical_epsilons_a:
+                    a3 = steepest_decent_helper_point_for_epsilon(a_hyperbola_hor, a_bounds_hor, a_hyperbola_ver,
+                                                                  a_bounds_ver, a, epsilon)
+                    b3 = steepest_decent_helper_point_for_epsilon(b_hyperbola_hor, b_bounds_hor, b_hyperbola_ver,
+                                                                  b_bounds_ver, b, epsilon)
+
+                    if a == a3 and b == b3:
+                        continue
+
+                    a3_cm = (a3, cc_a)
+                    b3_cm = (b3, cc_b)
+
+                    critical_traversals = possible_critical_events_a[epsilon]
+                    for critical_traversal in critical_traversals:
+                        decision = self.decide_critical_traversal(a3_cm, critical_traversal, b3_cm)
+                        if decision:
+                            traversal_a = Traversal.nan()
+                            traversal_b = Traversal.nan()
+                            if a != a3:
+                                traversal_a = Traversal(self, a_cm, a3_cm, [a, a3], max(a_epsilon, epsilon),
+                                                        [a_epsilon, epsilon])
+                            if b != b3:
+                                traversal_b = Traversal(self, b3_cm, b_cm, [b3, b], max(b_epsilon, epsilon),
+                                                        [epsilon, b_epsilon])
+                                a4_cm = critical_traversal.b_cm
+                            new_critical_events = critical_events.in_and_on_bounds(a4_cm[0], b3)
+                            rec_traversals = self.traverse_recursive(a4_cm, new_critical_events, b3_cm)
+                            for rec_traversal in rec_traversals:
+                                traversals.append(traversal_a + critical_traversal + rec_traversal + traversal_b)
+            # on b_b2
+            if b != b2:
+                possible_critical_events_b = old_type_critical_events + new_type_critical_events_b
+                possible_critical_epsilons_b = possible_critical_events_b.epsilons()
+                possible_critical_epsilons_b.reverse()
+                for epsilon in possible_critical_epsilons_b:
+                    a3 = steepest_decent_helper_point_for_epsilon(a_hyperbola_hor, a_bounds_hor, a_hyperbola_ver,
+                                                                  a_bounds_ver, a, epsilon)
+                    b3 = steepest_decent_helper_point_for_epsilon(b_hyperbola_hor, b_bounds_hor, b_hyperbola_ver,
+                                                                  b_bounds_ver, b, epsilon)
+
+                    if a == a3 and b == b3:
+                        continue
+
+                    a3_cm = (a3, cc_a)
+                    b3_cm = (b3, cc_b)
+
+                    critical_traversals = possible_critical_events_b[epsilon]
+                    for critical_traversal in critical_traversals:
+                        decision = self.decide_critical_traversal(a3_cm, critical_traversal, b3_cm)
+                        if decision:
+                            traversal_a = Traversal.nan()
+                            traversal_b = Traversal.nan()
+                            if a != a3:
+                                traversal_a = Traversal(self, a_cm, a3_cm, [a, a3], max(a_epsilon, epsilon),
+                                                        [a_epsilon, epsilon])
+                            if b != b3:
+                                traversal_b = Traversal(self, b3_cm, b_cm, [b3, b], max(b_epsilon, epsilon),
+                                                        [epsilon, b_epsilon])
+                            b4_cm = critical_traversal.a_cm
+                            new_critical_events = critical_events.in_and_on_bounds(a3, b4_cm[0])
+                            rec_traversals = self.traverse_recursive(a3_cm, new_critical_events, b4_cm)
+                            for rec_traversal in rec_traversals:
+                                traversals.append(traversal_a + rec_traversal + critical_traversal + traversal_b)
+
+            # default traversal
+            if len(traversals) == 0:
+                traversal_a = Traversal.nan()
+                traversal_b = Traversal.nan()
+                if a != a2:
+                    traversal_a = Traversal(self, a_cm, a2_cm, [a, a2], max(a_epsilon, a2_epsilon), [a_epsilon, a2_epsilon])
+                if b != b2:
+                    traversal_b = Traversal(self, b2_cm, b_cm, [b2, b], max(b_epsilon, b2_epsilon), [b2_epsilon, b_epsilon])
+
+                if a == a2 and b == b2:  # DEBUG: just connect if no steepest decent possible
+                    return [Traversal(self, a_cm, b_cm, [a, b], max(a_epsilon, b_epsilon), [a_epsilon, b_epsilon])]
+
+                new_critical_events = critical_events.in_and_on_bounds(a2, b2)
+                rec_traversals = self.traverse_recursive(a2_cm, new_critical_events, b2_cm)
+                traversals = []
+                for rec_traversal in rec_traversals:
+                    traversals.append(traversal_a + rec_traversal + traversal_b)
+
             return traversals
 
         critical_traversals = critical_event[1]
