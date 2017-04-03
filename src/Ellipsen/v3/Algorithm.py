@@ -148,12 +148,12 @@ class Cell:
         # determine endpoint a2 of traversal
         a_r = LineSegment(a, a + r)
 
-        if not on_l:
+        if not on_l or not self.acute:
             lv_rl = a_r.intersection_rl(lv)
-            if lv_rl < 0:
+            if lv_rl < 0 or about_equal(lv_rl, 0):
                 lv_rl = math.inf
             lh_rl = a_r.intersection_rl(lh)
-            if lh_rl < 0:
+            if lh_rl < 0 or about_equal(lh_rl, 0):
                 lh_rl = math.inf
             cut_l_rl = np.nanmin([lv_rl, lh_rl])
         elif not self.parallel and (direction == 1 and a < self.norm_ellipsis.m) or\
@@ -1027,7 +1027,8 @@ class CellMatrix:
                 if not reachable_left.is_nan():
                     reachable_top = free_top
                 elif reachable_bottom.start <= free_top.end + tol:
-                    reachable_top = bounds_hor[i_p].cut(Bounds1D(reachable_bottom.start, free_top.end))
+                    reachable_top = bounds_hor[i_p].cut(Bounds1D(max(reachable_bottom.start, free_top.start),
+                                                                 free_top.end))
                 reachable_hor[i_p][i_q + 1] = reachable_top
 
                 free_right = bounds_ver[i_q].cut(cell.free_bounds_vertical(offsets_hor[i_p + 1], epsilon))
@@ -1035,7 +1036,8 @@ class CellMatrix:
                 if not reachable_bottom.is_nan():
                     reachable_right = free_right
                 elif reachable_left.start <= free_right.end + tol:
-                    reachable_right = bounds_ver[i_q].cut(Bounds1D(reachable_left.start, free_right.end))
+                    reachable_right = bounds_ver[i_q].cut(Bounds1D(max(reachable_left.start, free_right.start),
+                                                                   free_right.end))
                 reachable_ver[i_p + 1][i_q] = reachable_right
 
         '''if epsilon == 0.6170368168895033:  # DEBUG
@@ -1114,7 +1116,23 @@ class CellMatrix:
         max_ab_epsilon = max(a_epsilon, b_epsilon)
 
         if a == b:
-            return [Traversal(self, a_cm, b_cm, [a], max_ab_epsilon, [a_epsilon])]
+            return [Traversal.nan()]
+
+        if about_equal(a.x, b.x) or about_equal(a.y, b.y) or a.x > b.x or a.y > b.y:
+            points = []
+            if about_equal(a.x, b.x) or a.x > b.x:
+                x = 0.5 * (a.x + b.x)
+                points.append(Vector(x, a.y))
+                for i_q in range(cc_a[1] + 1, cc_b[1] + 1):
+                    points.append(Vector(x, self.q.offsets[i_q]))
+                points.append(Vector(x, b.y))
+            else:
+                y = 0.5 * (a.y + b.y)
+                points.append(Vector(a.x, y))
+                for i_p in range(cc_a[0] + 1, cc_b[0] + 1):
+                    points.append(Vector(self.p.offsets[i_p], y))
+                points.append(Vector(b.x, y))
+            return [self.traversal_from_points(points)]
 
         critical_event = critical_events.critical(self, a_cm, b_cm)
         critical_epsilon = critical_event[0]
@@ -1128,10 +1146,6 @@ class CellMatrix:
         if not about_equal(max_ab_epsilon, critical_epsilon) and \
                 (max_ab_epsilon > critical_epsilon or (max_ab_epsilon < critical_epsilon
                                                        and self.decide_traversal(a_cm, b_cm, max_ab_epsilon))):
-            if about_equal(a.x, b.x) or about_equal(a.y, b.y) or a.x > b.x or a.y > b.y:
-                print("********** Quad!!?")  # DEBUG
-                return [Traversal(self, a_cm, b_cm, [a, b], max_ab_epsilon,
-                                  [a_epsilon, b_epsilon])]  # Todo:berichtigen!
 
             a_cell = self.cells[cc_a[0]][cc_a[1]]
             b_cell = self.cells[cc_b[0]][cc_b[1]]
@@ -1309,9 +1323,10 @@ class CellMatrix:
                         y, epsilon, d_i = critical
                         points = [Vector(b.x, y)]
                         for i in range(d_i + 1):
-                            points.append(Vector(a.x, self.q.offsets[cc_b[1] - i]))
+                            points.append(Vector(b.x, self.q.offsets[cc_b[1] - i]))
+                        points.reverse()
                         if points[0] != points[1]:
-                            new_type_critical_events_a.append(self.traversal_from_points(points))
+                            new_type_critical_events_b.append(self.traversal_from_points(points))
                 # horizontal
                 border_hyperbolas = []
                 for i in range(cc_b[0], cc_a[0] - 1, -1):
@@ -1335,8 +1350,9 @@ class CellMatrix:
                         points = [Vector(x, b.y)]
                         for i in range(d_i + 1):
                             points.append(Vector(self.p.offsets[cc_b[0] - i], b.y))
+                        points.reverse()
                         if points[0] != points[1]:
-                            new_type_critical_events_a.append(self.traversal_from_points(points))
+                            new_type_critical_events_b.append(self.traversal_from_points(points))
 
             # traverse
             traversals = []
