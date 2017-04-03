@@ -74,6 +74,11 @@ class Bounds1D:
             return self.end
         return x
 
+    def middle(self) -> float:
+        if self.is_nan():
+            return float('nan')
+        return 0.5 * (self.start + self.end)
+
 
 class Vector:
     def __init__(self, x: float, y: float):
@@ -247,6 +252,13 @@ class LineSegment:
     def __str__(self):
         return str(self.p1) + "->" + str(self.p2) + ": l=" + str(self.l) + " m=" + str(self.m) + " n=" + str(self.n)
 
+    @staticmethod
+    def nan() -> 'LineSegment':
+        return LineSegment(Vector.nan(), Vector(math.inf, math.inf))
+
+    def is_nan(self) -> bool:
+        return self.p1.is_nan()
+
     # Line Arithmetic
 
     def fr(self, r: float) -> Vector:  # point for set parameter r = [0,1]
@@ -269,10 +281,10 @@ class LineSegment:
         else:
             return float("nan")
 
-    def px(self, x: float) -> float:  # point for set x-value
+    def px(self, x: float) -> Vector:  # point for set x-value
         return Vector(x, self.fx(x))
 
-    def py(self, y: float) -> float:  # point for set x-value
+    def py(self, y: float) -> Vector:  # point for set x-value
         return Vector(self.fy(y), y)
 
     def rx(self, x: float) -> float:  # parameter r for set x-value
@@ -547,7 +559,7 @@ class Hyperbola:
         return (self.a * (x - self.s.x)) / self.fx(x)
 
     def orientation(self, x: float) -> float:
-        # for set x: returns positive if falling, 0 if constant, negative if rising
+        # for set x: returns negative if falling, 0 if constant, positive if rising
         if about_equal(x, self.s.x):
             return 0
         return x - self.s.x
