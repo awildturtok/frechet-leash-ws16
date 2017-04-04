@@ -556,6 +556,8 @@ class Hyperbola:
         return [Vector(x, y) for x in xs]
 
     def fax(self, x: float) -> float:  # slope for set x-value
+        if x == self.s.x or self.a == 0:
+            return 0
         return (self.a * (x - self.s.x)) / self.fx(x)
 
     def orientation(self, x: float) -> float:

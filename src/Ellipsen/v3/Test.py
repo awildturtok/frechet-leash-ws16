@@ -276,13 +276,13 @@ p_ys = [0, 0, 2, 2, 3]
 q_xs = [0, 0, 2, 2, 3]
 q_ys = [0, 1.5, 0.5, 3.5, 3]'''
 
-# traversal test 7 *
+'''# traversal test 7 *
 # path_p:
 p_xs = [-0.5, 1, 1.5, 1, 0, -1, -1, 1, 0.5, 1.5]
 p_ys = [0.5, 0.5, 1, 2, 1, 2, 3, 3, 4.5, 4.5]
 # path_q:
 q_xs = [0, -1, 0.5, 0, -1, -1, 0, 0, 1.5, 1.5]
-q_ys = [0, 1, 1, 2, 1, 2, 2, 4, 3.5, 4.5]
+q_ys = [0, 1, 1, 2, 1, 2, 2, 4, 3.5, 4.5]'''
 
 '''# traversal test 8 *
 geg_epsilon_squared = 2
@@ -297,7 +297,6 @@ q_ys = [0, x1, x1 - 1, x1 + 1] + [(x1+1) + x2, (x1+1) + x2]'''
 
 '''# traversal test 9 a **
 # path_p:
-x = math.sqrt(8)
 p_xs = [0, 4, 2, 6]
 p_ys = [0, 0, 6, 6]
 # path_q:
@@ -306,7 +305,6 @@ q_ys = p_xs'''
 
 '''# traversal test 9 b **
 # path_p:
-x = math.sqrt(8)
 p_xs = [0, 3, 3, 6]
 p_ys = [0, -1, 7, 6]
 # path_q:
@@ -322,14 +320,13 @@ p_ys = [0, 0, 0, 6, 6] + [6, 12, 12] + [12, 16] + [15, 23, 22] + [22]
 q_xs = p_ys
 q_ys = p_xs'''
 
-'''# traversal test 9 a complexified 1
+# traversal test 9 a complexified 1
 # path_p:
-x = math.sqrt(8)
 p_xs = [0, 4, 3, 4, 2, 3, 2, 6]
 p_ys = [0, 0, 2, 3, 3, 4, 6, 6]
 # path_q:
 q_xs = [0, 0, 2, 3, 3, 4, 6, 6]
-q_ys = [0, 4, 3, 2, 4, 3, 2, 6]'''
+q_ys = [0, 4, 3, 2, 4, 3, 2, 6]
 
 '''# traversal test 9 a complexified 2
 # path_p:
@@ -369,4 +366,4 @@ critical_epsilons = traversal.epsilons.copy()
 critical_epsilons.sort()
 sample1 = input1.sample(critical_epsilons[-4:], n_p)
 
-sample_to_matplotlib(sample1, plot_cross_sections=True, plot_critical_traversals=True, plot_traversals=True, plot_3d=False)
+sample_to_matplotlib(sample1, plot_cross_sections=True, plot_critical_traversals=True, plot_traversals=True, plot_3d=False, plot_l_lines=True)
