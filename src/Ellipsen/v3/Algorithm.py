@@ -446,14 +446,6 @@ class Traversal:
         return self._count
 
     def set_slope(self, slope_a: float, slope_b: float):
-        '''if slope_a > 0:
-            self.slope_a = slope_a
-        else:
-            self.slope_a = 1 / slope_a if slope_a != 0 else math.inf
-        if slope_b < 0:
-            self.slope_b = abs(slope_b)
-        else:
-            self.slope_b = -1 / slope_b if slope_b != 0 else math.inf'''
         self.slope_a = 1 / abs(slope_a) if slope_a < 0 else math.inf
         self.slope_b = 1 / abs(slope_b) if slope_b > 0 else math.inf
 

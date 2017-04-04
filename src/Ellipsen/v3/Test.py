@@ -88,13 +88,13 @@ p_ys = [0, 0, 8, 10, 10]
 q_xs = [0, 10]
 q_ys = [3, 3]'''
 
-'''# random test 1
+# random test 1
 # path_p:
 p_xs = np.random.random_sample(9)
 p_ys = np.random.random_sample(9)
 # path_q:
 q_xs = np.random.random_sample(9)
-q_ys = np.random.random_sample(9)'''
+q_ys = np.random.random_sample(9)
 
 '''# random test 2 sorted a ascending
 # path_p:
@@ -320,13 +320,13 @@ p_ys = [0, 0, 0, 6, 6] + [6, 12, 12] + [12, 16] + [15, 23, 22] + [22]
 q_xs = p_ys
 q_ys = p_xs'''
 
-# traversal test 9 a complexified 1
+'''# traversal test 9 a complexified 1
 # path_p:
 p_xs = [0, 4, 3, 4, 2, 3, 2, 6]
 p_ys = [0, 0, 2, 3, 3, 4, 6, 6]
 # path_q:
 q_xs = [0, 0, 2, 3, 3, 4, 6, 6]
-q_ys = [0, 4, 3, 2, 4, 3, 2, 6]
+q_ys = [0, 4, 3, 2, 4, 3, 2, 6]'''
 
 '''# traversal test 9 a complexified 2
 # path_p:
@@ -366,4 +366,4 @@ critical_epsilons = traversal.epsilons.copy()
 critical_epsilons.sort()
 sample1 = input1.sample(critical_epsilons[-4:], n_p)
 
-sample_to_matplotlib(sample1, plot_cross_sections=True, plot_critical_traversals=True, plot_traversals=True, plot_3d=False, plot_l_lines=True)
+sample_to_matplotlib(sample1, plot_cross_sections=True, plot_critical_traversals=True, plot_traversals=True, plot_3d=False)
