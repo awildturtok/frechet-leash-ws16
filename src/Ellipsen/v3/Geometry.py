@@ -427,13 +427,13 @@ class LineSegment:
 
         return points
 
-    def hyperbola_with_point(self, point: Vector) -> 'Hyperbola':
+    def hyperbola_with_point(self, point: Vector) -> "Hyperbola":
         projection_rl = self.project_p_rl(point)
         projection_d = self.d_l_point(point)
         s = Vector(projection_rl, projection_d)
         return Hyperbola(s)
 
-    def hyperbola_with_line(self, line: 'LineSegment') -> 'Hyperbola':
+    def hyperbola_with_line(self, line: 'LineSegment') -> "Hyperbola":
         l = math.sqrt(self.l**2 + line.l**2)
         d1 = self.p1.d(line.p1)
         d2 = self.fr(0.5).d(line.fr(0.5))
@@ -498,16 +498,16 @@ class Path:
 
     def i_rl_path(self, rl: float) -> int:  # path index for set parameter rl
         rl = self.bounds.to_bounds(rl)
-
-        i_segment = bisect(self.offsets[1:], rl)
-        return min(i_segment, self.count - 1)
+        return min(self.i_rl_point(rl), self.count - 1)
 
     def i_rl_point(self, rl: float) -> int:  # point index for set parameter rl
         rl = self.bounds.to_bounds(rl)
 
         i_segment = bisect(self.offsets[1:], rl)
-        if about_equal(rl, self.offsets[i_segment - 1]):
+        if i_segment > 0 and about_equal(rl, self.offsets[i_segment - 1]):
             return i_segment - 1
+        if i_segment < self.count and about_equal(rl, self.offsets[i_segment + 1]):
+            return i_segment + 1
         return i_segment
 
     def p_rl(self, rl: float) -> Vector:  # point for set parameter rl
@@ -527,7 +527,7 @@ class Hyperbola:
         return "hyperbola: S" + str(self.s) + " func: " + str(self.func_str())
 
     @staticmethod
-    def nan() -> 'Hyperbola':
+    def nan() -> "Hyperbola":
         return Hyperbola(Vector.nan())
 
     def is_nan(self) -> bool:
@@ -564,25 +564,25 @@ class Hyperbola:
             return 0
         return x - self.s.x
 
-    def reflect_x(self, x: float) -> 'Hyperbola':  # reflects hyperbola over vertical at set x
+    def reflect_x(self, x: float) -> "Hyperbola":  # reflects hyperbola over vertical at set x
         return Hyperbola(self.s + Vector(2 * self.orientation(x), 0))
 
-    def move_x(self, d_x: float) -> 'Hyperbola':  # moves hyperbola on x-axis
+    def move_x(self, d_x: float) -> "Hyperbola":  # moves hyperbola on x-axis
         return self.move_p(Vector(d_x, 0))
 
-    def move_y(self, d_y: float) -> 'Hyperbola':  # moves hyperbola on y-axis
+    def move_y(self, d_y: float) -> "Hyperbola":  # moves hyperbola on y-axis
         return self.move_p(Vector(0, d_y))
 
-    def move_p(self, d_p: Vector) -> 'Hyperbola':  # moves hyperbola on y-axis
+    def move_p(self, d_p: Vector) -> "Hyperbola":  # moves hyperbola on y-axis
         return Hyperbola(self.s + d_p, self.a)
 
-    def scaled(self, f: float) -> 'Hyperbola':  # scale hyperbola by factor f
+    def scaled(self, f: float) -> "Hyperbola":  # scale hyperbola by factor f
         return Hyperbola(Vector(self.s.x * f, self.s.y), self.a / f**2)
 
     def cuts_bounds_ver(self, bounds: (float, float)) -> [Vector]:
         return [self.px(bounds[0]), self.px(bounds[1])]
 
-    def intersects_hyperbola(self, other: 'Hyperbola') -> [Vector]:
+    def intersects_hyperbola(self, other: "Hyperbola") -> [Vector]:
         s1 = self.s
         s2 = other.s
         if self.a == 1 and other.a == 1:
@@ -604,11 +604,11 @@ class Hyperbola:
             xs = []
         return [self.px(x) for x in xs]
 
-    def intersects_hyperbola_in_bounds(self, other: 'Hyperbola', bounds: Bounds_2D) -> [Vector]:
+    def intersects_hyperbola_in_bounds(self, other: "Hyperbola", bounds: Bounds1D) -> [Vector]:
         intersections = self.intersects_hyperbola(other)
-        return [intersection for intersection in intersections if bounds[0] <= intersection.x <= bounds[1]]
+        return [intersection for intersection in intersections if intersection.x in bounds]
 
-    def intersects_hyperbola_in_bounds_critical(self, other: 'Hyperbola', bounds: Bounds_2D, orientation: int = 1) -> [Vector]:
+    def intersects_hyperbola_in_bounds_critical(self, other: "Hyperbola", bounds: Bounds1D, orientation: int = 1) -> [Vector]:
         intersections = self.intersects_hyperbola_in_bounds(other, bounds)
         if orientation == -1:
             return [intersection for intersection in intersections
@@ -679,7 +679,6 @@ class Ellipse:
             t %= 2 * math.pi
             if t < 0:
                 t += 2*math.pi
-            p = self.p(t)
             if self.p(t).in_bounds_y(bounds[1]):
                 ts.append(t)
 

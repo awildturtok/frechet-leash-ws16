@@ -90,11 +90,11 @@ q_ys = [3, 3]'''
 
 '''# random test 1
 # path_p:
-p_xs = np.random.random_sample(6)
-p_ys = np.random.random_sample(6)
+p_xs = np.random.random_sample(9)
+p_ys = np.random.random_sample(9)
 # path_q:
-q_xs = np.random.random_sample(5)
-q_ys = np.random.random_sample(5)'''
+q_xs = np.random.random_sample(9)
+q_ys = np.random.random_sample(9)'''
 
 '''# random test 2 sorted a ascending
 # path_p:
@@ -103,8 +103,8 @@ p_ys = np.random.random_sample(11)
 p_xs.sort()
 p_ys.sort()
 # path_q:
-q_xs = np.random.random_sample(11)
-q_ys = np.random.random_sample(11)'''
+q_xs = np.random.random_sample(5)
+q_ys = np.random.random_sample(5)'''
 
 '''# random test 2 sorted a and b ascending
 # path_p:
@@ -219,6 +219,15 @@ p_ys = [0.99542422754001725, 0.11021642501006046, 0.5500968467764924, 0.92402207
 # path_q:
 q_xs = [0.55827626447493917, 0.61265759937883912, 0.28980034706214342, 0.68097859139958572, 0.99122776678415336]
 q_ys = [0.38847802876358506, 0.81362649295292611, 0.26995522166436126, 0.11922423042385721, 0.2449203374077854]'''
+
+'''# random test save 12
+# path_p:
+p_xs = [0.07368875462428004, 0.15406516689603833, 0.30746312603161996, 0.41008858867809894, 0.63778232305882909, 0.69957480278830886, 0.72509868622526696, 0.91178684118443942, 0.93263929759183473, 0.96328219826322281, 0.97647714819166254]
+p_ys = [0.024266148702493551, 0.02857685272755961, 0.1027948227133294, 0.21448450596528379, 0.22794146656856151, 0.34540522626400028, 0.38534936163417643, 0.49969623246955752, 0.54321916265640713, 0.85199368379579721, 0.99332148295189082]
+# path_q:
+q_xs = [0.40872948264706699, 0.8521084821476651, 0.55117110474391939, 0.58431552538403708, 0.70777628616953303]
+q_ys = [0.45273408435141427, 0.8589243042828173, 0.25335819049509811, 0.037473744227036532, 0.59533632499926969]'''
+
 '''# traversal test 1
 # path_p:
 p_xs = [0, 1, 1, 2, 2, 3, 3]
@@ -267,18 +276,18 @@ p_ys = [0, 0, 2, 2, 3]
 q_xs = [0, 0, 2, 2, 3]
 q_ys = [0, 1.5, 0.5, 3.5, 3]'''
 
-'''# traversal test 7 *
+# traversal test 7 *
 # path_p:
 p_xs = [-0.5, 1, 1.5, 1, 0, -1, -1, 1, 0.5, 1.5]
 p_ys = [0.5, 0.5, 1, 2, 1, 2, 3, 3, 4.5, 4.5]
 # path_q:
 q_xs = [0, -1, 0.5, 0, -1, -1, 0, 0, 1.5, 1.5]
-q_ys = [0, 1, 1, 2, 1, 2, 2, 4, 3.5, 4.5]'''
+q_ys = [0, 1, 1, 2, 1, 2, 2, 4, 3.5, 4.5]
 
-'''# traversal test 8 * #Todo: Höhenlinien !!
-geg_epsilon = math.sqrt(2)
-x1 = 0.5 * geg_epsilon**2
-x2 = math.sqrt(0.5 * (geg_epsilon**2 - 2))
+'''# traversal test 8 *
+geg_epsilon_squared = 2
+x1 = 0.5 * geg_epsilon_squared
+x2 = math.sqrt(0.5 * (geg_epsilon_squared - 2))
 # path_p:
 p_xs = [0, x1, x1 - 1, x1 + 1] + [(x1+1) + x2, (x1+1) + x2]
 p_ys = [0, 0, x1 + 1, x1 + 1] + [(x1+1) + -1, (x1+1) + x2]
@@ -339,14 +348,6 @@ p_ys = [1, 2, 0, 1]
 q_xs = [0, 2]
 q_ys = [1, 1]'''
 
-'''# steepest decent test 1
-# path_p:
-p_xs = [2, -3]
-p_ys = [0, 0]
-# path_q:
-q_xs = [2, -2]
-q_ys = [1.5, -2]'''
-
 print("# path_p:")
 print("p_xs = " + str(list(p_xs)))
 print("p_ys = " + str(list(p_ys)))
@@ -360,12 +361,12 @@ path_q = xy_to_vectors(q_xs, q_ys)
 input1 = CellMatrix(path_p, path_q, traverse=1)
 print(input1)
 
-sample1 = input1.sample_l(-1, n_p)
-#sample1 = input1.sample([0.5067066889056044], n_p)
+#sample1 = input1.sample_l(-1, n_p)
+#sample1 = input1.sample([1.7888543819998317, 1], n_p)
 
-'''traversal = input1.traversals[0]
+traversal = input1.traversals[0]
 critical_epsilons = traversal.epsilons.copy()
 critical_epsilons.sort()
-sample1 = input1.sample(critical_epsilons[-4:], n_p)'''
+sample1 = input1.sample(critical_epsilons[-4:], n_p)
 
-sample_to_matplotlib(sample1, show_colorbar=False, plot_3d=False, plot_traversals=True, plot_critical_traversals=True, plot_l_lines=False, plot_borders=True)
+sample_to_matplotlib(sample1, plot_cross_sections=True, plot_critical_traversals=True, plot_traversals=True, plot_3d=False)

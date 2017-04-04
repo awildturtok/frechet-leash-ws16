@@ -51,10 +51,26 @@ def xy_to_vectors(xs: [float], ys: [float]) -> [Vector]:  # converts x- & y-coor
 def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool = True, plot_heatmap: bool = True,
                          plot_traversals: bool = True, plot_axis: bool = False, plot_l_lines: bool = False,
                          plot_3d: bool = True, show_legend: bool = True, show_colorbar: bool = True,
-                         plot_input: bool = True, show_labels: bool = True, plot_critical_traversals: bool = False):
+                         plot_input: bool = True, show_labels: bool = True, plot_critical_traversals: bool = False,
+                         plot_cross_sections: bool = False):
     # plot sample with matplotlib
 
     padding = 0.04
+
+    # plot cross-sections
+    if plot_cross_sections:
+        bounds_l = sample["bounds-l"]
+        fig_both = plt.figure(figsize=plt.figaspect(0.5))
+        ax_hor = fig_both.add_subplot(2, 1, 1, aspect=1, ylim=bounds_l, xlabel="p", ylabel="ε")
+        ax_ver = fig_both.add_subplot(2, 1, 2, aspect=1, ylim=bounds_l, xlabel="q", ylabel="ε")
+        cross_sections_hor = sample["cross-sections-hor"]
+        cross_sections_ver = sample["cross-sections-ver"]
+        for i_q, cross_section_hor in cross_sections_hor:
+            ax_hor.plot(*vectors_to_xy(cross_section_hor), label="q = " + str(i_q))
+        for i_p, cross_section_ver in cross_sections_ver:
+            ax_ver.plot(*vectors_to_xy(cross_section_ver), label="p = " + str(i_p))
+        ax_hor.legend()
+        ax_ver.legend()
 
     if plot_3d and plot_input:
         fig = plt.figure(figsize=plt.figaspect(0.5))
@@ -77,8 +93,8 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
 
     # set aspect ratio
     ax_2d.set_aspect('equal')
-    #if plot_3d:  # Todo
-        #ax_3d.set_aspect('equal')
+    if plot_3d:
+        ax_3d.set_aspect('equal')
     if plot_input:
         ax_in.set_aspect('equal')
 
@@ -208,7 +224,7 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
             x, y = vectors_to_xy(tra.points)
             ax_2d.plot(x, y, "b--", linewidth=1.0)
 
-    # plot traversals
+    # plot traversals in 2d
     if plot_traversals:
         for traversal in sample["traversals"]:
             for i in range(len(traversal.points)):
@@ -218,16 +234,17 @@ def sample_to_matplotlib(sample, plot_borders: bool = True, plot_ellipsis: bool 
             x, y = vectors_to_xy(traversal.points)
             ax_2d.plot(x, y, "r--", label="traversal: l=" + str(traversal.epsilon), linewidth=1.5)
 
+    # plot traversal in 3d
     if plot_3d and plot_traversals:
         x, y, z = sample["traversal"]["traversal-3d"]
         x_l, y_l, z_l = sample["traversal"]["traversal-3d-l"]
 
-        ax_3d.plot(x, y, z, "r", label="traversal: l=" + str(tra[0]), linewidth=0.5)
+        ax_3d.plot(x, y, z, "r", label="traversal: l=" + str(sample["traversal"]["epsilon"]), linewidth=0.5)
 
         for i in range(len(x_l)):
             ax_3d.plot([x_l[i]] * 2, [y_l[i]] * 2, bounds_l, "k", linewidth=0.5)
 
-    # show legend
+    # show legend in 3d
     if show_legend and plot_3d:
         ax_3d.legend()
 
