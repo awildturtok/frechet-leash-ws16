@@ -589,7 +589,7 @@ class Hyperbola:
         s2 = other.s
         if self.a == 1 and other.a == 1:
             if s1 == s2:
-                xs = [float("inf")]
+                xs = [s1.x]
             elif about_equal(s1.x, s2.x):
                 xs = []
             else:

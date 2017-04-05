@@ -436,8 +436,8 @@ class Traversal:
 
         traversal = Traversal(self.cell_matrix, self.a_cm, other.b_cm, self.points[:-1] + other.points,
                               max(self.epsilon, other.epsilon), self.epsilons[:-1] + other.epsilons)
-        traversal.slope_a = self.slope_a
-        traversal.slope_b = other.slope_b
+        traversal.slope_a = self.slope_a if self.slope_a != 0 else other.slope_a
+        traversal.slope_b = other.slope_b if other.slope_b != 0 else self.slope_b
         return traversal
 
     def count(self) -> float:
@@ -1415,8 +1415,9 @@ class CellMatrix:
                     if decision:
                         traversal_a_a3 = Traversal.nan()
                         traversal_b3_b = Traversal.nan()
-                        traversals_a3_a4 = [Traversal.nan()]
-                        traversals_b4_b3 = [Traversal.nan()]
+                        traversal_a3_a4 = Traversal.nan()
+                        traversal_b4_b3 = Traversal.nan()
+
                         if a != a3:
                             traversal_a_a3 = Traversal(self, a_cm, a3_cm, [a, a3], max(a_epsilon, epsilon),
                                                        [a_epsilon, epsilon])
@@ -1431,23 +1432,26 @@ class CellMatrix:
                             else:
                                 new_critical_events_1 = critical_events.in_and_on_bounds_2(a3, a4)
                             traversals_a3_a4 = self.traverse_recursive(a3_cm, new_critical_events_1, a4_cm)
+                            traversals_a3_a4.sort(key=lambda tra: tra.slope_a)
+                            traversal_a3_a4 = traversals_a3_a4[0]
+                            slope_a = traversal_a3_a4.slope_a + traversal_a3_a4.slope_b + critical_traversal.slope_a
+                        else:
+                            slope_a = critical_traversal.slope_a
                         if b3 != b4:
                             if critical_traversal.count() > 1:
                                 new_critical_events_2 = critical_events.in_and_on_bounds_1(b4, b3)
                             else:
                                 new_critical_events_2 = critical_events.in_and_on_bounds_2(b4, b3)
                             traversals_b4_b3 = self.traverse_recursive(b4_cm, new_critical_events_2, b3_cm)
-
-                        traversals_a3_a4.sort(key=lambda tra: tra.slope_b)
-                        traversals_b4_b3.sort(key=lambda tra: tra.slope_a)
-                        traversal_a3_a4 = traversals_a3_a4[0]
-                        traversal_b4_b3 = traversals_b4_b3[0]
+                            traversals_b4_b3.sort(key=lambda tra: tra.slope_b)
+                            traversal_b4_b3 = traversals_b4_b3[0]
+                            slope_b = traversal_b4_b3.slope_b + traversal_b4_b3.slope_a + critical_traversal.slope_b
+                        else:
+                            slope_b = critical_traversal.slope_b
 
                         traversal = traversal_a_a3 + traversal_a3_a4 + critical_traversal + traversal_b4_b3 +\
                                     traversal_b3_b
 
-                        slope_a = traversal_a3_a4.slope_b + critical_traversal.slope_a
-                        slope_b = critical_traversal.slope_b + traversal_b4_b3.slope_a
                         traversals_and_slopes.append((slope_a + slope_b, traversal))
                         traversed = True
                 i_epsilon += 1
