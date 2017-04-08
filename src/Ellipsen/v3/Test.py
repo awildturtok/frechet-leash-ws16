@@ -64,13 +64,13 @@ p_ys = [0, 0]
 q_xs = [1, 7, 4, 10]
 q_ys = [0, 3, -3, 0]'''
 
-# critical events test 1
+'''# critical events test 1
 # path_p:
 p_xs = [5, 10, 10, 0, 0, 10]
 p_ys = [10, 10, 0, 0, 5, 5]
 # path_q:
 q_xs = [-10, -5, -5, -15, -15, -5]
-q_ys = [10, 10, 5, 5, 0, 0]
+q_ys = [10, 10, 5, 5, 0, 0]'''
 
 '''# critical events test 2
 # path_p:
@@ -142,13 +142,13 @@ p_ys = [0.3036266614478819, 0.07711430842039535, 0.4951652229311967, 0.997353623
 q_xs = [0.2714870230657075, 0.7018871765012489, 0.20877970643167865, 0.34637144332902836, 0.36469879968808705, 0.8214024752368971, 0.43857466005390366]
 q_ys = [0.2990839304670133, 0.9425803453259921, 0.1871239773564659, 0.5761015296669191, 0.25768162124126626, 0.22270074761139713, 0.39085095825645777]'''
 
-'''# random test save 4 - test new type of events here !!!
+# random test save 4 - test new type of events here !!!
 # path_p:
 p_xs = [0.8551000828942237, 0.16531452408492242, 0.564186564823705, 0.15137331025640277, 0.9196383064638842, 0.10975251213077752]
 p_ys = [0.4788005011702601, 0.13212424890044872, 0.819807938966997, 0.5166440244970916, 0.8808439598407818, 0.7282421177061701]
 # path_q:
 q_xs = [0.25420679369343846, 0.3463219160682829, 0.2672613971484459, 0.020871754464840686, 0.030891347542877257, 0.8818101325621397]
-q_ys = [0.32744502894415317, 0.39350844910524163, 0.4760166754222921, 0.7233726864949581, 0.3406476659866665, 0.5683792989898663]'''
+q_ys = [0.32744502894415317, 0.39350844910524163, 0.4760166754222921, 0.7233726864949581, 0.3406476659866665, 0.5683792989898663]
 
 '''# random test save 5
 # path_p:
@@ -295,13 +295,13 @@ p_ys = [0, 0, x1 + 1, x1 + 1] + [(x1+1) + -1, (x1+1) + x2]
 q_xs = [0, 0, x1 + 1, x1 + 1] + [(x1+1) + -1, (x1+1) + x2]
 q_ys = [0, x1, x1 - 1, x1 + 1] + [(x1+1) + x2, (x1+1) + x2]'''
 
-'''# traversal test 9 a **!!!
+# traversal test 9 a **!!!
 # path_p:
 p_xs = [0, 4, 2, 6]
 p_ys = [0, 0, 6, 6]
 # path_q:
 q_xs = p_ys
-q_ys = p_xs'''
+q_ys = p_xs
 
 '''# traversal test 9 b **
 # path_p:
@@ -320,13 +320,13 @@ p_ys = [0, 0, 0, 6, 6] + [6, 12, 12] + [12, 16] + [15, 23, 22] + [22]
 q_xs = p_ys
 q_ys = p_xs'''
 
-'''# traversal test 9 a complexified 1 !!!
+# traversal test 9 a complexified 1 !!!
 # path_p:
 p_xs = [0, 4, 3, 4, 2, 3, 2, 6]
 p_ys = [0, 0, 2, 3, 3, 4, 6, 6]
 # path_q:
 q_xs = [0, 0, 2, 3, 3, 4, 6, 6]
-q_ys = [0, 4, 3, 2, 4, 3, 2, 6]'''
+q_ys = [0, 4, 3, 2, 4, 3, 2, 6]
 
 '''# traversal test 9 a complexified 2
 # path_p:
@@ -352,11 +352,11 @@ print("q_xs = " + str(list(q_xs)))
 print("q_ys = " + str(list(q_ys)))
 
 graph = ActivePlot()
-
 path_p = graph.xy_to_vectors(p_xs, p_ys)
 path_q = graph.xy_to_vectors(q_xs, q_ys)
 
 input1 = CellMatrix(path_p, path_q, traverse=1)
+print(input1)
 
 #sample1 = input1.sample_l(-1, n_p)
 #sample1 = input1.sample([4, 2.23, 1], n_p)
@@ -366,5 +366,5 @@ critical_epsilons = traversal.epsilons.copy()
 critical_epsilons.sort()
 sample1 = input1.sample(critical_epsilons[-5:], n_p)
 
+
 graph.sample_to_matplotlib(sample1, plot_cross_sections=True, plot_critical_traversals=True, plot_traversals=True, plot_3d=True)
-#sample_to_matplotlib(sample1, plot_cross_sections=True, plot_critical_traversals=True, plot_traversals=True, plot_3d=False, show_colorbar=False)

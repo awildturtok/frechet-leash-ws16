@@ -288,9 +288,9 @@ class ActivePlot:
                 for i in range(len(traversal.points)):
                     if about_equal(traversal.epsilon, traversal.epsilons[i]):
                         point = traversal.points[i]
-                        #self.ax_2d.plot([point.x], [point.y], "ro")
+                        self.ax_2d.plot([point.x], [point.y], "ro")
                 x, y = self.vectors_to_xy(traversal.points)
-                #self.ax_2d.plot(x, y, "r--", label="traversal: l=" + str(traversal.epsilon), linewidth=1.5)
+                self.ax_2d.plot(x, y, "r--", label="traversal: l=" + str(traversal.epsilon), linewidth=1.5)
     
         # plot traversal in 3d
         if self.plot_3d and plot_traversals:
