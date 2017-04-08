@@ -182,7 +182,7 @@ p_ys = [0.09890376541991241, 0.418883273171729, 0.6373631794991932, 0.1519678099
 q_xs = [0.5081380946296423, 0.6977185619019116, 0.47250825455691914]
 q_ys = [0.7425394847018348, 0.2869105596549423, 0.3057053683087]'''
 
-# random test save 9
+'''# random test save 9
 # path_p:
 p_xs = [0.47479273660946175, 0.16025346335529966, 0.43177138699884376, 0.9246314175816142, 0.10685165177261136,
         0.5613190486246639, 0.6920659125314877, 0.31388162717608603, 0.3651080432852446, 0.560470177868245,
@@ -196,7 +196,7 @@ q_xs = [0.7653055796172689, 0.4468612051945503, 0.571562619968749, 0.46795107875
         0.5625537296401396]
 q_ys = [0.08481584394654784, 0.5724664432419776, 0.7997432398252383, 0.3429615394238863, 0.46464983618715683,
         0.7461086327330805, 0.730183537249749, 0.009817595260297907, 0.6859175874417596, 0.363534187109228,
-        0.19514919115926255]
+        0.19514919115926255]'''
 
 '''# random test save 10
 # path_p:
@@ -344,14 +344,6 @@ p_ys = [1, 2, 0, 1]
 q_xs = [0, 2]
 q_ys = [1, 1]'''
 
-'''# traversal max epsilon traversal sample test
-# path_p:
-p_xs = [0, 10, 10]
-p_ys = [0, 0, 5]
-# path_q:
-q_xs = [0, 3, 10, 7, 10]
-q_ys = [0, 5, 0, 5, 5]'''
-
 print("# path_p:")
 print("p_xs = " + str(list(p_xs)))
 print("p_ys = " + str(list(p_ys)))
@@ -374,9 +366,5 @@ critical_epsilons = traversal.epsilons.copy()
 critical_epsilons.sort()
 sample1 = input1.sample(critical_epsilons[-5:], n_p)
 
-<<<<<<< HEAD
-sample_to_matplotlib(sample1, plot_cross_sections=True, plot_critical_traversals=True, plot_traversals=True, plot_3d=True, show_colorbar=False)
-=======
 
 graph.sample_to_matplotlib(sample1, plot_cross_sections=True, plot_critical_traversals=True, plot_traversals=True, plot_3d=True)
->>>>>>> origin/master
