@@ -1505,7 +1505,7 @@ class CellMatrix:
 
         return self.sample(ls, n_p, heatmap_n=heatmap_n, traversals_n=traversals_n, cross_sections_n=cross_sections_n)
 
-    def sample(self, ls: [float], n_p: int, heatmap_n: int = 100, traversals_n: int = 10, cross_sections_n: int = 100)\
+    def sample(self, ls: [float], n_p: int, heatmap_n: int = 100, traversals_n: int = 25, cross_sections_n: int = 100)\
             -> {}:
         # sample cell-matrix for given ls and n_p: points per ellipses
         samples = {"bounds-l": [], "borders-v": [], "borders-h": [], "cells": [], "traversals": [], "heatmap": [],
@@ -1638,7 +1638,7 @@ class CellMatrix:
 
         return [xs, ys, zs]
 
-    def points_for_traversal_point(self, traversal_p: Vector, c_a: int = 0, c_b: int = 0) -> [Vector, Vector]:
+    def points_for_traversal_point(self, traversal_p: Vector, c_a: int = 0, c_b: int = 0) -> (Vector, Vector):
         # sample lines for sampling over the input paths
         r_a = traversal_p.x
         r_b = traversal_p.y
@@ -1660,7 +1660,7 @@ class CellMatrix:
         pa = a.frl(r_a)
         pb = b.frl(r_b)
 
-        return [pa, pb]
+        return pa, pb
 
     def sample_traversal(self, traversal: Traversal, n: int) -> {}:
         # sample a specific traversal for lines between paths and 3d-plot with n points
@@ -1689,7 +1689,7 @@ class CellMatrix:
         for c_t in range(len(traversal_segments)):
 
             t_ls = traversal_segments[c_t]
-            n_t = int(math.ceil((t_ls.l / traversal_length) * n))
+            n_t = int(math.ceil((t_ls.l / traversal_length) * n * 10))
             i_t = 0
 
             p1 = t_ls.p1
@@ -1698,7 +1698,7 @@ class CellMatrix:
             while p1.y > self.q.offsets[c_b + 1] and c_b < self.q.count - 1:
                 c_b += 1
 
-            if epsilons[c_t] >= epsilon:
+            if about_equal(epsilons[c_t], epsilon):
                 line = self.points_for_traversal_point(p1, c_a=c_a, c_b=c_b)
                 sample["in-traversal-l"].append(line)
 
@@ -1716,8 +1716,9 @@ class CellMatrix:
                 t = i_t / n_t
                 t_p = t_ls.fr(t)
 
-                line = self.points_for_traversal_point(t_p, c_a=c_a, c_b=c_b)
-                sample["in-traversal"].append(line)
+                if i_t % 10 == 0:
+                    line = self.points_for_traversal_point(t_p, c_a=c_a, c_b=c_b)
+                    sample["in-traversal"].append(line)
 
                 x.append(t_p.x)
                 y.append(t_p.y)
@@ -1725,13 +1726,12 @@ class CellMatrix:
 
                 i_t += 1
 
-        if epsilons[-1] >= epsilon:
-            sample["in-traversal-l"].append([self.p.points[-1], self.q.points[-1]])
+        if about_equal(epsilons[-1], epsilon):
+            sample["in-traversal-l"].append((self.p.points[-1], self.q.points[-1]))
             x_l.append(self.p.length)
             y_l.append(self.q.length)
             z_l.append(epsilons[-1])
-        else:
-            sample["in-traversal"].append([self.p.points[-1], self.q.points[-1]])
+        sample["in-traversal"].append((self.p.points[-1], self.q.points[-1]))
         x.append(self.p.length)
         y.append(self.q.length)
         z.append(epsilons[-1])
