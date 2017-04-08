@@ -94,6 +94,8 @@ class ActivePlot:
         self.ax_3d.set_xlabel("Path P")
         self.ax_3d.set_ylabel("Path Q")
         self.ax_3d.set_zlabel("Length l")
+        self.ax_2d.set_xlabel("Path P")
+        self.ax_2d.set_ylabel("Path Q")
         
         # set padding
         # 2d
@@ -197,27 +199,23 @@ class ActivePlot:
     
             #print(z_)        
             for i in range(len(x_)):
-                self.ax_3d.plot(x_[i], y_[i], z_[i], "r", linewidth=0.5)
+                if i == len(x_)-1:
+                    self.ax_3d.plot(x_[i], y_[i], z_[i], "r", label="traversal: l=" + str(self.max_traversal), linewidth=0.5)
+                else:
+                    self.ax_3d.plot(x_[i], y_[i], z_[i], "r", linewidth=0.5)
+                    
                 #self.ax_2d.plot(x_[i], y_[i], "ro")
-                self.ax_2d.plot(x_[i], y_[i], "r--", label="traversal: l=" + str(self.max_traversal), linewidth=1.5)
+                self.ax_2d.plot(x_[i], y_[i], "r--", linewidth=1.5)
                     
             
             for traversal in self.sample["traversals"]:
                 for i in range(len(traversal.points)):
                     if about_equal(traversal.epsilon, traversal.epsilons[i]):
                         point = traversal.points[i]
-                        self.ax_2d.plot([point.x], [point.y], "ro")        
+                        self.ax_2d.plot([point.x], [point.y], "ro", label="traversal: l=" + str(self.max_traversal))     
+
+        self.ax_3d.legend()
                     
-        # plot traversals in 2d
-        #if plot_traversals:
-        #    for traversal in sample["traversals"]:
-        #        for i in range(len(traversal.points)):
-        #            if about_equal(traversal.epsilon, traversal.epsilons[i]):
-        #                point = traversal.points[i]
-        #                self.ax_2d.plot([point.x], [point.y], "ro")
-        #        x, y = self.vectors_to_xy(traversal.points)
-        #        self.max_traversal = traversal.epsilon
-        #        self.ax_2d.plot(x, y, "r--", label="traversal: l=" + str(traversal.epsilon), linewidth=1.5)
     
     def sample_to_matplotlib(self, sample, plot_borders: bool = True, plot_ellipsis: bool = True, plot_heatmap: bool = True,
                             plot_traversals: bool = True, plot_axis: bool = False, plot_l_lines: bool = False,
@@ -265,25 +263,25 @@ class ActivePlot:
             self.ax_2d = fig.add_subplot(1, 2, 1)
             self.ax_3d = fig.add_subplot(1, 2, 2, projection='3d')
             ax_in = fig_in.add_subplot(1, 1, 1)
-            ax_slider = fig.add_axes([0.01, 0.05, 1, 0.03], axisbg=axcolor)
+            ax_slider = fig.add_axes([0.01, 0.01, 1, 0.03], axisbg=axcolor)
             self.curr_trav = Slider(ax_slider, '', self.bounds_l[0] - self.pad_1, self.bounds_l[1] + self.pad_1, valinit=0)
         elif self.plot_3d:
             fig = plt.figure(figsize=plt.figaspect(0.5))
             self.ax_2d = fig.add_subplot(1, 2, 1)
             self.ax_3d = fig.add_subplot(1, 2, 2, projection='3d')
-            ax_slider = fig.add_axes([0.01, 0.05, 1, 0.03], axisbg=axcolor)
+            ax_slider = fig.add_axes([0.01, 0.01, 1, 0.03], axisbg=axcolor)
             self.curr_trav = Slider(ax_slider, '', self.bounds_l[0] - self.pad_1, self.bounds_l[1] + self.pad_1, valinit=0)
         elif plot_input:
             fig = plt.figure(figsize=plt.figaspect(0.5))
             fig_in = plt.figure(figsize=plt.figaspect(0.5))
             self.ax_2d = fig.add_subplot(1, 1, 1)
             ax_in = fig_in.add_subplot(1, 1, 1)
-            ax_slider = fig.add_axes([0.01, 0.05, 1, 0.03], axisbg=axcolor)
+            ax_slider = fig.add_axes([0.01, 0.01, 1, 0.03], axisbg=axcolor)
             self.curr_trav = Slider(ax_slider, '', self.bounds_l[0] - self.pad_1, self.bounds_l[1] + self.pad_1, valinit=0)
         else:
             fig = plt.figure(figsize=plt.figaspect(0.5))
             self.ax_2d = fig.add_subplot(1, 1, 1)
-            ax_slider = fig.add_axes([0.01, 0.05, 1, 0.03], axisbg=axcolor)
+            ax_slider = fig.add_axes([0.01, 0.01, 1, 0.03], axisbg=axcolor)
             self.curr_trav = Slider(ax_slider, '', self.bounds_l[0] - self.pad_1, self.bounds_l[1] + self.pad_1, valinit=0)
     
         # set aspect ratio
@@ -468,7 +466,10 @@ class ActivePlot:
             
             #print(z_)        
             for i in range(len(x_)):
-                self.ax_3d.plot(x_[i], y_[i], z_[i], "r", label="traversal: l=" + str(traversal.epsilon), linewidth=0.5)
+                if i == len(x_)-1:
+                    self.ax_3d.plot(x_[i], y_[i], z_[i], "r", label="traversal: l=" + str(self.max_traversal), linewidth=0.5)
+                else:
+                    self.ax_3d.plot(x_[i], y_[i], z_[i], "r",  linewidth=0.5)
     
             for i in range(len(x_l)):
                 self.ax_3d.plot([x_l[i]] * 2, [y_l[i]] * 2, self.bounds_l, "k", linewidth=0.5)
