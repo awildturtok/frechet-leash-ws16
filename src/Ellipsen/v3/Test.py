@@ -344,19 +344,19 @@ p_ys = [1, 2, 0, 1]
 q_xs = [0, 2]
 q_ys = [1, 1]'''
 
-print("# path_p:")
-print("p_xs = " + str(list(p_xs)))
-print("p_ys = " + str(list(p_ys)))
-print("# path_q:")
-print("q_xs = " + str(list(q_xs)))
-print("q_ys = " + str(list(q_ys)))
+#print("# path_p:")
+#print("p_xs = " + str(list(p_xs)))
+#print("p_ys = " + str(list(p_ys)))
+#print("# path_q:")
+#print("q_xs = " + str(list(q_xs)))
+#print("q_ys = " + str(list(q_ys)))
 
 graph = ActivePlot()
 path_p = graph.xy_to_vectors(p_xs, p_ys)
 path_q = graph.xy_to_vectors(q_xs, q_ys)
 
 input1 = CellMatrix(path_p, path_q, traverse=1)
-print(input1)
+#print(input1)
 
 #sample1 = input1.sample_l(-1, n_p)
 #sample1 = input1.sample([4, 2.23, 1], n_p)
