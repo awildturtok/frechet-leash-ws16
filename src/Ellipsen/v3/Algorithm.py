@@ -1665,10 +1665,11 @@ class CellMatrix:
     def sample_traversal(self, traversal: Traversal, n: int) -> {}:
         # sample a specific traversal for lines between paths and 3d-plot with n points
 
-        sample = {"epsilon": float, "in-traversal-l": [], "in-traversal": [], "traversal-3d": [], "traversal-3d-l": []}
+        sample = {"epsilon-bounds": (float, float), "in-traversal-l": [], "in-traversal": [], "traversal-3d": [],
+                  "traversal-3d-l": []}
 
         epsilon = traversal.epsilon
-        sample["epsilon"] = epsilon
+        sample["epsilon-bounds"] = (min(traversal.epsilons), epsilon)
         epsilons = traversal.epsilons
         traversal_segments = []
         traversal_length = 0

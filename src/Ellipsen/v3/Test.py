@@ -351,9 +351,8 @@ q_ys = [1, 1]'''
 #print("q_xs = " + str(list(q_xs)))
 #print("q_ys = " + str(list(q_ys)))
 
-graph = ActivePlot()
-path_p = graph.xy_to_vectors(p_xs, p_ys)
-path_q = graph.xy_to_vectors(q_xs, q_ys)
+path_p = xy_to_vectors(p_xs, p_ys)
+path_q = xy_to_vectors(q_xs, q_ys)
 
 input1 = CellMatrix(path_p, path_q, traverse=1)
 #print(input1)
@@ -366,5 +365,4 @@ critical_epsilons = traversal.epsilons.copy()
 critical_epsilons.sort()
 sample1 = input1.sample(critical_epsilons[-5:], n_p)
 
-
-graph.sample_to_matplotlib(sample1, plot_cross_sections=True, plot_critical_traversals=True, plot_traversals=True, plot_3d=True)
+plot = PlotOutput(sample1, plot_cross_sections=True, plot_critical_traversals=True, plot_traversals=True, plot_3d=True)
