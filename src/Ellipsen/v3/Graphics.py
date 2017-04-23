@@ -73,10 +73,10 @@ class PlotOutput:
         self.plot_cross_sections = plot_cross_sections
         self.show_slider = show_slider
 
-        self.traversal_epsilon_bounds = sample["traversal"]["epsilon-bounds"]
-        self.frechet_distance = self.traversal_epsilon_bounds[1]
-
+        self.epsilon_bounds = sample["traversal"]["epsilon-bounds"]
         self.curr_val = 0
+
+        print("\nPlotting sample.\n")
 
         # plot cross-sections
         if plot_cross_sections:
@@ -104,9 +104,10 @@ class PlotOutput:
             ax_in = fig_in.add_subplot(1, 1, 1)
 
         # show slider
-        if self.show_slider:
-            ax_slider = self.fig.add_axes([0.01, 0.01, 1, 0.03], axisbg="lightgoldenrodyellow")
-            self.slider = Slider(ax_slider, '', *self.traversal_epsilon_bounds, valinit=self.frechet_distance)
+        if self.show_slider and self.plot_traversals:
+            ax_slider = self.fig.add_axes([0.1, 0.1, 0.8, 0.025])
+            self.slider = Slider(ax_slider, '', *self.epsilon_bounds, valinit=self.epsilon_bounds[0])
+            self.slider.on_changed(self.update)
 
         # set aspect ratio
         self.ax_2d.set_aspect('equal')
@@ -230,8 +231,11 @@ class PlotOutput:
             surf = self.ax_2d.pcolor(x, y, z, cmap=cm.coolwarm)
 
         # plot colorbar
-        if (self.plot_heatmap or self.plot_3d) and self.show_colorbar:
-            self.fig.colorbar(surf, shrink=0.95, aspect=5)
+        if self.show_colorbar:
+            if self.plot_3d:
+                self.fig.colorbar(surf, ax=self.ax_3d, shrink=0.95, aspect=6)
+            elif self.plot_heatmap:
+                self.fig.colorbar(surf, ax=self.ax_2d, shrink=0.95, aspect=6)
 
         # plot critical traversals
         if self.plot_critical_traversals:
@@ -266,10 +270,8 @@ class PlotOutput:
 
         # show legend in 3d
         if show_legend and self.plot_3d:
-            self.ax_3d.plot([], [], [], label="Frechét Distance: l=" + str(self.frechet_distance))
+            self.ax_3d.plot([], [], [], label="Frechét Distance: l=" + str(self.epsilon_bounds[1]))
             self.ax_3d.legend()
-
-        self.slider.on_changed(self.update)
 
         plt.show()
 
@@ -325,6 +327,5 @@ class PlotOutput:
                 traversal_plot_3d.pop(0).remove()
             self.traversal_plots_3d = []
             for i in range(len(xs)):
-                if i == len(xs) - 1:
-                    line = self.ax_3d.plot(xs[i], ys[i], zs[i], "r", linewidth=0.5)
-                    self.traversal_plots_3d.append(line)
+                line = self.ax_3d.plot(xs[i], ys[i], zs[i], "r", linewidth=0.5)
+                self.traversal_plots_3d.append(line)

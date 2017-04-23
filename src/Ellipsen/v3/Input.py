@@ -1,6 +1,6 @@
 from Algorithm import CellMatrix
 from Geometry import *
-from Graphics import sample_to_matplotlib
+from Graphics import PlotOutput
 
 import sys
 import csv
@@ -27,8 +27,6 @@ for name, value in options:
         n_samples = int(value)
 
 
-
-
 reader = csv.reader(iter(sys.stdin.readline, ''))
 
 paths = []
@@ -44,15 +42,15 @@ for row in reader:
     if len(paths) == 2:
         break
 
-patha = paths[0]
-pathb = paths[1]
+path_a = paths[0]
+path_b = paths[1]
 
-input1 = CellMatrix(patha, pathb)
+input1 = CellMatrix(path_a, path_b)
 
 if len(specific_l) > 0:
-    sample1 = input1.sample(specific_l, n_samples, heatmap=n_samples)
+    sample1 = input1.sample(specific_l, n_samples)
 else:
-    sample1 = input1.sample_l(n_heights, n_samples, heatmap=n_samples)
+    sample1 = input1.sample_l(n_heights, n_samples)
 
 
-sample_to_matplotlib(sample1)
+PlotOutput(sample1)

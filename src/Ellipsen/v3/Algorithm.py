@@ -1717,8 +1717,8 @@ class CellMatrix:
                 t = i_t / n_t
                 t_p = t_ls.fr(t)
 
+                line = self.points_for_traversal_point(t_p, c_a=c_a, c_b=c_b)
                 if i_t % 10 == 0:
-                    line = self.points_for_traversal_point(t_p, c_a=c_a, c_b=c_b)
                     sample["in-traversal"].append(line)
 
                 x.append(t_p.x)
