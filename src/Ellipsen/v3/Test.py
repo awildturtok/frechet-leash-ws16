@@ -295,13 +295,13 @@ p_ys = [0, 0, x1 + 1, x1 + 1] + [(x1+1) + -1, (x1+1) + x2]
 q_xs = [0, 0, x1 + 1, x1 + 1] + [(x1+1) + -1, (x1+1) + x2]
 q_ys = [0, x1, x1 - 1, x1 + 1] + [(x1+1) + x2, (x1+1) + x2]'''
 
-# traversal test 9 a **!!!
+'''# traversal test 9 a **!!!
 # path_p:
 p_xs = [0, 4, 2, 6]
 p_ys = [0, 0, 6, 6]
 # path_q:
 q_xs = p_ys
-q_ys = p_xs
+q_ys = p_xs'''
 
 '''# traversal test 9 b **
 # path_p:
