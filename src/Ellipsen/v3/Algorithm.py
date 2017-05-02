@@ -750,7 +750,7 @@ def steepest_decent_helper_new_type_critical_2(bounds: Bounds1D, decent_hyperbol
 
 
 class CellMatrix:
-    def __init__(self, points_p: [Vector], points_q: [Vector], traverse: int = 0):
+    def __init__(self, points_p: [Vector], points_q: [Vector], traverse: int = 1):
         # paths
         self.p = Path(points_p)
         self.q = Path(points_q)
@@ -785,6 +785,7 @@ class CellMatrix:
 
         # traverse
         self.traverse = traverse
+        self.max_epsilon = math.inf
         if traverse > 0:
             self.max_epsilon, self.traversals = self.do_traverse()
 
