@@ -16,7 +16,7 @@ options, __ = getopt.getopt(sys.argv[1:], "n:l:s:")
 
 n_heights = 7
 specific_l = []
-n_samples = 100
+n_samples = 50
 
 for name, value in options:
     if name == "-n":
@@ -45,12 +45,18 @@ for row in reader:
 path_a = paths[0]
 path_b = paths[1]
 
-input1 = CellMatrix(path_a, path_b)
+input1 = CellMatrix(path_a, path_b, traverse = 1)
+print(input1)
 
-if len(specific_l) > 0:
-    sample1 = input1.sample(specific_l, n_samples)
-else:
-    sample1 = input1.sample_l(n_heights, n_samples)
+#if len(specific_l) > 0:
+#    sample1 = input1.sample(specific_l, n_samples)
+#else:
+#    sample1 = input1.sample_l(n_heights, n_samples)
 
+traversal = input1.traversals[0]
+critical_epsilons = traversal.epsilons.copy()
+critical_epsilons.sort()
+sample1 = input1.sample(critical_epsilons[-5:],n_samples)
 
-PlotOutput(sample1)
+#PlotOutput(sample1)
+plot = PlotOutput(sample1, plot_critical_traversals=True)
