@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>918</width>
+    <height>372</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Frechet Distance Calculator</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <widget class="QWidget" name="widget" native="true">
+        <property name="maximumSize">
+         <size>
+          <width>16777215</width>
+          <height>300</height>
+         </size>
+        </property>
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_2">
+           <item>
+            <widget class="QGroupBox" name="groupBox">
+             <property name="maximumSize">
+              <size>
+               <width>400</width>
+               <height>400</height>
+              </size>
+             </property>
+             <property name="title">
+              <string>Edit Graphs</string>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_2">
+              <item>
+               <layout class="QVBoxLayout" name="verticalLayout">
+                <item>
+                 <widget class="QPushButton" name="btn_change_graph">
+                  <property name="maximumSize">
+                   <size>
+                    <width>400</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Change Graph</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="btn_deleteGraph">
+                  <property name="maximumSize">
+                   <size>
+                    <width>400</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Delete Graph</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="lb_graph_red">
+                  <property name="maximumSize">
+                   <size>
+                    <width>215</width>
+                    <height>10</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Graph 1 - Red one</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="lineEdit_graph_red">
+                  <property name="maximumSize">
+                   <size>
+                    <width>400</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="label">
+                  <property name="maximumSize">
+                   <size>
+                    <width>215</width>
+                    <height>10</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Graph 2 - Blue one</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="lineEdit_graph_blue">
+                  <property name="maximumSize">
+                   <size>
+                    <width>400</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QPushButton" name="btn_startCalc">
+                <property name="maximumSize">
+                 <size>
+                  <width>400</width>
+                  <height>20</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Start calculating Frechét Distance</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QGroupBox" name="groupBox_2">
+             <property name="maximumSize">
+              <size>
+               <width>400</width>
+               <height>400</height>
+              </size>
+             </property>
+             <property name="title">
+              <string>Additional Parameters</string>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_5">
+              <item>
+               <layout class="QVBoxLayout" name="verticalLayout_4">
+                <item>
+                 <widget class="QLabel" name="lb_samples">
+                  <property name="maximumSize">
+                   <size>
+                    <width>215</width>
+                    <height>15</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Number of Samples</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QSlider" name="slider_samples">
+                  <property name="minimum">
+                   <number>30</number>
+                  </property>
+                  <property name="maximum">
+                   <number>200</number>
+                  </property>
+                  <property name="value">
+                   <number>100</number>
+                  </property>
+                  <property name="sliderPosition">
+                   <number>100</number>
+                  </property>
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="tickPosition">
+                   <enum>QSlider::TicksBothSides</enum>
+                  </property>
+                  <property name="tickInterval">
+                   <number>20</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QWidget" name="widget_sliderSamples" native="true">
+                  <property name="maximumSize">
+                   <size>
+                    <width>400</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_5">
+                   <item>
+                    <layout class="QHBoxLayout" name="horizontalLayout_4">
+                     <item>
+                      <widget class="QLabel" name="lb_samplesMinValue">
+                       <property name="text">
+                        <string>30</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="QLabel" name="lb_sampleValue">
+                       <property name="text">
+                        <string>100l</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_2">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="QLabel" name="lb_sampleMaxValue">
+                       <property name="text">
+                        <string>200</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="lb_ellipsies">
+                  <property name="maximumSize">
+                   <size>
+                    <width>215</width>
+                    <height>15</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Number of ellypsis</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QSlider" name="slider_ellipsies">
+                  <property name="minimum">
+                   <number>3</number>
+                  </property>
+                  <property name="maximum">
+                   <number>20</number>
+                  </property>
+                  <property name="value">
+                   <number>7</number>
+                  </property>
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="tickPosition">
+                   <enum>QSlider::TicksBothSides</enum>
+                  </property>
+                  <property name="tickInterval">
+                   <number>1</number>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QWidget" name="widget_sliderEllipsies" native="true">
+                  <property name="maximumSize">
+                   <size>
+                    <width>400</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                  <layout class="QHBoxLayout" name="horizontalLayout_7">
+                   <item>
+                    <layout class="QHBoxLayout" name="horizontalLayout_6">
+                     <item>
+                      <widget class="QLabel" name="lb_ellipsiesMinValue">
+                       <property name="text">
+                        <string>3</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_3">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="QLabel" name="lb_ellipsiesValue">
+                       <property name="text">
+                        <string>7</string>
+                       </property>
+                      </widget>
+                     </item>
+                     <item>
+                      <spacer name="horizontalSpacer_4">
+                       <property name="orientation">
+                        <enum>Qt::Horizontal</enum>
+                       </property>
+                       <property name="sizeHint" stdset="0">
+                        <size>
+                         <width>40</width>
+                         <height>20</height>
+                        </size>
+                       </property>
+                      </spacer>
+                     </item>
+                     <item>
+                      <widget class="QLabel" name="lb_ellipsiesMaxValue">
+                       <property name="text">
+                        <string>20</string>
+                       </property>
+                      </widget>
+                     </item>
+                    </layout>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+             </layout>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>918</width>
+     <height>21</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
