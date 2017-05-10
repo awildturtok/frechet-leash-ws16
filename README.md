@@ -3,12 +3,11 @@
 ## Release:
 * v1: im Ordner "../releases/release_v1.zip" beinhaltet Dokumentation, Frontend & Backend
 
-##Aufgaben:
-###Frontend
+
+## Aufgaben:
+### Frontend
 * Josephine, Jana, Alex T
-
-###Backend
+### Backend
 * Kilian, Anton
-
-###Lexikographischer Frechet
+### Lexikographischer Frechet
 * Fabian
