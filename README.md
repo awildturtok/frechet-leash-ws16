@@ -1,23 +1,14 @@
 # frechet-leash-ws16
 
-## TODO
-
-* [ ] Darstellen von Kurven
-* [ ] Darstellen von Kurven+Zuordnung
-* [ ] Darstellen von FreeSpace Diagramm
-    - (geg.: n x m Matrix & Frechet Distanz, optional Farben)
-* [ ] Höhenkarte
-* [ ] Heatmap
-* [ ] Ellipsen einer Zelle: Algorithmus
-    - Fallunterscheidung bzgl. Eingabe -> Winkel, Offsets, Richtungen implementieren
-
+## Release:
+* v1: im Ordner "../releases/release_v1.zip" beinhaltet Dokumentation, Frontend & Backend
 
 ##Aufgaben:
-###Visualisierungen
+###Frontend
 * Josephine, Jana, Alex T
 
-###Ellipsen
-* Anton, Kilian
+###Backend
+* Kilian, Anton
 
 ###Lexikographischer Frechet
 * Fabian
