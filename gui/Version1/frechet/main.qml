@@ -1,6 +1,6 @@
 import QtQuick 2.5
 import QtQuick.Window 2.2
-import QtDataVisualization 1.2
+//import QtDataVisualization 1.2
 import QtCharts 2.0
 import QtQuick 2.0
 import QtQuick.Controls 1.0
