@@ -13,6 +13,7 @@
 # -*- coding: utf-8 -*-
 
 from Graphics import *
+from numbers import Number
 
 
 n_l = 7  # number of height lines
@@ -110,7 +111,7 @@ q_ys = np.random.random_sample(5)'''
 # path_p:
 p_xs = np.random.random_sample(11)
 p_ys = np.random.random_sample(11)
-p_xs.sort()
+p_xs.sort()2
 p_ys.sort()
 # path_q:
 q_xs = np.random.random_sample(11)
@@ -354,13 +355,13 @@ p_ys = [0, 0, 0, 6, 6] + [6, 12, 12] + [12, 16] + [15, 23, 22] + [22]
 q_xs = p_ys
 q_ys = p_xs'''
 
-# traversal test 9 a complexified 1 !!! <- incl. in documentation
+'''# traversal test 9 a complexified 1 !!! <- incl. in documentation
 # path_p:
 p_xs = [0, 4, 3, 4, 2, 3, 2, 6]
 p_ys = [0, 0, 2, 3, 3, 4, 6, 6]
 # path_q:
 q_xs = [0, 0, 2, 3, 3, 4, 6, 6]
-q_ys = [0, 4, 3, 2, 4, 3, 2, 6]
+q_ys = [0, 4, 3, 2, 4, 3, 2, 6]'''
 
 '''# traversal test 9 a complexified 2
 # path_p:
@@ -387,28 +388,97 @@ print("q_xs = " + str(list(q_xs)))
 print("q_ys = " + str(list(q_ys)))'''
 
 
+
+'''BA'''
+
+'''# classic critical type a
+# path_p:
+p_xs = [0, 0.6, 0.4, 1]
+p_ys = [0.1, 0, 1, 0.9]
+# path_q:
+q_xs = [0, 1]
+q_ys = [0.4, 0.4]'''
+
+'''# classic critical type b
+# path_p:
+p_xs = [1, 1, 1]
+p_ys = [1, 2, 0.5]
+# path_q:
+q_xs = [0.5, 1.5]
+q_ys = [1, 1]'''
+
+'''# new critical
+# path_p:
+p_xs = [0, 1, 0, 1]
+p_ys = [3, 2.5, 2.8, 2.7]
+# path_q:
+q_xs = [0, 1]
+q_ys = [1.5, 1.5]'''
+
+'''# multiple critical points problem
+# path_p:
+p_xs = [0, 4, 3, 4, 2, 3, 2, 6]
+p_ys = [0, 0, 2, 3, 3, 4, 6, 6]
+# path_q:
+q_xs = [0, 0, 2, 3, 3, 4, 6, 6]
+q_ys = [0, 4, 3, 2, 4, 3, 2, 6]'''
+
+'''# multiple critical points problem: äqui. dist.
+# path_p:
+p_xs = [0, 4, 3, 4, 2, 3, 2, 6]
+p_ys = [0, 0, 2, 3, 3, 4, 6, 6]
+# path_q:
+q_xs = [0, 0, 2, 3, 3, 4, 6, 6]
+q_ys = [0, 2+math.sqrt(7), 3, 2, 4, 3, 6-(2+math.sqrt(7)), 6]'''
+
+
 # paths
-path_p = xy_to_vectors(p_xs, p_ys)
-path_q = xy_to_vectors(q_xs, q_ys)
+#path_p = xy_to_vectors(p_xs, p_ys)
+#path_q = xy_to_vectors(q_xs, q_ys)
 
-# do calculations
-input1 = CellMatrix(path_p, path_q)
-print(input1)
+def plot_results(path_p, path_q):
 
-# choose one sample:
+    # do calculations
+    input1 = CellMatrix(path_p, path_q)
+    print(input1)
 
-# sample n equally spaced contour lines or for -1 plot contour for the frechet distance
-sample1 = input1.sample_l(-1, n_p)
+    # choose one sample:
 
-# sample contour lines for given epsilons
-# sample1 = input1.sample([4, 2.23, 1], n_p)
+    # sample n equally spaced contour lines or for -1 plot contour for the frechet distance
+    sample1 = input1.sample_l(n_l, n_p)
 
-# sample n contour around frechet distance
-'''traversal = input1.traversals[0]
-critical_epsilons = traversal.epsilons.copy()
-critical_epsilons.sort()
-sample1 = input1.sample(critical_epsilons[-5:], n_p)'''
+    # sample contour lines for given epsilons
+    # sample1 = input1.sample([4, 2.23, 1], n_p)
+
+    # sample n contour around frechet distance
+    '''traversal = input1.traversals[0]
+    critical_epsilons = traversal.epsilons.copy()
+    critical_epsilons.sort()
+    sample1 = input1.sample(critical_epsilons[-2:], n_p, traversals_n=8)'''
 
 
-# create plot
-plot = PlotOutput(sample1)
+    # create plot
+    plot = PlotOutput(sample1, plot_3d=False)
+    return plot
+
+def tuples_to_vectors(tuples):
+    vectors = []
+
+    for tuple in tuples:
+        x = tuple[0]
+        y = tuple[1]
+        if isinstance(x, Number) and isinstance(y, Number):
+            vectors.append(Vector(x, y))
+        else:
+            print("Error: either is not a valid float: x:" + str(x) + " y:" + str(y))
+
+    return vectors
+
+
+plot_results(tuples_to_vectors([
+        # P
+        (0, 0), (4, 4), (6, 4), (6, 6), (10, 10), (6, 6), (5.5, 4.5), (4, 4),(0, 0)
+    ]), tuples_to_vectors([
+        # Q
+        (0, 10), (10, 0), (0, 10)
+    ]))

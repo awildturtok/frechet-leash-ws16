@@ -73,8 +73,10 @@ class PlotOutput:
         self.plot_cross_sections = plot_cross_sections
         self.show_slider = show_slider
 
-        self.epsilon_bounds = sample["traversal"]["epsilon-bounds"]
+        self.epsilon_bounds = sample["traversals"][0]["epsilon-bounds"]
         self.curr_val = 0
+        self.traversal_plots_2d = []
+        self.traversal_plots_3d = []
 
         print("\nPlotting sample.\n")
 
@@ -155,8 +157,8 @@ class PlotOutput:
             ax_in.legend()
 
             if plot_traversals:
-                in_traversal = sample["traversal"]["in-traversal"]
-                in_traversal_l = sample["traversal"]["in-traversal-l"]
+                in_traversal = sample["traversals"][0]["in-traversal"]
+                in_traversal_l = sample["traversals"][0]["in-traversal-l"]
                 for ps in in_traversal:
                     x, y = vectors_to_xy(ps)
                     ax_in.plot(x, y, "k", linewidth=0.5)
@@ -250,23 +252,25 @@ class PlotOutput:
         # plot traversals in 2d
         if self.plot_traversals:
             for traversal in sample["traversals"]:
-                x, y = vectors_to_xy(traversal.points)
+                x, y, z = traversal["traversal-3d"]
                 line = self.ax_2d.plot(x, y, "r", linewidth=1.5)
-                self.traversal_plots_2d = [line]
+                self.traversal_plots_2d.append(line)
 
-            x_l, y_l, z_l = sample["traversal"]["traversal-3d-l"]
-            for i in range(len(x_l)):
-                self.ax_2d.plot([x_l[i]] * 2, [y_l[i]] * 2, "ro")
+            for traversal in sample["traversals"]:
+                x_l, y_l, z_l = traversal["traversal-3d-l"]
+                for i in range(len(x_l)):
+                    self.ax_2d.plot([x_l[i]] * 2, [y_l[i]] * 2, "ro")
 
         # plot traversal in 3d
         if plot_3d and plot_traversals:
-            x, y, z = sample["traversal"]["traversal-3d"]
-            line = self.ax_3d.plot(x, y, z, "r", linewidth=0.5)
-            self.traversal_plots_3d = [line]
+            for traversal in sample["traversals"]:
+                x, y, z = traversal["traversal-3d"]
+                line = self.ax_3d.plot(x, y, z, "r", linewidth=0.5)
+                self.traversal_plots_3d.append(line)
 
-            x_l, y_l, z_l = sample["traversal"]["traversal-3d-l"]
-            for i in range(len(x_l)):
-                self.ax_3d.plot([x_l[i]] * 2, [y_l[i]] * 2, self.bounds_l, "k", linewidth=0.5)
+                x_l, y_l, z_l = traversal["traversal-3d-l"]
+                for i in range(len(x_l)):
+                    self.ax_3d.plot([x_l[i]] * 2, [y_l[i]] * 2, self.bounds_l, "k", linewidth=0.5)
 
         # show legend in 3d
         if show_legend and self.plot_3d:
@@ -282,8 +286,8 @@ class PlotOutput:
             print("Showing Traversals for Epsilon: " + str(val))
             self.update_traversals(val)
 
-    def traversal_lines_above_epsilon(self, epsilon):
-        x, y, z = self.sample["traversal"]["traversal-3d"]
+    def traversal_lines_above_epsilon(self, traversal, epsilon):
+        x, y, z = traversal["traversal-3d"]
 
         x_ = []
         y_ = []
@@ -312,20 +316,27 @@ class PlotOutput:
         return x_, y_, z_
 
     def update_traversals(self, epsilon: float):
-        xs, ys, zs = self.traversal_lines_above_epsilon(epsilon)
-
+        print("hiMAN")
+        # remove traversal plots
         # 2d
         for traversal_plot_2d in self.traversal_plots_2d:
-            traversal_plot_2d.pop(0).remove()
+            traversal_plot_2d.pop().remove()
         self.traversal_plots_2d = []
-        for i in range(len(xs)):
-            self.traversal_plots_2d.append(self.ax_2d.plot(xs[i], ys[i], "r", linewidth=1.5))
-
         # 3d
         if self.plot_3d:
             for traversal_plot_3d in self.traversal_plots_3d:
-                traversal_plot_3d.pop(0).remove()
+                traversal_plot_3d.pop().remove()
             self.traversal_plots_3d = []
+
+        # add traversal plots (above epsilon)
+        for traversal in self.sample["traversals"]:
+            xs, ys, zs = self.traversal_lines_above_epsilon(traversal, epsilon)
+
             for i in range(len(xs)):
-                line = self.ax_3d.plot(xs[i], ys[i], zs[i], "r", linewidth=0.5)
-                self.traversal_plots_3d.append(line)
+                self.traversal_plots_2d.append(self.ax_2d.plot(xs[i], ys[i], "r", linewidth=1.5))
+
+            # 3d
+            if self.plot_3d:
+                for i in range(len(xs)):
+                    line = self.ax_3d.plot(xs[i], ys[i], zs[i], "r", linewidth=0.5)
+                    self.traversal_plots_3d.append(line)

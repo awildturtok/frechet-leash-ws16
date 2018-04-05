@@ -26,7 +26,7 @@ class Cell:
         # line segments
         self.p = p
         self.q = q
-        
+
         self.norm_ellipsis = norm_ellipsis  # normed ellipsis (l=1)
         self.bounds_hor = Bounds1D(offset.x, offset.x + bounds_xy[0])  # global bounds horizontal
         self.bounds_ver = Bounds1D(offset.y, offset.y + bounds_xy[1])  # global bounds vertical
@@ -1459,7 +1459,10 @@ class CellMatrix:
             if len(traversals) > 0:
                 return traversals
             traversals_and_slopes.sort(key=lambda tup: tup[0])
-            return [traversals_and_slopes[0][1]]  # [tra[1] for tra in traversals_and_slopes]
+            # Show Traversals Setting:
+            # To show one traversal: [traversals_and_slopes[0][1]]
+            # To show all possible traversals: [tra[1] for tra in traversals_and_slopes]
+            return [tra[1] for tra in traversals_and_slopes]
 
         # critical event is higher
         critical_traversals: list = critical_event[1]
@@ -1544,14 +1547,12 @@ class CellMatrix:
         # sample critical traversals
         samples["critical-traversals"] = self.critical_events.list()
 
-        # sample traversals
+        # sample a traversals over the input paths
         if self.traverse > 0:
-            samples["traversals"] = self.traversals
-
-        # sample a traversal over the input paths
-        if self.traverse > 0:
-            traversal = self.traversals[0]
-            samples["traversal"] = self.sample_traversal(traversal, traversals_n * max(self.p.count, self.q.count))
+            for traversal in self.traversals:
+                samples["traversals"].append(
+                    self.sample_traversal(traversal, traversals_n * max(self.p.count, self.q.count))
+                )
 
         # sample heatmap
         if heatmap_n > 0:
